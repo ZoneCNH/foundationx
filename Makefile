@@ -65,8 +65,21 @@ evidence:
 release-evidence-check:
 	./scripts/check_release_evidence.sh
 
+.PHONY: release-clean-check
+release-clean-check:
+	./scripts/check_release_clean.sh
+
 .PHONY: ci
 ci: fmt vet lint test race boundary security contracts docs examples
 
 .PHONY: release-check
-release-check: ci evidence release-evidence-check
+release-check:
+	$(MAKE) ci
+	$(MAKE) evidence
+	$(MAKE) release-evidence-check
+
+.PHONY: release-final-check
+release-final-check:
+	$(MAKE) release-clean-check
+	$(MAKE) release-check
+	$(MAKE) release-clean-check

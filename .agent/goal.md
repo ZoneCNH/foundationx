@@ -8,7 +8,8 @@ documentation、release gates、CI workflows 与 evidence artifacts。
 - Standalone Go module：`github.com/ZoneCNH/foundationx`。
 - Public API 位于 `pkg/foundationx`。
 - 实现保持 standard-library-only。
-- 通过 `make ci` 与 `make release-check` 完成验证。
+- 通过 `make ci` 与常规发布门禁 `make release-check` 完成验证。
+- 正式 tag 发布前通过 `make release-final-check` 完成 clean worktree 门禁。
 
 ## 范围解析（Scope Resolution）
 

@@ -8,7 +8,7 @@
 
 ## 门禁（Gate）
 
-发布前运行：
+常规发布前运行：
 
 ```sh
 make release-check
@@ -17,6 +17,15 @@ make release-check
 该门禁会运行格式化、vet、单元测试、race tests、边界检查、仓库安全检查、
 契约检查、文档检查、examples、manifest 生成，以及 manifest 新鲜度校验。
 `make lint` 是可选辅助门禁：安装 `golangci-lint` 时会运行，否则会显式跳过。
+
+正式 tag 发布前运行：
+
+```sh
+make release-final-check
+```
+
+该门禁会先确认工作区干净，运行 `make release-check`，再复查除 `release/manifest/*.json`
+生成物外没有未提交或未跟踪变更。tag 触发的 release workflow 使用该强门禁。
 
 ## 证据（Evidence）
 
@@ -32,7 +41,8 @@ build timestamp、契约 schema hash，以及发布检查的 pass/fail 标记。
 版本 manifest 一致。
 
 `release/manifest/*.json` 是生成证据，不提交到版本库。CI 发布门禁会生成这些文件并上传为
-artifact；本地运行 `make release-check` 后也会得到相同路径的 manifest。
+artifact；本地运行 `make release-check` 或 `make release-final-check` 后也会得到相同路径的
+manifest。
 
 ## 说明（Notes）
 

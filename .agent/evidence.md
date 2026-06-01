@@ -12,10 +12,16 @@
 
 Release manifest：
 
-- `release/manifest/v0.1.0.json`
+- `release/manifest/<version>.json`（本地默认回退为 `release/manifest/v0.1.0.json`）
 - `release/manifest/latest.json`
 
-这些 JSON 是 release evidence 生成物，由 `make release-check` 在本地或 CI 中生成，不提交到版本库。
+这些 JSON 是 release evidence 生成物，由 `make release-check` 或正式 tag 门禁
+`make release-final-check` 在本地或 CI 中生成，不提交到版本库。
+
+正式 tag 发布门禁：
+
+- `make release-final-check` 会在 `make release-check` 前后运行 clean worktree 检查。
+- clean worktree 检查只允许顶层 `release/manifest/*.json` 作为生成物存在。
 
 Manifest checks：
 

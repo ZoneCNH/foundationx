@@ -6,10 +6,10 @@
 make ci
 ```
 
-运行发布门禁：
+运行正式 tag 发布门禁：
 
 ```sh
-make release-check
+make release-final-check
 ```
 
 直接运行 Go 命令时，应关闭父级 workspace：

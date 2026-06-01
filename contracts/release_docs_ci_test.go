@@ -2,6 +2,7 @@ package contracts
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -11,11 +12,56 @@ import (
 func TestReleaseCheckWiresDocumentationAndEvidenceGates(t *testing.T) {
 	makefile := readRepoText(t, "Makefile")
 
-	assertContains(t, makefile, "release-check: ci evidence release-evidence-check")
+	assertContains(t, makefile, "release-check:")
+	assertContains(t, makefile, "release-clean-check:")
+	assertContains(t, makefile, "release-final-check:")
 	assertContains(t, makefile, "ci: fmt vet lint test race boundary security contracts docs examples")
+	assertContains(t, makefile, "\t$(MAKE) ci")
+	assertContains(t, makefile, "\t$(MAKE) evidence")
+	assertContains(t, makefile, "\t$(MAKE) release-evidence-check")
 	assertContains(t, makefile, "./scripts/check_docs.sh")
 	assertContains(t, makefile, "./scripts/generate_manifest.sh")
 	assertContains(t, makefile, "./scripts/check_release_evidence.sh")
+	assertContains(t, makefile, "./scripts/check_release_clean.sh")
+}
+
+func TestReleaseCheckRunsEvidenceAfterCIGates(t *testing.T) {
+	makefile := readRepoText(t, "Makefile")
+	targetBody := makeTargetBody(t, makefile, "release-check")
+
+	ci := strings.Index(targetBody, "\t$(MAKE) ci")
+	evidence := strings.Index(targetBody, "\t$(MAKE) evidence")
+	evidenceCheck := strings.Index(targetBody, "\t$(MAKE) release-evidence-check")
+	if ci == -1 {
+		t.Fatal("release-check does not run ci")
+	}
+	if evidence == -1 {
+		t.Fatal("release-check does not generate evidence")
+	}
+	if evidenceCheck == -1 {
+		t.Fatal("release-check does not validate release evidence")
+	}
+	if ci >= evidence || evidence >= evidenceCheck {
+		t.Fatal("release-check must run ci, evidence generation, and evidence validation in order")
+	}
+}
+
+func TestReleaseFinalCheckBracketsReleaseCheckWithCleanChecks(t *testing.T) {
+	makefile := readRepoText(t, "Makefile")
+	targetBody := makeTargetBody(t, makefile, "release-final-check")
+
+	firstCleanCheck := strings.Index(targetBody, "\t$(MAKE) release-clean-check")
+	releaseCheck := strings.Index(targetBody, "\t$(MAKE) release-check")
+	lastCleanCheck := strings.LastIndex(targetBody, "\t$(MAKE) release-clean-check")
+	if firstCleanCheck == -1 || lastCleanCheck == -1 || firstCleanCheck == lastCleanCheck {
+		t.Fatal("release-final-check must run release clean check before and after release-check")
+	}
+	if releaseCheck == -1 {
+		t.Fatal("release-final-check does not run release-check")
+	}
+	if firstCleanCheck >= releaseCheck || releaseCheck >= lastCleanCheck {
+		t.Fatal("release-final-check must run clean check, release-check, then clean check")
+	}
 }
 
 func TestBaselibTemplateAnalysisPinsReviewedGovernanceBaseline(t *testing.T) {
@@ -38,6 +84,7 @@ func TestBaselibTemplateAnalysisPinsReviewedGovernanceBaseline(t *testing.T) {
 func TestReleaseEvidenceScriptsPreserveFreshnessChecks(t *testing.T) {
 	generate := readRepoText(t, filepath.Join("scripts", "generate_manifest.sh"))
 	check := readRepoText(t, filepath.Join("scripts", "check_release_evidence.sh"))
+	clean := readRepoText(t, filepath.Join("scripts", "check_release_clean.sh"))
 
 	for _, want := range []string{
 		"tree_sha",
@@ -60,6 +107,144 @@ func TestReleaseEvidenceScriptsPreserveFreshnessChecks(t *testing.T) {
 		"version schema hash mismatch",
 	} {
 		assertContains(t, check, want)
+	}
+
+	for _, want := range []string{
+		"git status --short --untracked-files=all -- .",
+		"grep -vE '^.. release/manifest/[^/]+\\.json$'",
+		"release workspace is dirty",
+	} {
+		assertContains(t, clean, want)
+	}
+}
+
+func TestReleaseCleanCheckOnlyAllowsTopLevelManifestJSON(t *testing.T) {
+	clean := readRepoText(t, filepath.Join("scripts", "check_release_clean.sh"))
+	const allowedManifestPattern = `^.. release/manifest/[^/]+\.json$`
+
+	assertContains(t, clean, "grep -vE '"+allowedManifestPattern+"'")
+
+	allowedManifest := regexp.MustCompile(allowedManifestPattern)
+	for _, tc := range []struct {
+		name    string
+		line    string
+		allowed bool
+	}{
+		{
+			name:    "version manifest",
+			line:    "?? release/manifest/v0.1.0.json",
+			allowed: true,
+		},
+		{
+			name:    "latest manifest",
+			line:    " M release/manifest/latest.json",
+			allowed: true,
+		},
+		{
+			name: "non-json manifest sidecar",
+			line: "?? release/manifest/not-json.txt",
+		},
+		{
+			name: "nested manifest file",
+			line: "?? release/manifest/nested/file.json",
+		},
+		{
+			name: "ordinary tracked file",
+			line: " M README.md",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := allowedManifest.MatchString(tc.line); got != tc.allowed {
+				t.Fatalf("allowedManifest.MatchString(%q) = %v, want %v", tc.line, got, tc.allowed)
+			}
+		})
+	}
+}
+
+func TestReleaseCleanCheckScriptBehavior(t *testing.T) {
+	requireCommand(t, "bash")
+	requireCommand(t, "git")
+
+	script := readRepoText(t, filepath.Join("scripts", "check_release_clean.sh"))
+	for _, tc := range []struct {
+		name    string
+		mutate  func(t *testing.T, root string)
+		wantOK  bool
+		wantOut string
+	}{
+		{
+			name:   "clean worktree passes",
+			mutate: func(t *testing.T, root string) {},
+			wantOK: true,
+		},
+		{
+			name: "ordinary dirty file fails",
+			mutate: func(t *testing.T, root string) {
+				writeTestFile(t, filepath.Join(root, "README.md"), "dirty")
+			},
+			wantOut: "release workspace is dirty",
+		},
+		{
+			name: "tracked dirty file fails",
+			mutate: func(t *testing.T, root string) {
+				writeTestFile(t, filepath.Join(root, "tracked.txt"), "clean")
+				runTestCommand(t, root, "git", "add", "tracked.txt")
+				runTestCommand(t, root, "git", "commit", "-m", "add tracked file")
+				writeTestFile(t, filepath.Join(root, "tracked.txt"), "dirty")
+			},
+			wantOut: "release workspace is dirty",
+		},
+		{
+			name: "staged ordinary file fails",
+			mutate: func(t *testing.T, root string) {
+				writeTestFile(t, filepath.Join(root, "staged.txt"), "dirty")
+				runTestCommand(t, root, "git", "add", "staged.txt")
+			},
+			wantOut: "release workspace is dirty",
+		},
+		{
+			name: "top level generated manifest passes",
+			mutate: func(t *testing.T, root string) {
+				writeTestFile(t, filepath.Join(root, "release", "manifest", "v0.1.0.json"), "{}")
+			},
+			wantOK: true,
+		},
+		{
+			name: "non json manifest sidecar fails",
+			mutate: func(t *testing.T, root string) {
+				writeTestFile(t, filepath.Join(root, "release", "manifest", "v0.1.0.txt"), "dirty")
+			},
+			wantOut: "release workspace is dirty",
+		},
+		{
+			name: "nested manifest file fails",
+			mutate: func(t *testing.T, root string) {
+				writeTestFile(t, filepath.Join(root, "release", "manifest", "nested", "file.json"), "{}")
+			},
+			wantOut: "release workspace is dirty",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			root := initReleaseCleanCheckRepo(t, script)
+			tc.mutate(t, root)
+
+			cmd := exec.Command("bash", filepath.Join(root, "scripts", "check_release_clean.sh"))
+			cmd.Dir = root
+			out, err := cmd.CombinedOutput()
+			output := string(out)
+			if tc.wantOK {
+				if err != nil {
+					t.Fatalf("check_release_clean.sh failed: %v\n%s", err, output)
+				}
+				return
+			}
+			if err == nil {
+				t.Fatalf("check_release_clean.sh succeeded, want failure\n%s", output)
+			}
+			if tc.wantOut != "" && !strings.Contains(output, tc.wantOut) {
+				t.Fatalf("check_release_clean.sh output = %q, want substring %q", output, tc.wantOut)
+			}
+		})
 	}
 }
 
@@ -97,7 +282,7 @@ func TestCIWorkflowsPreserveReleaseEvidenceGates(t *testing.T) {
 		assertContains(t, ci, want)
 	}
 
-	assertContains(t, release, "run: make release-check")
+	assertContains(t, release, "run: make release-final-check")
 	assertContains(t, release, "path: release/manifest/*.json")
 }
 
@@ -134,6 +319,7 @@ func TestChineseReleaseDocsDescribeGeneratedEvidence(t *testing.T) {
 		text := readRepoText(t, path)
 		for _, want := range []string{
 			"make release-check",
+			"make release-final-check",
 			"release/manifest/v0.1.0.json",
 			"release/manifest/latest.json",
 			"生成",
@@ -141,6 +327,24 @@ func TestChineseReleaseDocsDescribeGeneratedEvidence(t *testing.T) {
 		} {
 			assertContains(t, text, want)
 		}
+	}
+}
+
+func TestFormalReleaseDocsUseFinalGate(t *testing.T) {
+	for _, path := range []string{
+		filepath.Join(".agent", "evidence.md"),
+		filepath.Join(".agent", "goal.md"),
+		filepath.Join(".agent", "harness.md"),
+		filepath.Join(".agent", "patch_harness.md"),
+		filepath.Join(".agent", "patch_prompt.md"),
+		"README.md",
+		filepath.Join("docs", "goal.md"),
+		filepath.Join("docs", "release.md"),
+		filepath.Join("docs", "spec.md"),
+		filepath.Join("docs", "testing.md"),
+	} {
+		text := readRepoText(t, path)
+		assertContains(t, text, "make release-final-check")
 	}
 }
 
@@ -177,6 +381,69 @@ func readRepoText(t *testing.T, path string) string {
 		t.Fatalf("read %s: %v", path, err)
 	}
 	return string(data)
+}
+
+func makeTargetBody(t *testing.T, makefile string, target string) string {
+	t.Helper()
+
+	marker := target + ":\n"
+	start := strings.Index(makefile, marker)
+	if start == -1 {
+		t.Fatalf("%s target not found", target)
+	}
+
+	bodyStart := start + len(marker)
+	body := makefile[bodyStart:]
+	if end := strings.Index(body, "\n.PHONY:"); end != -1 {
+		body = body[:end]
+	}
+	return body
+}
+
+func initReleaseCleanCheckRepo(t *testing.T, script string) string {
+	t.Helper()
+
+	root := t.TempDir()
+	writeTestFile(t, filepath.Join(root, "scripts", "check_release_clean.sh"), script)
+	if err := os.Chmod(filepath.Join(root, "scripts", "check_release_clean.sh"), 0o755); err != nil {
+		t.Fatalf("chmod check_release_clean.sh: %v", err)
+	}
+
+	runTestCommand(t, root, "git", "init")
+	runTestCommand(t, root, "git", "config", "user.email", "contracts@example.invalid")
+	runTestCommand(t, root, "git", "config", "user.name", "contracts")
+	runTestCommand(t, root, "git", "add", "scripts/check_release_clean.sh")
+	runTestCommand(t, root, "git", "commit", "-m", "baseline")
+	return root
+}
+
+func requireCommand(t *testing.T, name string) {
+	t.Helper()
+
+	if _, err := exec.LookPath(name); err != nil {
+		t.Skipf("%s not installed: %v", name, err)
+	}
+}
+
+func runTestCommand(t *testing.T, dir string, name string, args ...string) {
+	t.Helper()
+
+	cmd := exec.Command(name, args...)
+	cmd.Dir = dir
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("%s %s failed: %v\n%s", name, strings.Join(args, " "), err, string(out))
+	}
+}
+
+func writeTestFile(t *testing.T, path string, data string) {
+	t.Helper()
+
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatalf("mkdir %s: %v", filepath.Dir(path), err)
+	}
+	if err := os.WriteFile(path, []byte(data), 0o644); err != nil {
+		t.Fatalf("write %s: %v", path, err)
+	}
 }
 
 func assertContains(t *testing.T, text string, want string) {

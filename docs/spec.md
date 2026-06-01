@@ -36,6 +36,6 @@
 - 模块以 `github.com/ZoneCNH/foundationx` 构建。
 - 依赖图只包含 Go 标准库包。
 - `make ci` 通过。
-- `make release-check` 通过。
+- 正式 tag 发布前 `make release-final-check` 通过。
 - 契约和示例齐备。
 - 发布证据生成到 `release/manifest/`。

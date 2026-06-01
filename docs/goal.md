@@ -1290,7 +1290,8 @@ docs/adr/*
 输出：
 
 ```text
-release/manifest/v0.1.0.json
+release/manifest/<version>.json
+release/manifest/latest.json
 CHANGELOG.md
 ```
 
@@ -1719,8 +1720,11 @@ docs/api.md 存在
 必须生成：
 
 ```text
-release/manifest/v0.1.0.json
+release/manifest/<version>.json
+release/manifest/latest.json
 ```
+
+版本解析顺序必须是 `VERSION`、`GITHUB_REF_NAME`、当前 HEAD 指向的 semver tag，最后回退到 `v0.1.0`。
 
 证据：
 
@@ -1747,6 +1751,9 @@ examples
 evidence
 ci
 release-check
+release-evidence-check
+release-clean-check
+release-final-check
 ```
 
 验收：
@@ -1754,6 +1761,7 @@ release-check
 ```bash
 make ci
 make release-check
+make release-final-check
 ```
 
 证据：
@@ -1761,6 +1769,7 @@ make release-check
 ```text
 EVID-TASK-FOUNDATIONX-011-20260601-001: make ci output
 EVID-TASK-FOUNDATIONX-011-20260601-002: make release-check output
+EVID-TASK-FOUNDATIONX-011-20260601-003: make release-final-check output
 ```
 
 ---
@@ -1852,7 +1861,8 @@ make evidence
 输出：
 
 ```text
-release/manifest/v0.1.0.json
+release/manifest/<version>.json
+release/manifest/latest.json
 ```
 
 Manifest 至少包含：
@@ -1862,8 +1872,15 @@ Manifest 至少包含：
   "module": "github.com/ZoneCNH/foundationx",
   "version": "v0.1.0",
   "commit": "...",
+  "tree_sha": "...",
+  "workspace_status": "clean",
   "go_version": "...",
   "generated_at": "...",
+  "contracts": {
+    "error_schema_sha256": "...",
+    "health_schema_sha256": "...",
+    "version_schema_sha256": "..."
+  },
   "checks": {
     "fmt": "passed",
     "vet": "passed",
@@ -1872,6 +1889,7 @@ Manifest 至少包含：
     "boundary": "passed",
     "secret_scan": "passed",
     "contract": "passed",
+    "docs": "passed",
     "examples": "passed"
   }
 }
@@ -2015,9 +2033,25 @@ go run ./examples/clock
 ./scripts/generate_manifest.sh
 ```
 
-必须生成 release manifest。
+必须生成 `release/manifest/<version>.json` 并同步更新 `release/manifest/latest.json`。
 
-## Gate 10：Review 门禁（Review Gate）
+## Gate 10：Release Evidence 门禁（Release Evidence Gate）
+
+```bash
+./scripts/check_release_evidence.sh
+```
+
+必须校验当前 HEAD 的 commit、tree、workspace status、schema hash、checks 与 `latest.json` 一致。
+
+## Gate 11：Release Clean 门禁（Release Clean Gate）
+
+```bash
+./scripts/check_release_clean.sh
+```
+
+正式 tag 发布前必须运行 `make release-final-check`，该门禁会在 `make release-check` 前后确认工作区干净，只允许顶层 `release/manifest/*.json` 作为生成物存在。
+
+## Gate 12：Review 门禁（Review Gate）
 
 检查：
 
@@ -2134,25 +2168,36 @@ echo "secret check passed"
 # 17. Makefile 模板
 
 ```makefile
+GO ?= go
+GOENV := GOWORK=off
+
 .PHONY: fmt
 fmt:
-	go fmt ./...
+	$(GOENV) $(GO) fmt ./...
 
 .PHONY: vet
 vet:
-	go vet ./...
+	$(GOENV) $(GO) vet ./...
 
 .PHONY: lint
 lint:
-	golangci-lint run ./...
+	@if command -v golangci-lint >/dev/null 2>&1; then \
+		$(GOENV) golangci-lint run ./...; \
+	else \
+		echo "golangci-lint not installed; skipping lint target"; \
+	fi
 
 .PHONY: test
 test:
-	go test ./...
+	$(GOENV) $(GO) test ./...
 
 .PHONY: race
 race:
-	go test -race ./...
+	$(GOENV) $(GO) test -race ./...
+
+.PHONY: cover
+cover:
+	$(GOENV) $(GO) test -coverprofile=coverage.out ./...
 
 .PHONY: boundary
 boundary:
@@ -2160,31 +2205,55 @@ boundary:
 
 .PHONY: security
 security:
+	@if command -v govulncheck >/dev/null 2>&1; then \
+		$(GOENV) govulncheck ./...; \
+	else \
+		echo "govulncheck not installed; skipping vulnerability scan"; \
+	fi
 	./scripts/check_secrets.sh
 
 .PHONY: contracts
 contracts:
 	./scripts/check_contracts.sh
 
+.PHONY: docs
+docs:
+	./scripts/check_docs.sh
+
 .PHONY: examples
 examples:
-	go run ./examples/error_kind
-	go run ./examples/health_checker
-	go run ./examples/retry_policy
-	go run ./examples/clock
+	$(GOENV) $(GO) run ./examples/error_kind
+	$(GOENV) $(GO) run ./examples/health_checker
+	$(GOENV) $(GO) run ./examples/retry_policy
+	$(GOENV) $(GO) run ./examples/clock
 
 .PHONY: evidence
 evidence:
 	./scripts/generate_manifest.sh
 
+.PHONY: release-evidence-check
+release-evidence-check:
+	./scripts/check_release_evidence.sh
+
+.PHONY: release-clean-check
+release-clean-check:
+	./scripts/check_release_clean.sh
+
 .PHONY: ci
-ci: fmt vet test race boundary security contracts examples
+ci: fmt vet lint test race boundary security contracts docs examples
 
 .PHONY: release-check
-release-check: ci evidence
-```
+release-check:
+	$(MAKE) ci
+	$(MAKE) evidence
+	$(MAKE) release-evidence-check
 
-如果当前环境未安装 `golangci-lint`，`lint` 可先不进入 `ci`，但 release 前必须补齐。
+.PHONY: release-final-check
+release-final-check:
+	$(MAKE) release-clean-check
+	$(MAKE) release-check
+	$(MAKE) release-clean-check
+```
 
 ---
 
@@ -2446,10 +2515,16 @@ Review 前必须检查：
 
 ## 24.1 v0.1.0 发布前
 
-执行：
+常规发布验证执行：
 
 ```bash
 make release-check
+```
+
+正式 tag 发布前执行：
+
+```bash
+make release-final-check
 ```
 
 必须通过：
@@ -2457,13 +2532,17 @@ make release-check
 ```text
 fmt
 vet
+lint
 test
 race
 boundary
 security
 contracts
+docs
 examples
 evidence
+release-evidence-check
+release-clean-check
 ```
 
 ## 24.2 变更日志（CHANGELOG）
@@ -2498,7 +2577,8 @@ evidence
 路径：
 
 ```text
-release/manifest/v0.1.0.json
+release/manifest/<version>.json
+release/manifest/latest.json
 ```
 
 发布声明：
@@ -2506,7 +2586,9 @@ release/manifest/v0.1.0.json
 ```text
 DONE with evidence:
 - make release-check passed
-- release/manifest/v0.1.0.json generated
+- make release-final-check passed before formal tag release
+- release/manifest/<version>.json generated
+- release/manifest/latest.json generated
 - boundary gate passed
 - secret gate passed
 - examples passed
@@ -2623,10 +2705,12 @@ DONE with evidence:
 - go test -race ./... passed
 - make ci passed
 - make release-check passed
+- make release-final-check passed before formal tag release
 - boundary gate passed
 - secret gate passed
 - examples passed
-- release/manifest/v0.1.0.json generated
+- release/manifest/<version>.json generated
+- release/manifest/latest.json generated
 ```
 
 ---
@@ -2651,9 +2735,10 @@ Agent 执行时按以下顺序，不要跳步：
 13. 编写 docs 和 ADR
 14. 运行 make ci
 15. 运行 make release-check
-16. 生成 release manifest
-17. 编写 retrospective
-18. 输出 DONE with evidence
+16. 生成并校验 release manifest
+17. 正式 tag 发布前运行 make release-final-check
+18. 编写 retrospective
+19. 输出 DONE with evidence
 ```
 
 ---
