@@ -9,6 +9,8 @@
 
 `baselib-template` 当前 `main` 已确认停在 `041a62f21428111a4b46235a7910edbdf4e07d61`。它适合作为 `foundationx` 的治理门禁参考，不适合整仓覆盖 `foundationx`。`foundationx` 的定位是 L0、stdlib-only、契约优先的基础层，因此应只吸收契约校验、边界检查、发布证据新鲜度校验等治理能力；不引入模板里的 `templatex` client、config、metrics、integration 渲染等具体业务包形态。
 
+本报告以 `041a62f21428111a4b46235a7910edbdf4e07d61` 作为可复核基线。该基线中的可复用模式包括：`contracts/` schema contract tests、`scripts/check_boundary.sh`、`scripts/generate_manifest.sh`、`scripts/check_release_evidence.sh`、CI artifact upload 和 release workflow gate。
+
 ## 已验证
 
 在 `baselib-template` 临时 clone 中完成以下确认：
@@ -59,10 +61,21 @@
 | --- | --- | --- | --- |
 | 契约门禁 | schema、contract tests、generated manifest contract hash | 已有 `contracts/*.schema.json`、`contracts/*_test.go`、`make contracts` | 已满足 L0 必需项 |
 | 边界门禁 | 模板渲染后检查 module、package、旧标识和禁止依赖 | 已有 stdlib-only、禁止基础设施依赖、禁止业务术语检查 | 已满足 L0 必需项 |
+| CI 工具安装 | CI 显式安装 `golangci-lint` 与 `govulncheck` 后跑 `release-check` | 本仓 `lint` 本地缺失时跳过，CI 未安装 `golangci-lint`；`security` 目前只跑 secrets scan | 立即可行动缺口：可只在 GitHub Actions 安装工具并执行，保持本地无强制依赖 |
 | 发布证据 | manifest 工具记录 source digest、依赖、工具、artifact 和 checks | shell manifest 记录 commit、tree、workspace、Go version、schema hash 和 checks | 当前可用；若进入正式 tag/release，应再评估 source digest 与 clean-tree final gate |
 | 发布预检 | `release-preflight` 检查 main、origin/main、tag、CHANGELOG、工具 | 当前未提供 tag 前 preflight | 有意保留缺口；本任务禁止 release，暂不新增 |
 | 集成验证 | 渲染下游 `foundationx` / `corekit` 并跑 contracts、boundary、evidence | L0 基础库本身不做模板渲染 | 不适用 |
-| 外部工具强制性 | `golangci-lint`、`govulncheck` 缺失时硬失败 | `lint` 缺失时跳过，`security` 只做 secrets scan | 有意保留差异；保持 stdlib-only 与本地可运行性 |
+| 外部工具强制性 | `golangci-lint`、`govulncheck` 缺失时硬失败 | 本地 `lint` 缺失时跳过，`security` 只做 secrets scan | 本地轻量化可保留；CI runner 应安装工具补齐门禁 |
+
+## 本轮可行动缺口
+
+- `foundationx` 的本地 `Makefile` 可以继续保持零新增强依赖，但 GitHub Actions runner 应显式安装 `golangci-lint` 与 `govulncheck`，确保 `make ci` 中的 lint 不再静默跳过，并让 security workflow 覆盖 Go vulnerability scan。该修复不改变 Go module 依赖，不复制 `templatex`、config、metrics、integration 或 template render 语义，属于可安全交给执行 worker 的治理补齐。
+
+以下差异本轮不应作为行动项：
+
+- `scripts/check_rendered_template.sh`、`scripts/run_integration.sh`、`.github/workflows/integration.yml`：只服务模板渲染仓，`foundationx` 不是模板生成器。
+- `property`、`fuzz-smoke`、`golden` targets：当前公开 API 已有常规、契约、race 与 example gates；除非后续引入复杂状态机或序列化 golden contract，否则不因模板存在而新增。
+- release preflight / final clean tree：适合正式发 tag 前专项处理；本轮明确禁止 push、tag、release。
 
 ## 后续升级触发条件
 
