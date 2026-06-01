@@ -18,6 +18,51 @@ func TestReleaseCheckWiresDocumentationAndEvidenceGates(t *testing.T) {
 	assertContains(t, makefile, "./scripts/check_release_evidence.sh")
 }
 
+func TestBaselibTemplateAnalysisPinsReviewedGovernanceBaseline(t *testing.T) {
+	analysis := readRepoText(t, filepath.Join("docs", "baselib-template-analysis.md"))
+
+	for _, want := range []string{
+		"041a62f21428111a4b46235a7910edbdf4e07d61",
+		"`contracts/` schema contract tests",
+		"`scripts/check_boundary.sh`",
+		"`scripts/generate_manifest.sh`",
+		"`scripts/check_release_evidence.sh`",
+		"CI artifact upload",
+		"release workflow gate",
+		"不采用 | 整仓模板覆盖",
+	} {
+		assertContains(t, analysis, want)
+	}
+}
+
+func TestReleaseEvidenceScriptsPreserveFreshnessChecks(t *testing.T) {
+	generate := readRepoText(t, filepath.Join("scripts", "generate_manifest.sh"))
+	check := readRepoText(t, filepath.Join("scripts", "check_release_evidence.sh"))
+
+	for _, want := range []string{
+		"tree_sha",
+		"workspace_status",
+		"error_schema_sha256",
+		"health_schema_sha256",
+		"version_schema_sha256",
+		"cp \"$OUT\" \"$LATEST\"",
+	} {
+		assertContains(t, generate, want)
+	}
+
+	for _, want := range []string{
+		"cmp -s \"$MANIFEST\" \"$LATEST\"",
+		"manifest commit does not match current HEAD",
+		"manifest tree_sha does not match current HEAD tree",
+		"manifest workspace_status does not match current workspace",
+		"error schema hash mismatch",
+		"health schema hash mismatch",
+		"version schema hash mismatch",
+	} {
+		assertContains(t, check, want)
+	}
+}
+
 func TestCIWorkflowsPreserveReleaseEvidenceGates(t *testing.T) {
 	ci := readRepoText(t, filepath.Join(".github", "workflows", "ci.yml"))
 	release := readRepoText(t, filepath.Join(".github", "workflows", "release.yml"))
@@ -33,6 +78,18 @@ func TestCIWorkflowsPreserveReleaseEvidenceGates(t *testing.T) {
 
 	assertContains(t, release, "run: make release-check")
 	assertContains(t, release, "path: release/manifest/*.json")
+}
+
+func TestSecurityWorkflowPreservesBoundaryContractGates(t *testing.T) {
+	security := readRepoText(t, filepath.Join(".github", "workflows", "security.yml"))
+
+	for _, want := range []string{
+		"run: make boundary",
+		"run: make security",
+		"run: make contracts",
+	} {
+		assertContains(t, security, want)
+	}
 }
 
 func TestChineseReleaseDocsDescribeGeneratedEvidence(t *testing.T) {
