@@ -48,38 +48,9 @@
 
 ## 本次落地范围
 
-- 文档复核 `baselib-template` 当前 `main` 指针与可复用治理模式。
-- 对比 `foundationx` 当前发布、契约、边界门禁，确认本仓已具备 L0 必需的最小治理闭环。
-- 明确仍未采用的模板能力，并把它们记录为有意保留的差异，而不是未完成缺口。
-- 不新增第三方依赖、不执行 push/tag/release、不把模板仓业务形态复制到 `foundationx`。
-
-## 当前差异与缺口判定
-
-| 项目 | baselib-template | foundationx 当前状态 | 判定 |
-| --- | --- | --- | --- |
-| 契约门禁 | schema、contract tests、generated manifest contract hash | 已有 `contracts/*.schema.json`、`contracts/*_test.go`、`make contracts` | 已满足 L0 必需项 |
-| 边界门禁 | 模板渲染后检查 module、package、旧标识和禁止依赖 | 已有 stdlib-only、禁止基础设施依赖、禁止业务术语检查 | 已满足 L0 必需项 |
-| CI 工具安装 | CI 显式安装 `golangci-lint` 与 `govulncheck` 后跑 `release-check` | 本仓 `lint` 本地缺失时跳过，CI 未安装 `golangci-lint`；`security` 目前只跑 secrets scan | 立即可行动缺口：可只在 GitHub Actions 安装工具并执行，保持本地无强制依赖 |
-| 发布证据 | manifest 工具记录 source digest、依赖、工具、artifact 和 checks | shell manifest 记录 commit、tree、workspace、Go version、schema hash 和 checks | 当前可用；若进入正式 tag/release，应再评估 source digest 与 clean-tree final gate |
-| 发布预检 | `release-preflight` 检查 main、origin/main、tag、CHANGELOG、工具 | 当前未提供 tag 前 preflight | 有意保留缺口；本任务禁止 release，暂不新增 |
-| 集成验证 | 渲染下游 `foundationx` / `corekit` 并跑 contracts、boundary、evidence | L0 基础库本身不做模板渲染 | 不适用 |
-| 外部工具强制性 | `golangci-lint`、`govulncheck` 缺失时硬失败 | 本地 `lint` 缺失时跳过，`security` 只做 secrets scan | 本地轻量化可保留；CI runner 应安装工具补齐门禁 |
-
-## 本轮可行动缺口
-
-- `foundationx` 的本地 `Makefile` 可以继续保持零新增强依赖，但 GitHub Actions runner 应显式安装 `golangci-lint` 与 `govulncheck`，确保 `make ci` 中的 lint 不再静默跳过，并让 security workflow 覆盖 Go vulnerability scan。该修复不改变 Go module 依赖，不复制 `templatex`、config、metrics、integration 或 template render 语义，属于可安全交给执行 worker 的治理补齐。
-
-以下差异本轮不应作为行动项：
-
-- `scripts/check_rendered_template.sh`、`scripts/run_integration.sh`、`.github/workflows/integration.yml`：只服务模板渲染仓，`foundationx` 不是模板生成器。
-- `property`、`fuzz-smoke`、`golden` targets：当前公开 API 已有常规、契约、race 与 example gates；除非后续引入复杂状态机或序列化 golden contract，否则不因模板存在而新增。
-- release preflight / final clean tree：适合正式发 tag 前专项处理；本轮明确禁止 push、tag、release。
-
-## 后续升级触发条件
-
-只有出现以下任一情况，才应从 `baselib-template` 继续吸收更重的发布治理：
-
-- 准备创建或推送正式 tag。
-- manifest 需要作为外部消费者可验证的供应链 artifact。
-- 引入非标准库依赖或生成物，需要记录依赖清单、source digest 或 artifact 清单。
-- GitHub Actions 环境确认稳定提供 `golangci-lint` 与 `govulncheck`，并决定把二者升级为强制 gate。
+- `contracts` 增加 Go 契约测试，绑定 schema 枚举、required 字段和 JSON 字段名。
+- 发布 manifest 记录完整 commit、tree、workspace 状态、Go 版本和 schema hash。
+- `release-evidence-check` 校验版本 manifest 与 `latest.json` 一致，并确认发布证据没有陈旧化。
+- API 与发布文档补充 JSON 契约和发布证据要求。
+- release workflow 将 tag 名注入 `VERSION`；manifest 脚本在本地优先使用显式 `VERSION`、
+  GitHub tag 名或当前 commit 的版本 tag，最后才回退到 `v0.1.0`。
