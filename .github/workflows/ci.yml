@@ -1,4 +1,4 @@
-name: foundationx-ci
+name: kernel-ci
 
 on:
   pull_request:
@@ -43,5 +43,5 @@ jobs:
       - name: Upload release manifest
         uses: actions/upload-artifact@v6
         with:
-          name: foundationx-release-manifest
+          name: kernel-release-manifest
           path: release/manifest/*.json

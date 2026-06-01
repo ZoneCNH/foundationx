@@ -1,10 +1,16 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://foundationx.local/contracts/version.schema.json",
-  "title": "foundationx VersionInfo",
+  "$id": "https://kernel.local/contracts/version.schema.json",
+  "title": "kernel BuildInfo",
   "type": "object",
+  "required": [
+    "module",
+    "version",
+    "commit",
+    "build_time",
+    "go_version"
+  ],
   "additionalProperties": false,
-  "required": ["module", "version", "commit", "build_time", "go_version"],
   "properties": {
     "module": {
       "type": "string"

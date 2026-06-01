@@ -1,10 +1,10 @@
 # 上下文（Context）
 
-当前任务是执行 `docs/goal.md`，交付 `foundationx` 仓库。
+当前任务是执行 `docs/goal.md`，交付 `kernel` 仓库。
 
 已确认约束：
 
-- `foundationx` 是面向上层 infrastructure libraries 的 L0 contract layer。
+- `kernel` 是面向上层 infrastructure libraries 的 L0 contract layer。
 - 不得依赖 x.go。
 - 不得依赖具体 driver 或 infrastructure client。
 - 不得引入 business-domain semantics。
@@ -13,5 +13,5 @@
 
 仓库级 module path：
 
-- `AGENTS.md` 项目说明指定 module 为 `github.com/ZoneCNH/foundationx`。
+- `AGENTS.md` 项目说明指定 module 为 `github.com/ZoneCNH/kernel`。
 - implementation、examples、docs 与 manifest 均应使用该 module path。

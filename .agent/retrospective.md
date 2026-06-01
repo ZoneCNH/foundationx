@@ -21,9 +21,9 @@
 
 ## postgresx、kafkax、redisx 与 taosx 的使用规则
 
-这些模块可以依赖 `foundationx` contracts 共享 error、lifecycle、health、retry policy、
+这些模块可以依赖 `kernel` contracts 共享 error、lifecycle、health、retry policy、
 sanitizer、clock 与 version metadata。但 concrete client configuration、transport behavior、
-connection pools、migrations 与 domain-specific metadata 必须留在 `foundationx` 之外。
+connection pools、migrations 与 domain-specific metadata 必须留在 `kernel` 之外。
 
 ## Harness gate 改进
 

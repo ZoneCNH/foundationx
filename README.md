@@ -1,86 +1,24 @@
-# foundationx
+# kernel/xlib-standard
 
-`foundationx` 是一个小型 Go module，用于定义 L0 基础设施契约，且仅依赖 Go 标准库。
-它提供错误、健康检查、生命周期、RetryPolicy、Sanitizer、时钟和构建版本元数据等稳定基础契约。
+kernel/xlib-standard 是 Go L0 标准库扩展，面向跨项目复用的基础契约。本项目保持 L0 边界：只使用 Go 标准库，不引入业务领域、存储、网络框架或可观测性供应商依赖。
 
-模块路径：
+## 包清单说明
 
-```sh
-github.com/ZoneCNH/foundationx
-```
+- `errx`：错误种类、严重级别、可重试标记和 JSON 契约。
+- `timex`：真实、固定和可推进时钟。
+- `lifecycx`：组件启动/停止顺序和失败回滚。
+- `retryx`：重试策略、退避和错误可重试判断。
+- `healthx`：健康检查状态与聚合。
+- `obsx`：无供应商日志、指标、追踪接口与敏感值脱敏。
+- `validx`：前置条件与不变量检查。
+- `syncx`：并发限制器与 worker group。
+- `versionx`：构建信息与兼容性判断。
+- `contracttest`：下游契约测试辅助函数。
 
-## 边界
+## 验证命令说明
 
-本仓库刻意位于具体基础设施适配器之下。它不得导入或封装数据库、消息队列、缓存、对象存储、HTTP 框架、日志、
-指标或业务领域包。PostgreSQL、Kafka、Redis、TDengine、OSS 和应用服务等更高层模块应依赖这些契约，
-而不是把自己的基础抽象放入本模块。
+本地发布前运行：`make release-preflight VERSION=v0.1.0`。常用门禁包括 `make test`、`make lint`、`make docs-check`、`make boundary-check`、`make evidence-check`、`make release-check` 和 `make release-final-check`。
 
-`foundationx` 也不依赖 `x.go`；它是更底层的基础模块。
+## 发布证据说明
 
-## 安装
-
-```sh
-go get github.com/ZoneCNH/foundationx
-```
-
-## 使用
-
-```go
-package main
-
-import (
-	"fmt"
-
-	"github.com/ZoneCNH/foundationx/pkg/foundationx"
-)
-
-func main() {
-	err := foundationx.NewError(
-		foundationx.ErrorKindTimeout,
-		"retry",
-		"operation timed out",
-	)
-
-	fmt.Println(err.Kind)
-}
-```
-
-需要包装底层 cause 时，使用 `WrapError(kind, op, message, cause)`。
-
-## 包
-
-公开 API 刻意集中在 `pkg/foundationx`：
-
-- 错误契约：类型化 `ErrorKind`、`Error`、包装、解包、kind 检查和构造期 retryable 标记。
-- 健康契约：三态健康状态和 `HealthChecker` 接口；`HealthChecker.Check(ctx)` 返回 `HealthStatus`。
-- 生命周期契约：最小化的 start、close 和组合生命周期接口。
-- 重试契约：`RetryPolicy` 校验和确定性的延迟边界计算；是否继续尝试由调用方按 `MaxAttempts` 判断。
-- 脱敏契约：`Sanitizer` 和默认遮蔽字符串、JSON 输出的 `SecretString`。
-- 时钟契约：用于生产和测试的真实时钟与固定时钟。
-- 版本契约：module、version、commit 和 build-time 元数据。
-
-## 开发
-
-常用命令：
-
-```sh
-make ci
-make release-check
-GOWORK=off go test ./...
-```
-
-仓库自动化使用 `GOWORK=off`，确保独立模块不受父级 workspace 影响。
-
-## 发布
-
-常规发布门禁是 `make release-check`。它会运行格式化检查、`go vet`、单元测试、race 测试、
-边界检查、仓库安全检查、契约检查、文档检查、示例程序、manifest 生成和 manifest 新鲜度校验。
-`make lint` 是可选辅助门禁：安装 `golangci-lint` 时会运行，否则会显式跳过。
-
-正式 tag 发布门禁是 `make release-final-check`。它会先确认工作区干净，运行
-`make release-check`，再复查除 `release/manifest/*.json` 生成物外没有未提交或未跟踪变更。
-
-发布证据写入 `release/manifest/<version>.json`，并同步更新 `release/manifest/latest.json`。
-tag 触发的 CI 使用 tag 名作为 `<version>`；本地未设置 `VERSION` 且当前 commit 没有版本 tag
-时回退到 `v0.1.0`，对应路径为 `release/manifest/v0.1.0.json`。该目录下的 JSON 文件是
-生成物，CI 会在发布门禁中生成并上传 manifest artifact。
+`scripts/generate_manifest.sh` 生成 `release/manifest/v0.1.0.json` 与 `release/manifest/latest.json`，记录模块、提交、树哈希、工作区状态和契约文件哈希。

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ZoneCNH/foundationx/pkg/foundationx"
+	"github.com/ZoneCNH/kernel/healthx"
 )
 
 func main() {
@@ -18,14 +18,10 @@ func main() {
 	fmt.Println(status.Metadata["scope"])
 }
 
-type staticChecker struct {
-	name string
-}
+type staticChecker struct{ name string }
 
-func (c staticChecker) Name() string {
-	return c.name
-}
+func (c staticChecker) Name() string { return c.name }
 
-func (c staticChecker) Check(context.Context) foundationx.HealthStatus {
-	return foundationx.NewHealthStatus(c.name, foundationx.HealthHealthy, "ok", time.Now(), 1)
+func (c staticChecker) Check(context.Context) healthx.HealthStatus {
+	return healthx.NewHealthStatus(c.name, healthx.HealthHealthy, "ok", time.Now(), 1)
 }

@@ -1,4 +1,4 @@
-name: foundationx-security
+name: kernel-security
 
 on:
   pull_request:

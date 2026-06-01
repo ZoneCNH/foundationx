@@ -29,13 +29,13 @@ for pattern in "${PATTERNS[@]}"; do
     ! -path './docs/goal.md' \
     ! -path './scripts/check_secrets.sh' \
     ! -name '*.sum' \
-    -print0 | xargs -0 grep -I -E -n "$pattern" >/tmp/foundationx-secret-scan.txt; then
-    cat /tmp/foundationx-secret-scan.txt
+    -print0 | xargs -0 grep -I -E -n "$pattern" >/tmp/kernel-secret-scan.txt; then
+    cat /tmp/kernel-secret-scan.txt
     echo "ERROR: possible secret found: $pattern"
-    rm -f /tmp/foundationx-secret-scan.txt
+    rm -f /tmp/kernel-secret-scan.txt
     exit 1
   fi
 done
 
-rm -f /tmp/foundationx-secret-scan.txt
+rm -f /tmp/kernel-secret-scan.txt
 echo "secret check passed"

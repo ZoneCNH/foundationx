@@ -1,35 +1,9 @@
-# Health 契约
+# 健康说明
 
-Health 在契约层描述组件健康状态，不绑定传输协议或具体探针实现。
+## 范围说明
 
-## 状态值
+`HealthStatus` 始终输出 `metadata`，聚合状态按 unhealthy、degraded、healthy 优先级收敛。
 
-- `healthy`：组件可以正常服务。
-- `degraded`：组件可以服务，但存在已知降级。
-- `unhealthy`：组件不能安全服务。
+## 验证说明
 
-## Checker 接口
-
-`HealthChecker` 包含两个方法：
-
-```go
-type HealthChecker interface {
-	Name() string
-	Check(ctx context.Context) HealthStatus
-}
-```
-
-`Check` 只返回 `HealthStatus`，不额外返回 error。实现需要把可公开的诊断信息放入
-`Message` 或 `Metadata`，不要暴露业务载荷或凭据。
-
-`NewHealthStatus(name, status, message, checkedAt, latencyMs)` 会初始化
-`Metadata` map。`MarshalJSON()` 会把 nil `Metadata` 输出为空 JSON 对象。`IsHealthy()`
-仅在 `Status == HealthHealthy` 时返回 true。
-
-## 元数据（Metadata）
-
-`Metadata` 是可选的 `map[string]string`。它应只包含组件名、依赖别名、版本等中立事实，
-不应包含业务数据或敏感信息。
-
-`WithMetadata(key, value)` 会返回带有更新后 metadata 的新状态，并复制已有 metadata，
-不会修改调用它的原始 `HealthStatus`。
+相关变更必须通过 `make docs-check`、`make boundary-check`、`make test` 和发布前检查。

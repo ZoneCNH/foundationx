@@ -2,7 +2,7 @@
 
 ## 版本 v0.1.0
 
-`foundationx` L0 contract module 的初始 release。
+`kernel` L0 contract module 的初始 release。
 
 包含：
 

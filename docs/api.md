@@ -1,97 +1,51 @@
-# API 参考
+# API 参考文档
 
-包导入路径：
+## errx 错误 API 说明
 
-```go
-import "github.com/ZoneCNH/foundationx/pkg/foundationx"
-```
+`ErrorKind`、`ErrorKindConfig`、`ErrorKindValidation`、`ErrorKindConnection`、`ErrorKindUnavailable`、`ErrorKindTimeout`、`ErrorKindAuth`、`ErrorKindConflict`、`ErrorKindRateLimit`、`ErrorKindCanceled`、`ErrorKindNotFound`、`ErrorKindAlreadyExist`、`ErrorKindInternal` 定义稳定错误分类。
+`Severity`、`SeverityInfo`、`SeverityWarning`、`SeverityError`、`SeverityCritical` 定义稳定严重级别。
+`Error` 是 JSON 错误契约；`NewError` 的 `NewError(kind, op, message)` 创建无 cause 的错误，`WrapError` 的 `WrapError(kind, op, message, cause)` 保留 cause 链。
+`Error.Error` 返回可读消息，`Error.Unwrap` 返回 cause，`Error.WithRetryable` 会修改当前 `*Error` 并返回同一个指针，签名为 `WithRetryable(retryable bool)`。
+`Error.WithCode` 写入稳定错误码，`Error.WithSeverity` 写入严重级别，`IsKind` 判断错误种类，`AsError` 提取 `*Error`。
 
-## 导出 API 索引（Exported API Index）
+## timex 时间 API 说明
 
-本节用完整符号名列出公开 API，便于 contract test 检查文档覆盖：
+`Clock` 抽象当前时间；`RealClock`、`NewRealClock`、`RealClock.Now` 使用真实时间；`FixedClock`、`NewFixedClock`、`FixedClock.Now` 返回固定时间；`FakeClock`、`NewFakeClock`、`FakeClock.Now`、`FakeClock.Advance` 支持测试推进。
 
-- 错误：`ErrorKind`、`Error`、`NewError`、`WrapError`、`IsKind`、`AsFoundationError`、`Error.Error`、`Error.Unwrap`、`Error.WithRetryable`（签名：`WithRetryable(retryable bool)`）
-- 错误分类：`ErrorKindConfig`、`ErrorKindValidation`、`ErrorKindConnection`、`ErrorKindUnavailable`、`ErrorKindTimeout`、`ErrorKindAuth`、`ErrorKindConflict`、`ErrorKindRateLimit`、`ErrorKindCanceled`、`ErrorKindNotFound`、`ErrorKindAlreadyExist`、`ErrorKindInternal`
-- 健康：`HealthStatusValue`、`HealthStatus`、`HealthChecker`、`HealthHealthy`、`HealthDegraded`、`HealthUnhealthy`、`NewHealthStatus`、`HealthStatus.WithMetadata`、`HealthStatus.MarshalJSON`、`HealthStatus.IsHealthy`
-- 生命周期：`Starter`、`Closer`、`Lifecycle`
-- 重试：`RetryPolicy`、`DefaultRetryPolicy`、`RetryPolicy.Validate`、`RetryPolicy.Delay`
-- 脱敏：`Sanitizer`、`SecretString`、`NewSecretString`、`SecretString.String`、`SecretString.Reveal`、`SecretString.Sanitize`、`SecretString.MarshalJSON`、`SecretString.IsZero`
-- 时钟：`Clock`、`RealClock`、`FixedClock`、`NewRealClock`、`NewFixedClock`、`RealClock.Now`、`FixedClock.Now`
-- 版本：`VersionInfo`、`NewVersionInfo`
+## lifecycx 生命周期 API 说明
 
-## 错误（Errors）
+`Starter`、`Closer`、`Lifecycle`、`Stopper` 描述组件边界；`Component` 和 `NamedComponent` 绑定名称；`Manager`、`NewManager`、`Manager.Components`、`Manager.Start`、`Manager.Stop` 管理顺序启动、逆序停止和启动失败回滚。
 
-- 类型：`ErrorKind`、`Error`
-- 常量：`ErrorKindConfig`、`ErrorKindValidation`、`ErrorKindConnection`、`ErrorKindUnavailable`、`ErrorKindTimeout`、`ErrorKindAuth`、`ErrorKindConflict`、`ErrorKindRateLimit`、`ErrorKindCanceled`、`ErrorKindNotFound`、`ErrorKindAlreadyExist`、`ErrorKindInternal`
-- 函数：`NewError`、`WrapError`、`IsKind`、`AsFoundationError`
-- 方法：`Error.Error`、`Error.Unwrap`、`Error.WithRetryable`（签名：`WithRetryable(retryable bool)`）
+## retryx 重试 API 说明
 
-JSON 契约字段为 `kind`、`op`、`message` 和 `retryable`。`cause` 只保留在 Go
-错误链中，不进入 JSON 契约。
-`Error.WithRetryable` 会修改当前 `*Error` 并返回同一个指针，用于构造期链式标记。
+`RetryPolicy` 只包含 `MaxAttempts`、`BaseDelay`、`MaxDelay` 字段；`DefaultRetryPolicy` 提供默认值；`RetryPolicy.Validate` 校验策略；`RetryPolicy.Delay` 计算指数退避。
 
-错误分类：
+`RetryPolicy.DelayWithJitter` 在调用处按比例调整延迟；是否超过 `MaxAttempts` 由调用方的执行循环判断。
+`ShouldRetry` 识别实现 `Retryable` 契约或 `errx.Error` 的错误。
 
-- `config`
-- `validation`
-- `connection`
-- `unavailable`
-- `timeout`
-- `auth`
-- `conflict`
-- `rate_limit`
-- `canceled`
-- `not_found`
-- `already_exists`
-- `internal`
+## healthx 健康 API 说明
 
-## 健康（Health）
+`HealthStatusValue`、`HealthHealthy`、`HealthDegraded`、`HealthUnhealthy` 定义状态值；`HealthStatus` 是 JSON 契约；`HealthChecker` 是检查接口；`Probe` 是函数适配器。
+`NewHealthStatus` 创建状态；`HealthStatus.WithMetadata` 会复制已有 metadata 并返回更新后的状态，不会修改调用它的原始 `HealthStatus`；`HealthStatus.MarshalJSON` 保证 `metadata` 在 Go 值为 nil 时仍输出为空 JSON 对象；`HealthStatus.IsHealthy` 判断健康；`Aggregate` 合并多个状态。
 
-- 类型：`HealthStatusValue`、`HealthStatus`、`HealthChecker`
-- 常量：`HealthHealthy`、`HealthDegraded`、`HealthUnhealthy`
-- 函数：`NewHealthStatus`
-- 方法：`HealthStatus.WithMetadata`、`HealthStatus.MarshalJSON`、`HealthStatus.IsHealthy`
+## obsx 观测 API 说明
 
-JSON 契约字段为 `name`、`status`、`message`、`checked_at`、`latency_ms` 和
-`metadata`。`metadata` 在 Go 值为 nil 时仍输出为空 JSON 对象。
-`HealthStatus.WithMetadata` 会复制已有 metadata 并返回更新后的状态，不会修改调用它的原始 `HealthStatus`。
+`Field` 描述结构化字段；`Logger`、`Metrics`、`Tracer`、`Span` 是无供应商接口；`NoopLogger`、`NoopMetrics`、`NoopTracer`、`NoopSpan` 提供空实现。
+`NoopLogger.Debug`、`NoopLogger.Info`、`NoopLogger.Warn`、`NoopLogger.Error`、`NoopMetrics.Inc`、`NoopMetrics.Observe`、`NoopMetrics.Count`、`NoopTracer.Start`、`NoopSpan.End`、`NoopSpan.SetFields`、`NoopSpan.RecordError` 都不产生外部副作用。
+`Sanitizer` 描述脱敏行为；`NewSecretString` 创建敏感字符串；`SecretString`、`SecretString.String`、`SecretString.Sanitize`、`SecretString.MarshalJSON`、`SecretString.IsZero`、`SecretString.Reveal` 保护敏感值；非空 `SecretString` 在字符串格式化、`Sanitize` 和 JSON 输出中默认返回 `***`。
 
-状态值：
+## validx 校验 API 说明
 
-- `healthy`
-- `degraded`
-- `unhealthy`
+`Precondition`、`Invariant`、`RequireNonEmpty` 用于表达入参和状态约束，失败时返回 `errx.ErrorKindValidation` 或 `errx.ErrorKindInternal`。
 
-## 生命周期（Lifecycle）
+## syncx 并发 API 说明
 
-- 类型：`Starter`、`Closer`、`Lifecycle`
+`Limiter` 抽象并发许可；`SemaphoreLimiter`、`NewSemaphoreLimiter`、`SemaphoreLimiter.Acquire`、`SemaphoreLimiter.Release` 提供标准库 semaphore；`WorkerGroup`、`NewWorkerGroup`、`WorkerGroup.Go`、`WorkerGroup.Wait` 汇总 worker 错误。
 
-## 重试（Retry）
+## versionx 版本 API 说明
 
-- 类型：`RetryPolicy`
-- 函数：`DefaultRetryPolicy`
-- 方法：`RetryPolicy.Validate`、`RetryPolicy.Delay`
+`BuildInfo` 和兼容别名 `VersionInfo` 暴露模块、版本、提交、构建时间和 Go 版本；`NewBuildInfo` 与 `NewVersionInfo` 创建信息；`Compatibility` 和 `Compatibility.CompatibleWith` 判断主版本兼容。
 
-`RetryPolicy` 字段为 `MaxAttempts`、`BaseDelay` 和 `MaxDelay`。`Delay` 使用确定性的 2 倍指数退避，
-且只计算指定 attempt 的延迟；是否超过 `MaxAttempts` 由调用方的执行循环判断。
+## contracttest 契约 API 说明
 
-## 脱敏（Sanitizer）
-
-- 类型：`Sanitizer`、`SecretString`
-- 函数：`NewSecretString`
-- 方法：`SecretString.String`、`SecretString.Reveal`、`SecretString.Sanitize`、`SecretString.MarshalJSON`、`SecretString.IsZero`
-
-非空 `SecretString` 在字符串格式化、`Sanitize` 和 JSON 输出中默认返回 `***`；只有 `Reveal` 会显式返回原始值。
-
-## 时钟（Clock）
-
-- 类型：`Clock`、`RealClock`、`FixedClock`
-- 函数：`NewRealClock`、`NewFixedClock`
-- 方法：`RealClock.Now`、`FixedClock.Now`
-
-## 版本（Version）
-
-- 类型：`VersionInfo`
-- 函数：`NewVersionInfo`
-
-JSON 契约字段为 `module`、`version`、`commit`、`build_time` 和 `go_version`。
+`AssertJSONFields`、`AssertErrorKind`、`AssertHealthStatus` 帮助下游测试 JSON 字段、错误种类和健康状态契约。

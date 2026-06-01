@@ -1,17 +1,28 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://foundationx.local/contracts/health.schema.json",
-  "title": "foundationx HealthStatus",
+  "$id": "https://kernel.local/contracts/health.schema.json",
+  "title": "kernel HealthStatus",
   "type": "object",
+  "required": [
+    "name",
+    "status",
+    "message",
+    "checked_at",
+    "latency_ms",
+    "metadata"
+  ],
   "additionalProperties": false,
-  "required": ["name", "status", "message", "checked_at", "latency_ms", "metadata"],
   "properties": {
     "name": {
       "type": "string"
     },
     "status": {
       "type": "string",
-      "enum": ["healthy", "degraded", "unhealthy"]
+      "enum": [
+        "healthy",
+        "degraded",
+        "unhealthy"
+      ]
     },
     "message": {
       "type": "string"

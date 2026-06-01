@@ -1,15 +1,9 @@
-# Retry 契约
+# 重试说明
 
-`RetryPolicy` 是可复用的数据契约，只描述重试时间参数：
+## 范围说明
 
-- `MaxAttempts` 描述上层执行循环允许的尝试次数，必须大于 0。
-- `BaseDelay` 是初始延迟，必须大于等于 0；为 0 时 `Delay` 返回 0。
-- `MaxDelay` 限制计算出的延迟，必须大于等于 0；为 0 表示不设置上限。
+`RetryPolicy` 描述尝试次数和延迟边界；调用方负责循环和截止条件，策略只计算 delay。
 
-当前 API 没有 `Multiplier` 字段；`Delay(attempt int)` 使用固定 2 倍指数退避，并接受
-从 1 开始的 attempt 编号。`Delay` 只做时间计算，不按 `MaxAttempts` 截断；调用方在执行
-循环中使用 `MaxAttempts` 判断是否继续尝试。`Validate()` 会检查 `MaxAttempts`、`BaseDelay`、
-`MaxDelay` 以及 `BaseDelay <= MaxDelay`（当 `MaxDelay > 0` 时）。
+## 验证说明
 
-该策略可以自校验并确定性计算某次尝试的延迟，但不执行 callback，也不负责 context
-cancellation。日志、追踪、幂等性检查和传输层处理由上层组合。
+相关变更必须通过 `make docs-check`、`make boundary-check`、`make test` 和发布前检查。

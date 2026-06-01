@@ -38,12 +38,12 @@ Manifest checks：
 Coverage evidence：
 
 - `make cover` 生成 `coverage.out`。
-- `pkg/foundationx` 报告 92.8% statement coverage。
+- `pkg/kernel` 报告 92.8% statement coverage。
 
 Dependency evidence：
 
 - `GOWORK=off go list -deps ./...` 仅列出 Go standard-library packages 与
-  `github.com/ZoneCNH/foundationx` packages。
+  `github.com/ZoneCNH/kernel` packages。
 
 Workspace note：
 

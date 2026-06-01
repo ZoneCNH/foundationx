@@ -17,10 +17,11 @@ func TestAPIDocsMentionExportedSurface(t *testing.T) {
 		t.Fatalf("read docs/api.md: %v", err)
 	}
 	text := string(docs)
-
-	for _, name := range exportedSurface(t, filepath.Join("..", "pkg", "foundationx")) {
-		if !strings.Contains(text, "`"+name+"`") {
-			t.Errorf("docs/api.md does not mention exported API %q", name)
+	for _, dir := range []string{"errx", "timex", "lifecycx", "retryx", "healthx", "obsx", "validx", "syncx", "versionx", "contracttest"} {
+		for _, name := range exportedSurface(t, filepath.Join("..", dir), dir) {
+			if !strings.Contains(text, "`"+name+"`") {
+				t.Errorf("docs/api.md does not mention %s exported API %q", dir, name)
+			}
 		}
 	}
 }
@@ -31,7 +32,6 @@ func TestAPIDocsPreservePublicBehaviorContracts(t *testing.T) {
 		t.Fatalf("read docs/api.md: %v", err)
 	}
 	text := string(docs)
-
 	for _, want := range []string{
 		"`Error.WithRetryable` 会修改当前 `*Error` 并返回同一个指针",
 		"`HealthStatus.WithMetadata` 会复制已有 metadata 并返回更新后的状态，不会修改调用它的原始 `HealthStatus`",
@@ -45,22 +45,17 @@ func TestAPIDocsPreservePublicBehaviorContracts(t *testing.T) {
 	}
 }
 
-func exportedSurface(t *testing.T, dir string) []string {
+func exportedSurface(t *testing.T, dir string, packageName string) []string {
 	t.Helper()
-
 	set := token.NewFileSet()
-	pkgs, err := parser.ParseDir(set, dir, func(info os.FileInfo) bool {
-		return !strings.HasSuffix(info.Name(), "_test.go")
-	}, 0)
+	pkgs, err := parser.ParseDir(set, dir, func(info os.FileInfo) bool { return !strings.HasSuffix(info.Name(), "_test.go") }, 0)
 	if err != nil {
 		t.Fatalf("parse package dir %s: %v", dir, err)
 	}
-
-	pkg, ok := pkgs["foundationx"]
+	pkg, ok := pkgs[packageName]
 	if !ok {
-		t.Fatalf("package foundationx not found in %s", dir)
+		t.Fatalf("package %s not found in %s", packageName, dir)
 	}
-
 	names := map[string]bool{}
 	for _, file := range pkg.Files {
 		for _, decl := range file.Decls {
@@ -88,7 +83,6 @@ func exportedSurface(t *testing.T, dir string) []string {
 			}
 		}
 	}
-
 	sorted := make([]string, 0, len(names))
 	for name := range names {
 		sorted = append(sorted, name)
@@ -96,13 +90,11 @@ func exportedSurface(t *testing.T, dir string) []string {
 	sort.Strings(sorted)
 	return sorted
 }
-
 func addExported(names map[string]bool, name string) {
 	if ast.IsExported(name) {
 		names[name] = true
 	}
 }
-
 func receiverName(fields *ast.FieldList) string {
 	if fields == nil || len(fields.List) != 1 {
 		return ""

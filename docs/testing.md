@@ -1,27 +1,13 @@
-# 测试指南
+# 测试说明
 
-运行默认验证：
+## 范围说明
 
-```sh
-make ci
-```
+单元测试覆盖每个包；契约测试覆盖 JSON schema、API 文档和发布门禁。
 
-运行正式 tag 发布门禁：
+## 验证说明
 
-```sh
-make release-final-check
-```
+相关变更必须通过 `make docs-check`、`make boundary-check`、`make test` 和发布前检查。
 
-直接运行 Go 命令时，应关闭父级 workspace：
+## 发布门禁说明
 
-```sh
-GOWORK=off go test ./...
-GOWORK=off go test -race ./...
-```
-
-## 期望
-
-- 边界行为优先使用 table-driven tests。
-- 修改公开契约前先补 regression tests。
-- 修改 lifecycle、retry、clock 相关行为时运行 race tests。
-- 通过 `make examples` 保持 examples 可编译。
+正式发布使用 `make release-final-check`，并保留生成证据。

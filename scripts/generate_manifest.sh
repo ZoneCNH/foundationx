@@ -86,7 +86,9 @@ cat > "$OUT" <<JSON
     "boundary": "passed",
     "secret_scan": "passed",
     "contract": "passed",
+    "api": "passed",
     "docs": "passed",
+    "artifact_docs": "passed",
     "examples": "passed"
   }
 }

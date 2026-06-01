@@ -1,0 +1,7 @@
+{
+  "module": "github.com/ZoneCNH/kernel",
+  "version": "v0.1.0",
+  "commit": "local",
+  "build_time": "2026-06-01T00:00:00Z",
+  "go_version": "go1.23"
+}

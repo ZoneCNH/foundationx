@@ -1,7 +1,7 @@
 
 # 第二类：L0 内核库完整 Goal 执行方案 v1.2
 
-> 变更说明：v1.1 已将原 `foundationx` 命名统一改为 `kernel`；v1.2 已将原 `baselib-template` 统一改为 `xlib-standard`，模板仓库地址调整为 `https://github.com/ZoneCNH/xlib-standard`。
+> 变更说明：v1.1 已将原 `kernel` 命名统一改为 `kernel`；v1.2 已将原 `xlib-standard` 统一改为 `xlib-standard`，模板仓库地址调整为 `https://github.com/ZoneCNH/xlib-standard`。
 
 > 适用对象：`L0 内核库 / 核心稳定层 / kernel 内核库`  
 > 默认绑定：`github.com/ZoneCNH/kernel` 作为 L0 内核库，`https://github.com/ZoneCNH/xlib-standard` 作为基础库模板标准，`x.go` 作为调用方与集成验证对象。  
@@ -15,16 +15,16 @@
 
 ### 0.1 本次同步裁决
 
-必须同步更新。`xlib-standard` 是所有 L0/L1 基础库的脚手架与工程标准事实源，原 `baselib-template` 名称和地址如果继续保留，会造成 Goal 文档、Issue、Agent 执行 Prompt、Traceability Matrix、Evidence Manifest 与后续仓库初始化流程不一致。
+必须同步更新。`xlib-standard` 是所有 L0/L1 基础库的脚手架与工程标准事实源，原 `xlib-standard` 名称和地址如果继续保留，会造成 Goal 文档、Issue、Agent 执行 Prompt、Traceability Matrix、Evidence Manifest 与后续仓库初始化流程不一致。
 
 本次同步范围：
 
 | 项目 | 旧值 | 新值 | 是否必须更新 |
 |---|---|---|---|
-| 基础库模板名称 | `baselib-template` | `xlib-standard` | 是 |
-| 基础库模板仓库 | `github.com/ZoneCNH/baselib-template` | `https://github.com/ZoneCNH/xlib-standard` | 是 |
-| L0 内核库名称 | `foundationx` | `kernel` | 已在 v1.1 完成 |
-| L0 内核库仓库 | `github.com/ZoneCNH/foundationx` | `github.com/ZoneCNH/kernel` | 已在 v1.1 完成 |
+| 基础库模板名称 | `xlib-standard` | `xlib-standard` | 是 |
+| 基础库模板仓库 | `github.com/ZoneCNH/xlib-standard` | `https://github.com/ZoneCNH/xlib-standard` | 是 |
+| L0 内核库名称 | `kernel` | `kernel` | 已在 v1.1 完成 |
+| L0 内核库仓库 | `github.com/ZoneCNH/kernel` | `github.com/ZoneCNH/kernel` | 已在 v1.1 完成 |
 | Goal 文档版本 | v1.1 | v1.2 | 是 |
 
 同步原则：从 v1.2 开始，`kernel` 是 L0 内核库事实源，`xlib-standard` 是基础库模板标准事实源，x.go 是集成验证调用方。
@@ -237,7 +237,7 @@ INCONSISTENT_STATE
 ---
 
 
-## 7A. 变更传播 Change Propagation：`baselib-template` → `xlib-standard`
+## 7A. 变更传播 Change Propagation：`xlib-standard` → `xlib-standard`
 
 ### 7A.1 变更性质
 
@@ -260,7 +260,7 @@ INCONSISTENT_STATE
 
 ### 7A.3 禁止规则
 
-从 v1.2 起，任何新文档、Issue、PR、Release Manifest、Agent Prompt 不得再使用 `baselib-template` 作为当前事实源。历史引用必须明确标注为“旧名 / legacy name”。
+从 v1.2 起，任何新文档、Issue、PR、Release Manifest、Agent Prompt 不得再使用 `xlib-standard` 作为当前事实源。历史引用必须明确标注为“旧名 / legacy name”。
 
 ### 7A.4 同步完成判据
 
@@ -268,7 +268,7 @@ INCONSISTENT_STATE
 
 ```text
 DONE with evidence:
-- grep evidence: no active `baselib-template` references outside legacy changelog notes
+- grep evidence: no active `xlib-standard` references outside legacy changelog notes
 - Goal metadata evidence: template_repo=https://github.com/ZoneCNH/xlib-standard
 - Docs evidence: README / ADR / Plan / Tasks / Release Manifest all use xlib-standard
 - CI evidence: template compatibility checks pass
@@ -616,7 +616,7 @@ make release-final-check
 
 ## 15. 证据协议 Evidence Protocol
 
-### 15.1 Evidence 类型
+### 15.1 证据 Evidence 类型
 
 | Evidence | 内容 |
 |---|---|
@@ -747,7 +747,7 @@ DONE with evidence:
 
 ---
 
-## 20. 人工审批门禁 Human Approval Gates
+## 20. 人工批准门禁 Human Approval Gates
 
 以下变更必须人工批准：
 
@@ -834,11 +834,11 @@ DONE with evidence: errx/timex + docs-check + boundary-check + tests green
 
 ## 23. 1 天行动计划
 
-### Day 1 目标
+### 第 1 天目标 Day 1
 
 完成 L0 的边界冻结 + MVA 原语启动。
 
-### Day 1 任务 Tasks
+### 第 1 天任务 Day 1 Tasks
 
 1. 扫描 `kernel` 当前结构；
 2. 扫描 `xlib-standard` 必需规范；
@@ -853,7 +853,7 @@ DONE with evidence: errx/timex + docs-check + boundary-check + tests green
 11. 实现 `make boundary-check` 最小版本；
 12. 生成 `docs/evidence/day1-context-and-boundary.md`。
 
-### Day 1 退出标准 Exit Criteria
+### 第 1 天退出标准 Day 1 Exit Criteria
 
 - [ ] Spec Gate green；
 - [ ] Design Gate green；
@@ -897,7 +897,7 @@ make boundary-check
 - package README；
 - example tests。
 
-### Day 6：CI + 证据 Evidence
+### 第 6 天：CI + 证据 Evidence
 
 完成：
 
@@ -907,7 +907,7 @@ make boundary-check
 - `make release-evidence-check`；
 - release manifest draft。
 
-### Day 7：消费者冒烟 Consumer Smoke + 发布候选 Release Candidate
+### 第 7 天：消费者冒烟 Consumer Smoke + 发布候选 Release Candidate
 
 完成：
 
@@ -917,7 +917,7 @@ make boundary-check
 - risk register update；
 - retro draft。
 
-### 7 天 Exit Criteria
+### 7 天退出标准 Exit Criteria
 
 - [ ] 所有核心包最小实现完成；
 - [ ] 所有核心包有 README/example/unit tests；
@@ -981,7 +981,7 @@ kernel v0.2.0
 kernel v0.3.0
 ```
 
-### 30 天 Exit Criteria
+### 30 天退出标准 Exit Criteria
 
 - [ ] kernel v0.1.0 已发布；
 - [ ] 至少 2 个 L1 基础库完成试点接入；
@@ -1068,7 +1068,7 @@ Recommendation
 Impact on Spec/Design/Plan/Tasks
 ```
 
-### 27.2 智能体团队 Agent Teams
+### 27.2 代理团队 Agent Teams
 
 | Agent | 责任 |
 |---|---|
@@ -1127,9 +1127,9 @@ L0 Kernel Primitive
 
 ---
 
-## 29. gstack / superpowers / Harness / CE / Self-improving / AutoResearch / Goal-Oriented Thinking 映射
+## 29. 工具体系 gstack / superpowers / Harness / CE / Self-improving / AutoResearch / Goal-Oriented Thinking 映射
 
-### 29.1 技术栈 gstack
+### 29.1 工具栈 gstack
 
 ```text
 North Star:
@@ -1148,7 +1148,7 @@ Evidence Goals:
   CI green + docs-check + boundary-check + release manifest
 ```
 
-### 29.2 超能力 Superpowers
+### 29.2 能力集 Superpowers
 
 | Superpower | 在 L0 中的实现 |
 |---|---|
@@ -1168,7 +1168,7 @@ Harness 的核心作用是把“代码写完”改成“证据链完整”。L0 
 
 L0 的每个原语都是后续基础库的复利资产。一次高质量实现，多处长期收益。
 
-### 29.5 自我改进 Self-improving
+### 29.5 自改进 Self-improving
 
 每次失败、review、release 后必须输出：
 
@@ -1182,7 +1182,7 @@ PATCH-RULE-YYYYMMDD-NNN
 
 未知项不猜测，不硬编码。进入 NEEDS_RESEARCH，形成 research note 后再决策。
 
-### 29.7 目标导向思维 Goal-Oriented Thinking
+### 29.7 目标导向思考 Goal-Oriented Thinking
 
 任何 Task 必须能追溯到 Requirement 和 Acceptance Criteria。不能证明价值的任务不执行。
 
@@ -1193,7 +1193,7 @@ PATCH-RULE-YYYYMMDD-NNN
 下面内容可直接交给 Agent Teams 执行。
 
 ```markdown
-# Goal Runtime Execution Prompt — L0 Kernel Library / kernel v0.1.0
+# 目标运行时执行提示 Goal Runtime Execution Prompt — L0 Kernel Library / kernel v0.1.0
 
 You are an Agent Team executing Goal Runtime Prompt v3.1.
 

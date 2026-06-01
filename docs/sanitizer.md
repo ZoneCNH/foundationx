@@ -1,19 +1,9 @@
-# Sanitizer 契约
+# 脱敏说明
 
-`Sanitizer` 定义一个方法：
+## 范围说明
 
-```go
-Sanitize() any
-```
+`SecretString` 的字符串、脱敏和 JSON 输出默认隐藏非空内容。
 
-`SecretString` 是默认值类型：
+## 验证说明
 
-```go
-type SecretString string
-```
-
-非空 `SecretString` 在转换为字符串或 JSON 时返回 `***`，空值返回空字符串。`SecretString.Sanitize()`
-返回脱敏后的表示，返回类型为 `any`。只有 `Reveal()` 会显式返回原始值。
-
-本包不会扫描进程环境、改写日志，也不提供全局 redaction hook。调用方自行决定在何处应用
-sanitization。
+相关变更必须通过 `make docs-check`、`make boundary-check`、`make test` 和发布前检查。

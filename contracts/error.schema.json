@@ -1,10 +1,14 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://foundationx.local/contracts/error.schema.json",
-  "title": "foundationx Error",
+  "$id": "https://kernel.local/contracts/error.schema.json",
+  "title": "kernel Error",
   "type": "object",
+  "required": [
+    "kind",
+    "message",
+    "retryable"
+  ],
   "additionalProperties": false,
-  "required": ["kind", "message", "retryable"],
   "properties": {
     "kind": {
       "type": "string",
@@ -21,6 +25,18 @@
         "not_found",
         "already_exists",
         "internal"
+      ]
+    },
+    "code": {
+      "type": "string"
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "info",
+        "warning",
+        "error",
+        "critical"
       ]
     },
     "op": {

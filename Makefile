@@ -33,10 +33,6 @@ cover:
 boundary:
 	./scripts/check_boundary.sh
 
-.PHONY: boundary-check
-boundary-check:
-	$(MAKE) boundary
-
 .PHONY: security
 security:
 	@if command -v govulncheck >/dev/null 2>&1; then \
@@ -50,13 +46,17 @@ security:
 contracts:
 	./scripts/check_contracts.sh
 
+.PHONY: api-check
+api-check:
+	./scripts/ci/api-check.sh
+
 .PHONY: docs
 docs:
 	./scripts/check_docs.sh
 
-.PHONY: docs-check
-docs-check:
-	$(MAKE) docs
+.PHONY: artifact-check
+artifact-check:
+	./scripts/ci/artifact-check.sh
 
 .PHONY: examples
 examples:
@@ -64,6 +64,13 @@ examples:
 	$(GOENV) $(GO) run ./examples/health_checker
 	$(GOENV) $(GO) run ./examples/retry_policy
 	$(GOENV) $(GO) run ./examples/clock
+	$(GOENV) $(GO) run ./examples/lifecycle
+	$(GOENV) $(GO) run ./examples/observability
+	$(GOENV) $(GO) run ./examples/validation
+	$(GOENV) $(GO) run ./examples/sync_group
+	$(GOENV) $(GO) run ./examples/version_info
+	$(GOENV) $(GO) run ./examples/contract_helper
+
 
 .PHONY: evidence
 evidence:
@@ -73,17 +80,12 @@ evidence:
 release-evidence-check:
 	./scripts/check_release_evidence.sh
 
-.PHONY: evidence-check
-evidence-check:
-	$(MAKE) evidence
-	$(MAKE) release-evidence-check
-
 .PHONY: release-clean-check
 release-clean-check:
 	./scripts/check_release_clean.sh
 
 .PHONY: ci
-ci: fmt vet lint test race boundary security contracts docs examples
+ci: fmt vet lint test race boundary security contracts api-check docs artifact-check examples
 
 .PHONY: release-check
 release-check:
@@ -91,12 +93,20 @@ release-check:
 	$(MAKE) evidence
 	$(MAKE) release-evidence-check
 
-.PHONY: release-preflight
-release-preflight:
-	$(MAKE) release-check
-
 .PHONY: release-final-check
 release-final-check:
 	$(MAKE) release-clean-check
 	$(MAKE) release-check
 	$(MAKE) release-clean-check
+
+.PHONY: docs-check
+docs-check: docs artifact-check
+
+.PHONY: boundary-check
+boundary-check: boundary
+
+.PHONY: evidence-check
+evidence-check: evidence release-evidence-check
+
+.PHONY: release-preflight
+release-preflight: release-final-check

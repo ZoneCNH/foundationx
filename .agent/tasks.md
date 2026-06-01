@@ -1,7 +1,7 @@
 # 任务台账（Task Ledger）
 
 - [x] 创建 `go.mod`。
-- [x] 实现 `pkg/foundationx` contracts。
+- [x] 实现 `pkg/kernel` contracts。
 - [x] 新增 unit tests。
 - [x] 新增 examples。
 - [x] 新增 JSON schemas。

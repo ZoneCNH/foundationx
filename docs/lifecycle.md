@@ -1,18 +1,9 @@
-# Lifecycle 契约
+# 生命周期说明
 
-Lifecycle 契约刻意保持很小：
+## 范围说明
 
-```go
-type Starter interface {
-	Start(context.Context) error
-}
+`Manager.Start` 顺序启动组件；失败时逆序停止已启动组件；`Manager.Stop` 逆序停止。
 
-type Closer interface {
-	Close(context.Context) error
-}
-```
+## 验证说明
 
-`Lifecycle` 组合这两个接口，用于需要显式 start 和 close 阶段的组件。
-
-这些契约不定义 supervisor、goroutine 编排、依赖图或 shutdown 顺序。相关策略属于应用层或
-基础设施包。
+相关变更必须通过 `make docs-check`、`make boundary-check`、`make test` 和发布前检查。

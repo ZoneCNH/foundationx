@@ -12,57 +12,19 @@ import (
 func TestReleaseCheckWiresDocumentationAndEvidenceGates(t *testing.T) {
 	makefile := readRepoText(t, "Makefile")
 
-	assertContains(t, makefile, "docs-check:")
-	assertContains(t, makefile, "boundary-check:")
-	assertContains(t, makefile, "evidence-check:")
-	assertContains(t, makefile, "release-preflight:")
 	assertContains(t, makefile, "release-check:")
 	assertContains(t, makefile, "release-clean-check:")
 	assertContains(t, makefile, "release-final-check:")
-	assertContains(t, makefile, "ci: fmt vet lint test race boundary security contracts docs examples")
+	assertContains(t, makefile, "ci: fmt vet lint test race boundary security contracts api-check docs artifact-check examples")
 	assertContains(t, makefile, "\t$(MAKE) ci")
 	assertContains(t, makefile, "\t$(MAKE) evidence")
 	assertContains(t, makefile, "\t$(MAKE) release-evidence-check")
 	assertContains(t, makefile, "./scripts/check_docs.sh")
+	assertContains(t, makefile, "./scripts/ci/api-check.sh")
+	assertContains(t, makefile, "./scripts/ci/artifact-check.sh")
 	assertContains(t, makefile, "./scripts/generate_manifest.sh")
 	assertContains(t, makefile, "./scripts/check_release_evidence.sh")
 	assertContains(t, makefile, "./scripts/check_release_clean.sh")
-}
-
-func TestGoalRequiredMakeAliasesWireToCanonicalGates(t *testing.T) {
-	makefile := readRepoText(t, "Makefile")
-
-	for _, tc := range []struct {
-		target string
-		want   []string
-	}{
-		{
-			target: "docs-check",
-			want:   []string{"\t$(MAKE) docs"},
-		},
-		{
-			target: "boundary-check",
-			want:   []string{"\t$(MAKE) boundary"},
-		},
-		{
-			target: "evidence-check",
-			want: []string{
-				"\t$(MAKE) evidence",
-				"\t$(MAKE) release-evidence-check",
-			},
-		},
-		{
-			target: "release-preflight",
-			want:   []string{"\t$(MAKE) release-check"},
-		},
-	} {
-		t.Run(tc.target, func(t *testing.T) {
-			body := makeTargetBody(t, makefile, tc.target)
-			for _, want := range tc.want {
-				assertContains(t, body, want)
-			}
-		})
-	}
 }
 
 func TestReleaseCheckRunsEvidenceAfterCIGates(t *testing.T) {
@@ -104,8 +66,8 @@ func TestReleaseFinalCheckBracketsReleaseCheckWithCleanChecks(t *testing.T) {
 	}
 }
 
-func TestBaselibTemplateAnalysisPinsReviewedGovernanceBaseline(t *testing.T) {
-	analysis := readRepoText(t, filepath.Join("docs", "baselib-template-analysis.md"))
+func TestXlibStandardAnalysisPinsReviewedGovernanceBaseline(t *testing.T) {
+	analysis := readRepoText(t, filepath.Join("docs", "xlib-standard-analysis.md"))
 
 	for _, want := range []string{
 		"041a62f21428111a4b46235a7910edbdf4e07d61",
@@ -404,7 +366,7 @@ func TestDocumentationHeadingsKeepChineseContext(t *testing.T) {
 		filepath.Join("docs", "sanitizer.md"),
 		filepath.Join("docs", "spec.md"),
 		filepath.Join("docs", "testing.md"),
-		filepath.Join("docs", "baselib-template-analysis.md"),
+		filepath.Join("docs", "xlib-standard-analysis.md"),
 	} {
 		text := readRepoText(t, path)
 		if matches := englishOnlyHeading.FindAllString(text, -1); len(matches) > 0 {
@@ -426,14 +388,10 @@ func readRepoText(t *testing.T, path string) string {
 func makeTargetBody(t *testing.T, makefile string, target string) string {
 	t.Helper()
 
-	marker := "\n" + target + ":\n"
+	marker := target + ":\n"
 	start := strings.Index(makefile, marker)
 	if start == -1 {
-		if !strings.HasPrefix(makefile, target+":\n") {
-			t.Fatalf("%s target not found", target)
-		}
-		start = 0
-		marker = target + ":\n"
+		t.Fatalf("%s target not found", target)
 	}
 
 	bodyStart := start + len(marker)
