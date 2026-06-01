@@ -2,6 +2,7 @@ package foundationx
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 	"time"
 )
@@ -37,6 +38,42 @@ func TestHealthStatusWithMetadata(t *testing.T) {
 
 	if got := status.Metadata["partition"]; got != "0" {
 		t.Fatalf("Metadata[partition] = %q, want 0", got)
+	}
+}
+
+func TestHealthStatusWithMetadataDoesNotMutateSource(t *testing.T) {
+	base := NewHealthStatus("queue", HealthDegraded, "lag", time.Time{}, 3).
+		WithMetadata("partition", "0")
+
+	updated := base.WithMetadata("lag", "high")
+
+	if _, ok := base.Metadata["lag"]; ok {
+		t.Fatal("WithMetadata must not mutate source metadata map")
+	}
+	if got := updated.Metadata["partition"]; got != "0" {
+		t.Fatalf("updated Metadata[partition] = %q, want 0", got)
+	}
+	if got := updated.Metadata["lag"]; got != "high" {
+		t.Fatalf("updated Metadata[lag] = %q, want high", got)
+	}
+}
+
+func TestHealthStatusJSONNilMetadataMarshalsAsObject(t *testing.T) {
+	data, err := json.Marshal(HealthStatus{Name: "cache", Status: HealthHealthy})
+	if err != nil {
+		t.Fatalf("Marshal HealthStatus: %v", err)
+	}
+
+	var got map[string]any
+	if err := json.Unmarshal(data, &got); err != nil {
+		t.Fatalf("Unmarshal HealthStatus JSON: %v", err)
+	}
+	metadata, ok := got["metadata"].(map[string]any)
+	if !ok {
+		t.Fatalf("metadata = %T %v, want JSON object", got["metadata"], got["metadata"])
+	}
+	if len(metadata) != 0 {
+		t.Fatalf("metadata = %v, want empty object", metadata)
 	}
 }
 
