@@ -1,0 +1,9 @@
+{
+  "empty_string": "",
+  "non_empty_string": "***",
+  "non_empty_sanitize": "***",
+  "non_empty_json": "***",
+  "reveal": "secret-token",
+  "empty_is_zero": true,
+  "non_empty_is_zero": false
+}

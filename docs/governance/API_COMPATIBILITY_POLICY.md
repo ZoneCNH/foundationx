@@ -1,33 +1,22 @@
-# API 兼容策略 API compatibility policy
+# API Compatibility Policy（API 兼容性策略）
 
-## 目标 Scope
+## Scope（范围）
 
-`kernel` 是 L0 基础模块。公开 API 包括根模块下每个公共包的 exported 类型、常量、变量、函数、方法、结构体字段、JSON 标签和接口方法。
+This policy covers the exported Go API for `errx`, `timex`, `lifecycx`, `retryx`, `healthx`, `obsx`, `validx`, `syncx`, `versionx`, and `contracttest`.
 
-## 兼容规则 Compatibility rules
+## Snapshot Gate（快照门禁）
 
-- 已发布的 exported API 默认保持源码兼容。
-- 删除、重命名、改变参数或返回值、改变 JSON 字段名都属于破坏性变更。
-- 新增 exported API 必须更新 `contracts/public_api.snapshot`，并在变更说明中解释用途和稳定性。
-- 行为契约变更必须同步更新 golden 行为样例、文档和 release manifest。
-- `internal/`、测试 helper 和未 exported 标识符不属于公开 API。
+`contracts/public_api.snapshot` is the canonical public API baseline. `scripts/ci/api-diff-check.sh` regenerates the current exported surface and fails when it differs from the committed snapshot.
 
-## 快照流程 Snapshot workflow
+Public API changes require an explicit compatibility review before the snapshot is updated with `UPDATE_PUBLIC_API_SNAPSHOT=1 scripts/ci/api-diff-check.sh`.
 
-`./scripts/ci/api-diff-check.sh` 在 release gate 中生成当前公开 API 并与 `contracts/public_api.snapshot` 对比。只有有意的兼容性变更可以使用：
+## Change Rules（变更规则）
 
-```sh
-UPDATE_API_SNAPSHOT=1 ./scripts/ci/api-diff-check.sh
-```
+- Additive exported APIs are allowed after documentation and contract examples are updated.
+- Removed or renamed exported APIs require a major compatibility decision and release notes.
+- Signature changes require a migration note and an updated snapshot in the same reviewed change.
+- Behavior changes require golden contract updates that explain the compatibility impact.
 
-更新快照后必须运行：
+## Release Evidence（发布证据）
 
-```sh
-GOWORK=off go test ./...
-make contracts
-make evidence-check
-```
-
-## 弃用规则 Deprecation rules
-
-弃用 API 必须先保留兼容实现并在文档中标记替代方案。删除只能发生在明确声明的后续主版本，并且 release evidence 必须说明影响面。
+Release manifests record `public_api_sha256`, `verified_go_versions`, and consumer compatibility evidence so downstream consumers can verify the API baseline used for a release.

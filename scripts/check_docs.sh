@@ -49,10 +49,14 @@ docs/adr/ADR-20260601-007-lifecycle-manager.md
 docs/adr/ADR-20260601-008-health-version-contracts.md
 docs/adr/ADR-20260601-009-contracttest-golden-examples.md
 docs/adr/ADR-20260601-010-release-evidence-gates.md
+docs/governance/API_COMPATIBILITY_POLICY.md
+docs/governance/PACKAGE_MATURITY.md
+docs/governance/XGO_CONSUMER_COMPATIBILITY.md
+contracts/consumers/xgo/README.md
 "
 for file in $DOC_FILES; do if [ ! -s "$file" ]; then echo "ERROR: required documentation file missing or empty: $file"; status=1; fi; done
 if [ ! -d contracts/examples/golden ]; then echo "ERROR: required golden example directory missing: contracts/examples/golden"; status=1; fi
-for file in contracts/examples/golden/error-unavailable.json contracts/examples/golden/health-healthy.json contracts/examples/golden/version-v0.1.0.json contracts/examples/golden/README.md; do
+for file in contracts/examples/golden/error-unavailable.json contracts/examples/golden/health-healthy.json contracts/examples/golden/version-v0.1.0.json contracts/examples/golden/README.md contracts/golden/retry-delays.json contracts/golden/obsx-redaction.json contracts/golden/lifecycx-rollback-order.json contracts/golden/syncx-workergroup-first-error.json contracts/public_api.snapshot; do
   if [ ! -s "$file" ]; then echo "ERROR: required golden example missing or empty: $file"; status=1; fi
 done
 check_absent "NewError must not document a cause parameter; use WrapError for causes" 'NewError\([^)]*(cause|Cause)[^)]*\)' $DOC_FILES

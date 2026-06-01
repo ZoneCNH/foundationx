@@ -1,0 +1,16 @@
+{
+  "base_delay": "100ms",
+  "max_delay": "250ms",
+  "attempts": [
+    {"attempt": 0, "delay": "0s"},
+    {"attempt": 1, "delay": "100ms"},
+    {"attempt": 2, "delay": "200ms"},
+    {"attempt": 3, "delay": "250ms"},
+    {"attempt": 4, "delay": "250ms"}
+  ],
+  "jitter": [
+    {"attempt": 2, "ratio": 0.5, "fraction": -1, "delay": "100ms"},
+    {"attempt": 2, "ratio": 0.5, "fraction": 1, "delay": "250ms"},
+    {"attempt": 3, "ratio": 1, "fraction": 1, "delay": "250ms"}
+  ]
+}

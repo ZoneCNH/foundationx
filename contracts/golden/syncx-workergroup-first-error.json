@@ -1,0 +1,4 @@
+{
+  "returned_error": "first failure",
+  "second_worker_cancelled": true
+}

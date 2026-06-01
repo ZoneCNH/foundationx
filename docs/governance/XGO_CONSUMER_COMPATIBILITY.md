@@ -1,17 +1,19 @@
-# XGO 消费方兼容 XGO consumer compatibility
+# XGO Consumer Compatibility（XGO 消费者兼容性）
 
-## 边界 Boundary
+## Purpose（目的）
 
-`kernel` 不导入 `x.go`，也不导入业务、数据库、消息、云厂商或观测 SDK。兼容性通过消费方最小导入测试证明：`contracts/consumers/xgo/minimal_import_test.go`。
+This document records the kernel-side compatibility promise for the downstream x.go consumer family without importing or depending on x.go packages.
 
-## 消费方承诺 Consumer promise
+## Boundary（边界）
 
-- 消费方可以导入 `errx`、`retryx`、`obsx`、`lifecycx`、`syncx`、`healthx`、`timex`、`validx`、`versionx` 和 `contracttest`，无需额外第三方 runtime 依赖。
-- `GOWORK=off go test ./...` 必须覆盖最小消费方测试。
-- release manifest 必须记录 `consumers.xgo.required=true`、`consumers.xgo.verified=true` 和 evidence 文件路径。
+The kernel must remain L0: `GOWORK=off`, standard-library-only runtime dependencies, no x.go imports, no local replace directives, and no business or infrastructure vocabulary in kernel code.
 
-## 禁止项 Forbidden items
+## Consumer Contract（消费者契约）
 
-- 不允许在 kernel 包中引入 `x.go` import。
-- 不允许通过 `replace` 指向本地消费方仓库。
-- 不允许把消费方业务术语写入 kernel runtime 包。
+- Downstream consumers rely on the exported API snapshot in `contracts/public_api.snapshot`.
+- Downstream consumers rely on golden behavior contracts for retry delays, secret redaction, lifecycle rollback order, and sync worker error aggregation.
+- Release manifests include consumer compatibility metadata pointing to this policy and `contracts/consumers/xgo/README.md`.
+
+## Verification（验证）
+
+Kernel release gates validate compatibility through `make contracts`, `make api-check`, `make evidence-check`, and `make release-final-check` before a release is accepted.

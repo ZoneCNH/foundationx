@@ -11,6 +11,10 @@ for file in \
   contracts/health.schema.json \
   contracts/version.schema.json \
   contracts/public_api.snapshot \
+  contracts/golden/retry-delays.json \
+  contracts/golden/obsx-redaction.json \
+  contracts/golden/lifecycx-rollback-order.json \
+  contracts/golden/syncx-workergroup-first-error.json \
   docs/api.md
 do
   if [ ! -s "$file" ]; then

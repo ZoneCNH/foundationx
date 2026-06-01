@@ -22,6 +22,16 @@ required_paths=(
   contracts/examples/golden/error-unavailable.json
   contracts/examples/golden/health-healthy.json
   contracts/examples/golden/version-v0.1.0.json
+  .github/versions.env
+  contracts/public_api.snapshot
+  contracts/golden/retry-delays.json
+  contracts/golden/obsx-redaction.json
+  contracts/golden/lifecycx-rollback-order.json
+  contracts/golden/syncx-workergroup-first-error.json
+  contracts/consumers/xgo/README.md
+  docs/governance/API_COMPATIBILITY_POLICY.md
+  docs/governance/PACKAGE_MATURITY.md
+  docs/governance/XGO_CONSUMER_COMPATIBILITY.md
 )
 
 status=0

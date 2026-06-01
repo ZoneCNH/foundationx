@@ -1,26 +1,24 @@
-# 包成熟度 Package maturity
+# Package Maturity（包成熟度）
 
-## 分级 Maturity levels
+## Classification（分级）
 
-- `stable`：公开 API 受 `contracts/public_api.snapshot` 保护，行为由测试和 golden 样例保护。
-- `candidate`：设计已进入公开包，但仍需要更多消费方验证；变更必须记录风险。
-- `internal`：仅模块内部使用，不承诺公开兼容。
-
-## 当前状态 Current status
-
-| Package | Maturity | Contract evidence |
+| Package | Maturity | Contract |
 | --- | --- | --- |
-| `errx` | stable | error schema, API snapshot, docs |
-| `healthx` | stable | health schema, API snapshot, docs |
-| `retryx` | stable | golden retry behavior, API snapshot |
-| `obsx` | stable | redaction behavior, API snapshot |
-| `lifecycx` | stable | rollback order behavior, API snapshot |
-| `syncx` | stable | first-error worker behavior, API snapshot |
-| `timex` | stable | API snapshot, docs |
-| `validx` | stable | API snapshot, docs |
-| `versionx` | stable | version schema, API snapshot |
-| `contracttest` | stable | consumer test helper contract |
+| `errx` | Stable | Error kind, wrapping, retryability, and JSON schema behavior are covered by tests and docs. |
+| `timex` | Stable | Clock abstraction and duration helpers are covered by tests and examples. |
+| `lifecycx` | Stable | Start/stop order and rollback behavior are covered by golden contracts. |
+| `retryx` | Stable | Delay, cap, and jitter behavior are covered by golden contracts. |
+| `healthx` | Stable | Health status JSON schema and metadata behavior are covered by contracts. |
+| `obsx` | Stable | Secret redaction behavior is covered by golden contracts. |
+| `validx` | Stable | Validation aggregation behavior is covered by tests and docs. |
+| `syncx` | Stable | WorkerGroup first-error cancellation behavior is covered by golden contracts. |
+| `versionx` | Stable | Version payload schema is covered by contracts. |
+| `contracttest` | Stable | Golden JSON helper behavior is covered by examples and tests. |
 
-## 发布要求 Release requirement
+## Promotion Rules（晋级规则）
 
-Release 只能在所有 stable 包通过 API drift check、contract tests、documentation drift check 和 release evidence check 后发布。
+A package remains Stable only when exported API drift checks, package documentation, examples, and relevant golden behavior contracts pass in release gates.
+
+## Downgrade Rules（降级规则）
+
+If a package loses contract coverage or requires a breaking behavior decision, release notes must identify the package as under compatibility review until coverage and documentation are restored.
