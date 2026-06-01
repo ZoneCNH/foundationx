@@ -18,7 +18,9 @@
 
 ## retryx 重试 API 说明
 
-`RetryPolicy` 只包含 `MaxAttempts`、`BaseDelay`、`MaxDelay` 字段；`DefaultRetryPolicy` 提供默认值；`RetryPolicy.Validate` 校验策略；`RetryPolicy.Delay` 计算指数退避；`RetryPolicy.DelayWithJitter` 在调用处按比例调整延迟；是否超过 `MaxAttempts` 由调用方的执行循环判断。
+`RetryPolicy` 只包含 `MaxAttempts`、`BaseDelay`、`MaxDelay` 字段；`DefaultRetryPolicy` 提供默认值；`RetryPolicy.Validate` 校验策略；`RetryPolicy.Delay` 计算指数退避。
+
+`RetryPolicy.DelayWithJitter` 在调用处按比例调整延迟；是否超过 `MaxAttempts` 由调用方的执行循环判断。
 `ShouldRetry` 识别实现 `Retryable` 契约或 `errx.Error` 的错误。
 
 ## healthx 健康 API 说明

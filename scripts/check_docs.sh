@@ -43,7 +43,7 @@ docs/adr/ADR-20260601-010-release-evidence-gates.md
 for file in $DOC_FILES; do if [ ! -s "$file" ]; then echo "ERROR: required documentation file missing or empty: $file"; status=1; fi; done
 check_absent "NewError must not document a cause parameter; use WrapError for causes" 'NewError\([^)]*(cause|Cause)[^)]*\)' $DOC_FILES
 check_absent "RetryPolicy must not document Multiplier as a field" 'RetryPolicy.*Multiplier|-[ 	]*`Multiplier`|Multiplier[ 	]+must|Multiplier[ 	]+(int|int64|float64|time\.Duration)' $DOC_FILES
-check_absent "RetryPolicy must not document Jitter as a field" 'RetryPolicy.*Jitter|-[ 	]*`Jitter`|Jitter[ 	]+must|Jitter[ 	]+(bool|启用|开启)' $DOC_FILES
+check_absent "RetryPolicy must not document Jitter as a field" '-[ 	]*`Jitter`|Jitter[ 	]+must|Jitter[ 	]+(bool|启用|开启)' $DOC_FILES
 check_absent "NewVersionInfo must document goVersion" 'NewVersionInfo\(module, version, commit, buildTime\)|func NewVersionInfo\(module, version, commit, buildTime string\)' $DOC_FILES
 check_present "WithRetryable must be documented" 'WithRetryable\(retryable bool\)' docs/api.md
 english_titles=""

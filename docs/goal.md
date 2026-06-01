@@ -237,7 +237,7 @@ INCONSISTENT_STATE
 ---
 
 
-## 7A. Change Propagation：`xlib-standard` → `xlib-standard`
+## 7A. 变更传播 Change Propagation：`xlib-standard` → `xlib-standard`
 
 ### 7A.1 变更性质
 
