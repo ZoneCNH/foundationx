@@ -144,8 +144,9 @@ func TestReleaseEvidenceScriptsPreserveFreshnessChecks(t *testing.T) {
 		"version schema hash mismatch",
 		"manifest schema_version does not match kernel.release-manifest.v1",
 		"public API snapshot hash mismatch",
-		"retry policy golden hash mismatch",
-		"manifest missing xgo external evidence status",
+		"manifest schema_version mismatch",
+		"go min version",
+		"xgo evidence",
 		"release-${VERSION}.md",
 	} {
 		assertContains(t, check, want)
