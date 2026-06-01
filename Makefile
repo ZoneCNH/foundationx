@@ -100,7 +100,7 @@ release-final-check:
 	$(MAKE) release-clean-check
 
 .PHONY: docs-check
-docs-check: docs
+docs-check: docs artifact-check
 
 .PHONY: boundary-check
 boundary-check: boundary

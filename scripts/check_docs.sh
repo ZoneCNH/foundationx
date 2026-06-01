@@ -28,6 +28,12 @@ docs/sync.md
 docs/version.md
 docs/contracttest.md
 docs/evidence/README.md
+docs/context/CTX-GOAL-20260601-002.md
+docs/spec/SPEC-l0-kernel-v1.0.md
+docs/design/DESIGN-l0-kernel-v1.0.md
+docs/evidence/release-v0.1.0.md
+docs/review/REV-GOAL-20260601-002-20260601-001.md
+docs/retro/RETRO-20260601-002.md
 docs/xlib-standard-analysis.md
 docs/adr/ADR-20260601-001-kernel-l0-boundary.md
 docs/adr/ADR-20260601-002-error-kind-minimal-set.md
@@ -41,6 +47,10 @@ docs/adr/ADR-20260601-009-contracttest-golden-examples.md
 docs/adr/ADR-20260601-010-release-evidence-gates.md
 "
 for file in $DOC_FILES; do if [ ! -s "$file" ]; then echo "ERROR: required documentation file missing or empty: $file"; status=1; fi; done
+if [ ! -d contracts/examples/golden ]; then echo "ERROR: required golden example directory missing: contracts/examples/golden"; status=1; fi
+for file in contracts/examples/golden/error-unavailable.json contracts/examples/golden/health-healthy.json contracts/examples/golden/version-v0.1.0.json contracts/examples/golden/README.md; do
+  if [ ! -s "$file" ]; then echo "ERROR: required golden example missing or empty: $file"; status=1; fi
+done
 check_absent "NewError must not document a cause parameter; use WrapError for causes" 'NewError\([^)]*(cause|Cause)[^)]*\)' $DOC_FILES
 check_absent "RetryPolicy must not document Multiplier as a field" 'RetryPolicy.*Multiplier|-[ 	]*`Multiplier`|Multiplier[ 	]+must|Multiplier[ 	]+(int|int64|float64|time\.Duration)' $DOC_FILES
 check_absent "RetryPolicy must not document Jitter as a field" '-[ 	]*`Jitter`|Jitter[ 	]+must|Jitter[ 	]+(bool|启用|开启)' $DOC_FILES
