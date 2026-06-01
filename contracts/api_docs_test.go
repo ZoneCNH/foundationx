@@ -25,6 +25,26 @@ func TestAPIDocsMentionExportedSurface(t *testing.T) {
 	}
 }
 
+func TestAPIDocsPreservePublicBehaviorContracts(t *testing.T) {
+	docs, err := os.ReadFile(filepath.Join("..", "docs", "api.md"))
+	if err != nil {
+		t.Fatalf("read docs/api.md: %v", err)
+	}
+	text := string(docs)
+
+	for _, want := range []string{
+		"`Error.WithRetryable` 会修改当前 `*Error` 并返回同一个指针",
+		"`HealthStatus.WithMetadata` 会复制已有 metadata 并返回更新后的状态，不会修改调用它的原始 `HealthStatus`",
+		"`metadata` 在 Go 值为 nil 时仍输出为空 JSON 对象",
+		"是否超过 `MaxAttempts` 由调用方的执行循环判断",
+		"非空 `SecretString` 在字符串格式化、`Sanitize` 和 JSON 输出中默认返回 `***`",
+	} {
+		if !strings.Contains(text, want) {
+			t.Errorf("docs/api.md does not preserve public behavior contract %q", want)
+		}
+	}
+}
+
 func exportedSurface(t *testing.T, dir string) []string {
 	t.Helper()
 
