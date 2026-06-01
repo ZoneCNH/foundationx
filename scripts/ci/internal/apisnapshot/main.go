@@ -4,11 +4,13 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/printer"
 	"go/token"
+	"io"
 	"os"
 	"path/filepath"
 	"sort"
@@ -25,9 +27,12 @@ type pkgInfo struct {
 func main() {
 	dec := json.NewDecoder(bufio.NewReader(os.Stdin))
 	var lines []string
-	for dec.More() {
+	for {
 		var info pkgInfo
 		if err := dec.Decode(&info); err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
 			fatal(err)
 		}
 		if info.ImportPath == "" || info.Dir == "" {

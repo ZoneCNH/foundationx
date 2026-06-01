@@ -23,4 +23,4 @@
 
 ## 维护规则 Maintenance Rules
 
-所有 `stable` 包的导出 API 必须保留在 `contracts/public_api.snapshot` 中；降级成熟度需要 ADR 或发布说明解释原因。
+所有 `stable` 包的导出 API 必须保留在 `contracts/public_api.snapshot` 中；正式发布必须运行 `make release-final-check` 生成并验证证据；降级成熟度需要 ADR 或发布说明解释原因。
