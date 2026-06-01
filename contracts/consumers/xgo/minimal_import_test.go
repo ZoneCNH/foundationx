@@ -20,7 +20,8 @@ func TestMinimalConsumerImportsStableKernelPackages(t *testing.T) {
 	if got := obsx.NewSecretString("secret").String(); got != "***" {
 		t.Fatalf("secret redaction = %q", got)
 	}
-	if !versionx.CompatibleWith(versionx.NewVersionInfo("github.com/ZoneCNH/kernel", "v0.1.0", "commit", "time", "go1.23"), "v0.1.0") {
+	info := versionx.NewVersionInfo("github.com/ZoneCNH/kernel", "v0.1.0", "commit", "time", "go1.23")
+	if !((versionx.Compatibility{Module: "github.com/ZoneCNH/kernel"}).CompatibleWith(info)) {
 		t.Fatal("version compatibility contract changed")
 	}
 }
