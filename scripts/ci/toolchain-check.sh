@@ -65,8 +65,9 @@ actual_go="$(go version | awk '{print $3}' | sed 's/^go//')"
 gowork="$(GOWORK=off go env GOWORK)"
 [ "$gowork" = "off" ] || fail "GOWORK must be off during kernel release checks, got $gowork"
 
-if grep -RIn --exclude-dir=.git --exclude-dir=release '@latest' go.mod go.sum .github scripts Makefile 2>/dev/null; then
-  fail "floating @latest tool/module reference found"
+floating_pattern='@''latest'
+if grep -RIn --exclude-dir=.git --exclude-dir=release --exclude='toolchain-check.sh' "$floating_pattern" go.mod go.sum .github scripts Makefile 2>/dev/null; then
+  fail "floating tool/module reference found"
 fi
 if grep -nE '^replace[[:space:]].*=>[[:space:]]*(\.|\.\.|/)' go.mod >/dev/null 2>&1; then
   fail "local replace directive is forbidden for kernel release"

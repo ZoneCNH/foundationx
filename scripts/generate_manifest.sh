@@ -5,7 +5,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 VERSIONS_FILE=".github/versions.env"
-[ -s "$VERSIONS_FILE" ] || { echo "ERROR: missing $VERSIONS_FILE" >&2; exit 1; }
+[ -s "$VERSIONS_FILE" ] || { echo "ERROR: missing toolchain version pins: $VERSIONS_FILE"; exit 1; }
 # shellcheck disable=SC1090
 . "$VERSIONS_FILE"
 
@@ -74,14 +74,16 @@ COMMIT="$(git rev-parse HEAD 2>/dev/null || printf 'unknown')"
 TREE_SHA="$(git rev-parse 'HEAD^{tree}' 2>/dev/null || printf 'unknown')"
 WORKSPACE_STATUS="$(workspace_status)"
 GO_VERSION="$(go version | sed 's/"/\\"/g')"
-GO_ACTUAL="$(go env GOVERSION)"
+ACTUAL_GO_VERSION="$(go version | awk '{print $3}' | sed 's/^go//')"
 GENERATED_AT="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
 ERROR_SCHEMA_SHA="$(sha256_file contracts/error.schema.json)"
 HEALTH_SCHEMA_SHA="$(sha256_file contracts/health.schema.json)"
 VERSION_SCHEMA_SHA="$(sha256_file contracts/version.schema.json)"
 PUBLIC_API_SHA="$(sha256_file contracts/public_api.snapshot)"
-REASON="external consumer repository/tag validation is recorded in docs/evidence/xgo-consumer-smoke.md"
-REASON_ESCAPED="$(printf '%s' "$REASON" | json_escape)"
+RETRY_GOLDEN_SHA="$(sha256_file contracts/examples/golden/retry-policy-default.json)"
+OBS_GOLDEN_SHA="$(sha256_file contracts/examples/golden/obs-secret-redaction.json)"
+LIFECYCLE_GOLDEN_SHA="$(sha256_file contracts/examples/golden/lifecycle-rollback-order.json)"
+SYNC_GOLDEN_SHA="$(sha256_file contracts/examples/golden/sync-workergroup-aggregation.json)"
 
 cat > "$OUT" <<JSON
 {
@@ -93,56 +95,30 @@ cat > "$OUT" <<JSON
   "workspace_status": "$WORKSPACE_STATUS",
   "go_version": "$GO_VERSION",
   "generated_at": "$GENERATED_AT",
-  "toolchain": {
-    "go_min_version": "$GO_MIN_VERSION",
-    "go_integration_version": "$GO_INTEGRATION_VERSION",
-    "go_actual_version": "$GO_ACTUAL",
-    "golangci_lint_version": "$GOLANGCI_LINT_VERSION",
-    "govulncheck_version": "$GOVULNCHECK_VERSION",
-    "gotestsum_version": "$GOTESTSUM_VERSION",
-    "gofumpt_version": "$GOFUMPT_VERSION",
-    "staticcheck_version": "$STATICCHECK_VERSION"
-  },
   "go": {
     "min_version": "$GO_MIN_VERSION",
-    "verified_versions": ["$GO_MIN_VERSION", "$GO_INTEGRATION_VERSION"],
-    "actual_version": "$GO_ACTUAL"
+    "integration_version": "$GO_INTEGRATION_VERSION",
+    "actual_version": "$ACTUAL_GO_VERSION"
   },
   "api": {
-    "snapshot": "contracts/public_api.snapshot",
-    "public_api_sha256": "$PUBLIC_API_SHA",
-    "compatibility_policy": "docs/governance/API_COMPATIBILITY_POLICY.md"
+    "public_api_snapshot": "contracts/public_api.snapshot",
+    "public_api_sha256": "$PUBLIC_API_SHA"
   },
   "consumer_compatibility": {
     "xgo": {
-      "policy": "docs/governance/XGO_CONSUMER_COMPATIBILITY.md",
-      "evidence": "docs/evidence/xgo-consumer-smoke.md",
-      "status": "documented",
-      "verified": false,
-      "reason": "$REASON_ESCAPED"
+      "status": "external-evidence-required",
+      "evidence": "contracts/consumers/xgo/README.md",
+      "minimal_import_test": "contracts/consumers/xgo/minimal_import_test.go"
     }
-  },
-  "governance": {
-    "package_maturity": "docs/governance/PACKAGE_MATURITY.md"
   },
   "contracts": {
     "error_schema_sha256": "$ERROR_SCHEMA_SHA",
     "health_schema_sha256": "$HEALTH_SCHEMA_SHA",
     "version_schema_sha256": "$VERSION_SCHEMA_SHA",
-    "public_api_sha256": "$PUBLIC_API_SHA",
-    "golden_behavior_path": "contracts/golden"
-  },
-  "api": {
-    "snapshot": "contracts/public_api.snapshot",
-    "public_api_sha256": "$PUBLIC_API_SHA"
-  },
-  "consumers": {
-    "xgo": {
-      "required": true,
-      "verified": true,
-      "evidence": "contracts/consumers/xgo/minimal_import_test.go",
-      "policy": "docs/governance/XGO_CONSUMER_COMPATIBILITY.md"
-    }
+    "retry_policy_default_sha256": "$RETRY_GOLDEN_SHA",
+    "obs_secret_redaction_sha256": "$OBS_GOLDEN_SHA",
+    "lifecycle_rollback_order_sha256": "$LIFECYCLE_GOLDEN_SHA",
+    "sync_workergroup_aggregation_sha256": "$SYNC_GOLDEN_SHA"
   },
   "checks": {
     "toolchain": "passed",
@@ -158,8 +134,8 @@ cat > "$OUT" <<JSON
     "docs": "passed",
     "artifact_docs": "passed",
     "examples": "passed",
-    "toolchain": "passed",
-    "consumer_compatibility": "documented"
+    "release_evidence": "passed",
+    "consumer_compatibility": "documented_external"
   }
 }
 JSON

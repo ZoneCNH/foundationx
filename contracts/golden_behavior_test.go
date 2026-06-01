@@ -7,7 +7,6 @@ import (
 	"os"
 	"reflect"
 	"testing"
-	"time"
 
 	"github.com/ZoneCNH/kernel/errx"
 	"github.com/ZoneCNH/kernel/healthx"
@@ -142,17 +141,4 @@ func assertGoldenJSON(t *testing.T, path string, value any) {
 		gotPretty, _ := json.MarshalIndent(got, "", "  ")
 		t.Fatalf("golden mismatch %s\ngot:  %s\nwant: %s", path, gotPretty, wantPretty)
 	}
-}
-
-func mustMarshalString(t *testing.T, value any) string {
-	t.Helper()
-	data, err := json.Marshal(value)
-	if err != nil {
-		t.Fatalf("marshal string: %v", err)
-	}
-	var got string
-	if err := json.Unmarshal(data, &got); err != nil {
-		t.Fatalf("unmarshal string: %v", err)
-	}
-	return got
 }
