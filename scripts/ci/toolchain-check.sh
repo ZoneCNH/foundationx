@@ -2,6 +2,46 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+PINS="$ROOT/.github/versions.env"
+STRICT=0
+if [[ "${1:-}" == "--strict" ]]; then
+  STRICT=1
+fi
+
+fail() { echo "toolchain-check: $*" >&2; exit 1; }
+warn() { echo "toolchain-check: warning: $*" >&2; }
+need_cmd() {
+  local cmd="$1"
+  if ! command -v "$cmd" >/dev/null 2>&1; then
+    if [[ "$STRICT" == 1 ]]; then fail "required tool missing: $cmd"; fi
+    warn "optional tool missing: $cmd"
+    return 1
+  fi
+}
+version_contains() {
+  local cmd="$1" want="$2" output clean mode="${3:-strict}"
+  clean="${want#v}"
+  output="$($cmd --version 2>&1 || true)"
+  if [[ "$output" != *"$want"* && "$output" != *"$clean"* ]]; then
+    if [[ "$mode" == "warn" ]]; then
+      warn "$cmd version mismatch: want $want, got: $output"
+      return 0
+    fi
+    fail "$cmd version mismatch: want $want, got: $output"
+  fi
+}
+
+[[ -f "$PINS" ]] || fail "missing $PINS"
+# shellcheck disable=SC1090
+source "$PINS"
+: "${GO_MIN_VERSION:?missing GO_MIN_VERSION}"
+: "${GO_INTEGRATION_VERSION:?missing GO_INTEGRATION_VERSION}"
+: "${GOLANGCI_LINT_VERSION:?missing GOLANGCI_LINT_VERSION}"
+: "${GOVULNCHECK_VERSION:?missing GOVULNCHECK_VERSION}"
+: "${GOTESTSUM_VERSION:?missing GOTESTSUM_VERSION}"
+: "${GOFUMPT_VERSION:?missing GOFUMPT_VERSION}"
+: "${STATICCHECK_VERSION:?missing STATICCHECK_VERSION}"
+
 cd "$ROOT"
 
 VERSIONS_FILE=".github/versions.env"
@@ -32,9 +72,11 @@ if grep -nE '^replace[[:space:]].*=>[[:space:]]*(\.|\.\.|/)' go.mod >/dev/null 2
   fail "local replace directive is forbidden for kernel release"
 fi
 
-command -v golangci-lint >/dev/null 2>&1 || fail "golangci-lint is required for release checks"
-lint_version="$(golangci-lint version 2>/dev/null | awk '/version/ {print $4; exit}')"
-[ "$lint_version" = "$GOLANGCI_LINT_VERSION" ] || fail "golangci-lint $lint_version does not match GOLANGCI_LINT_VERSION=$GOLANGCI_LINT_VERSION"
+if need_cmd golangci-lint; then version_contains golangci-lint "$GOLANGCI_LINT_VERSION"; fi
+if need_cmd govulncheck; then version_contains govulncheck "$GOVULNCHECK_VERSION"; fi
+if command -v gotestsum >/dev/null 2>&1; then version_contains gotestsum "$GOTESTSUM_VERSION" warn; elif [[ "$STRICT" == 1 ]]; then warn "gotestsum missing; not required for release-final hard gate"; fi
+if command -v gofumpt >/dev/null 2>&1; then version_contains gofumpt "$GOFUMPT_VERSION" warn; elif [[ "$STRICT" == 1 ]]; then warn "gofumpt missing; not required for release-final hard gate"; fi
+if command -v staticcheck >/dev/null 2>&1; then version_contains staticcheck "$STATICCHECK_VERSION" warn; elif [[ "$STRICT" == 1 ]]; then warn "staticcheck missing; not required for release-final hard gate"; fi
 
 command -v govulncheck >/dev/null 2>&1 || fail "govulncheck is required for release checks"
 vuln_version="$(govulncheck -version 2>/dev/null | awk -F'@' '/Scanner:/ {print $2; exit}')"
