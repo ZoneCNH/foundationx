@@ -1,140 +1,138 @@
-github.com/ZoneCNH/kernel/contracttest func AssertErrorKind(t testing.TB, got error, want errx.ErrorKind)
-github.com/ZoneCNH/kernel/contracttest func AssertHealthStatus(t testing.TB, got healthx.HealthStatus, want healthx.HealthStatusValue)
-github.com/ZoneCNH/kernel/contracttest func AssertJSONFields(t testing.TB, value any, fields ...string)
-github.com/ZoneCNH/kernel/errx const ErrorKindAlreadyExist ErrorKind
-github.com/ZoneCNH/kernel/errx const ErrorKindAuth ErrorKind
-github.com/ZoneCNH/kernel/errx const ErrorKindCanceled ErrorKind
-github.com/ZoneCNH/kernel/errx const ErrorKindConfig ErrorKind
-github.com/ZoneCNH/kernel/errx const ErrorKindConflict ErrorKind
-github.com/ZoneCNH/kernel/errx const ErrorKindConnection ErrorKind
-github.com/ZoneCNH/kernel/errx const ErrorKindInternal ErrorKind
-github.com/ZoneCNH/kernel/errx const ErrorKindNotFound ErrorKind
-github.com/ZoneCNH/kernel/errx const ErrorKindRateLimit ErrorKind
-github.com/ZoneCNH/kernel/errx const ErrorKindTimeout ErrorKind
-github.com/ZoneCNH/kernel/errx const ErrorKindUnavailable ErrorKind
-github.com/ZoneCNH/kernel/errx const ErrorKindValidation ErrorKind
-github.com/ZoneCNH/kernel/errx const SeverityCritical Severity
-github.com/ZoneCNH/kernel/errx const SeverityError Severity
-github.com/ZoneCNH/kernel/errx const SeverityInfo Severity
-github.com/ZoneCNH/kernel/errx const SeverityWarning Severity
-github.com/ZoneCNH/kernel/errx field Error.Cause error `json:"-"`
-github.com/ZoneCNH/kernel/errx field Error.Code string `json:"code,omitempty"`
-github.com/ZoneCNH/kernel/errx field Error.Kind ErrorKind `json:"kind"`
-github.com/ZoneCNH/kernel/errx field Error.Message string `json:"message"`
-github.com/ZoneCNH/kernel/errx field Error.Op string `json:"op,omitempty"`
-github.com/ZoneCNH/kernel/errx field Error.Retryable bool `json:"retryable"`
-github.com/ZoneCNH/kernel/errx field Error.Severity Severity `json:"severity,omitempty"`
-github.com/ZoneCNH/kernel/errx func AsError(err error) (*Error, bool)
-github.com/ZoneCNH/kernel/errx func IsKind(err error, kind ErrorKind) bool
-github.com/ZoneCNH/kernel/errx func NewError(kind ErrorKind, op string, message string) *Error
-github.com/ZoneCNH/kernel/errx func WrapError(kind ErrorKind, op string, message string, cause error) *Error
-github.com/ZoneCNH/kernel/errx method Error.Error() string
-github.com/ZoneCNH/kernel/errx method Error.Unwrap() error
-github.com/ZoneCNH/kernel/errx method Error.WithCode(code string) *Error
-github.com/ZoneCNH/kernel/errx method Error.WithRetryable(retryable bool) *Error
-github.com/ZoneCNH/kernel/errx method Error.WithSeverity(severity Severity) *Error
-github.com/ZoneCNH/kernel/errx type Error struct { Kind ErrorKind `json:"kind"` Code string `json:"code,omitempty"` Severity Severity `json:"severity,omitempty"` Op string `json:"op,omitempty"` Message string `json:"message"` Cause error `json:"-"` Retryable bool `json:"retryable"` }
-github.com/ZoneCNH/kernel/errx type ErrorKind string
-github.com/ZoneCNH/kernel/errx type Severity string
-github.com/ZoneCNH/kernel/healthx const HealthDegraded HealthStatusValue
-github.com/ZoneCNH/kernel/healthx const HealthHealthy HealthStatusValue
-github.com/ZoneCNH/kernel/healthx const HealthUnhealthy HealthStatusValue
-github.com/ZoneCNH/kernel/healthx field HealthStatus.CheckedAt time.Time `json:"checked_at"`
-github.com/ZoneCNH/kernel/healthx field HealthStatus.LatencyMs int64 `json:"latency_ms"`
-github.com/ZoneCNH/kernel/healthx field HealthStatus.Message string `json:"message"`
-github.com/ZoneCNH/kernel/healthx field HealthStatus.Metadata map[string]string `json:"metadata"`
-github.com/ZoneCNH/kernel/healthx field HealthStatus.Name string `json:"name"`
-github.com/ZoneCNH/kernel/healthx field HealthStatus.Status HealthStatusValue `json:"status"`
-github.com/ZoneCNH/kernel/healthx func Aggregate(name string, statuses ...HealthStatus) HealthStatus
-github.com/ZoneCNH/kernel/healthx func NewHealthStatus(name string, status HealthStatusValue, message string, checkedAt time.Time, latencyMs int64) HealthStatus
-github.com/ZoneCNH/kernel/healthx method HealthStatus.IsHealthy() bool
-github.com/ZoneCNH/kernel/healthx method HealthStatus.MarshalJSON() ([]byte, error)
-github.com/ZoneCNH/kernel/healthx method HealthStatus.WithMetadata(key string, value string) HealthStatus
-github.com/ZoneCNH/kernel/healthx type HealthChecker interface { Name() string Check(ctx context.Context) HealthStatus }
-github.com/ZoneCNH/kernel/healthx type HealthStatus struct { Name string `json:"name"` Status HealthStatusValue `json:"status"` Message string `json:"message"` CheckedAt time.Time `json:"checked_at"` LatencyMs int64 `json:"latency_ms"` Metadata map[string]string `json:"metadata"` }
-github.com/ZoneCNH/kernel/healthx type HealthStatusValue string
-github.com/ZoneCNH/kernel/healthx type Probe interface{ HealthChecker }
-github.com/ZoneCNH/kernel/lifecycx func NewManager(components ...Component) *Manager
-github.com/ZoneCNH/kernel/lifecycx method Manager.Components() []Component
-github.com/ZoneCNH/kernel/lifecycx method Manager.Start(ctx context.Context) error
-github.com/ZoneCNH/kernel/lifecycx method Manager.Stop(ctx context.Context) error
-github.com/ZoneCNH/kernel/lifecycx type Closer interface { Close(ctx context.Context) error }
-github.com/ZoneCNH/kernel/lifecycx type Component interface { Name() string Starter Stopper }
-github.com/ZoneCNH/kernel/lifecycx type Lifecycle interface { Starter Closer }
-github.com/ZoneCNH/kernel/lifecycx type Manager struct{ components []Component }
-github.com/ZoneCNH/kernel/lifecycx type Starter interface { Start(ctx context.Context) error }
-github.com/ZoneCNH/kernel/lifecycx type Stopper interface { Stop(ctx context.Context) error }
-github.com/ZoneCNH/kernel/obsx field Field.Key string
-github.com/ZoneCNH/kernel/obsx field Field.Value any
-github.com/ZoneCNH/kernel/obsx func NewSecretString(value string) SecretString
-github.com/ZoneCNH/kernel/obsx method NoopLogger.Debug(context.Context, string, ...Field)
-github.com/ZoneCNH/kernel/obsx method NoopLogger.Error(context.Context, string, ...Field)
-github.com/ZoneCNH/kernel/obsx method NoopLogger.Info(context.Context, string, ...Field)
-github.com/ZoneCNH/kernel/obsx method NoopLogger.Warn(context.Context, string, ...Field)
-github.com/ZoneCNH/kernel/obsx method NoopMetrics.Count(context.Context, string, int64, ...Field)
-github.com/ZoneCNH/kernel/obsx method NoopMetrics.Observe(context.Context, string, float64, ...Field)
-github.com/ZoneCNH/kernel/obsx method NoopSpan.End()
-github.com/ZoneCNH/kernel/obsx method NoopSpan.RecordError(error)
-github.com/ZoneCNH/kernel/obsx method NoopSpan.SetFields(...Field)
-github.com/ZoneCNH/kernel/obsx method NoopTracer.Start(ctx context.Context, _ string, _ ...Field) (context.Context, Span)
-github.com/ZoneCNH/kernel/obsx method SecretString.IsZero() bool
-github.com/ZoneCNH/kernel/obsx method SecretString.MarshalJSON() ([]byte, error)
-github.com/ZoneCNH/kernel/obsx method SecretString.Reveal() string
-github.com/ZoneCNH/kernel/obsx method SecretString.Sanitize() any
-github.com/ZoneCNH/kernel/obsx method SecretString.String() string
-github.com/ZoneCNH/kernel/obsx type Field struct { Key string Value any }
-github.com/ZoneCNH/kernel/obsx type Logger interface { Debug(context.Context, string, ...Field) Info(context.Context, string, ...Field) Warn(context.Context, string, ...Field) Error(context.Context, string, ...Field) }
-github.com/ZoneCNH/kernel/obsx type Metrics interface { Count(context.Context, string, int64, ...Field) Observe(context.Context, string, float64, ...Field) }
-github.com/ZoneCNH/kernel/obsx type NoopLogger struct{}
-github.com/ZoneCNH/kernel/obsx type NoopMetrics struct{}
-github.com/ZoneCNH/kernel/obsx type NoopSpan struct{}
-github.com/ZoneCNH/kernel/obsx type NoopTracer struct{}
-github.com/ZoneCNH/kernel/obsx type Sanitizer interface{ Sanitize() any }
-github.com/ZoneCNH/kernel/obsx type SecretString string
-github.com/ZoneCNH/kernel/obsx type Span interface { End() RecordError(error) SetFields(...Field) }
-github.com/ZoneCNH/kernel/obsx type Tracer interface { Start(context.Context, string, ...Field) (context.Context, Span) }
-github.com/ZoneCNH/kernel/retryx field RetryPolicy.BaseDelay time.Duration
-github.com/ZoneCNH/kernel/retryx field RetryPolicy.MaxAttempts int
-github.com/ZoneCNH/kernel/retryx field RetryPolicy.MaxDelay time.Duration
-github.com/ZoneCNH/kernel/retryx func DefaultRetryPolicy() RetryPolicy
-github.com/ZoneCNH/kernel/retryx func ShouldRetry(err error) bool
-github.com/ZoneCNH/kernel/retryx method RetryPolicy.Delay(attempt int) time.Duration
-github.com/ZoneCNH/kernel/retryx method RetryPolicy.DelayWithJitter(attempt int, ratio float64, fraction float64) time.Duration
-github.com/ZoneCNH/kernel/retryx method RetryPolicy.Validate() error
-github.com/ZoneCNH/kernel/retryx type RetryPolicy struct { MaxAttempts int BaseDelay time.Duration MaxDelay time.Duration }
-github.com/ZoneCNH/kernel/syncx func NewSemaphoreLimiter(n int) *SemaphoreLimiter
-github.com/ZoneCNH/kernel/syncx func NewWorkerGroup(ctx context.Context) *WorkerGroup
-github.com/ZoneCNH/kernel/syncx method SemaphoreLimiter.Acquire(ctx context.Context) error
-github.com/ZoneCNH/kernel/syncx method SemaphoreLimiter.Release()
-github.com/ZoneCNH/kernel/syncx method WorkerGroup.Go(fn func(context.Context) error)
-github.com/ZoneCNH/kernel/syncx method WorkerGroup.Wait() error
-github.com/ZoneCNH/kernel/syncx type Limiter interface { Acquire(context.Context) error Release() }
-github.com/ZoneCNH/kernel/syncx type SemaphoreLimiter struct{ ch chan struct{} }
-github.com/ZoneCNH/kernel/syncx type WorkerGroup struct { ctx context.Context cancel context.CancelFunc wg sync.WaitGroup mu sync.Mutex err error }
-github.com/ZoneCNH/kernel/timex func NewFakeClock(now time.Time) *FakeClock
-github.com/ZoneCNH/kernel/timex func NewFixedClock(now time.Time) FixedClock
-github.com/ZoneCNH/kernel/timex func NewRealClock() RealClock
-github.com/ZoneCNH/kernel/timex method FakeClock.Advance(d time.Duration)
-github.com/ZoneCNH/kernel/timex method FakeClock.Now() time.Time
-github.com/ZoneCNH/kernel/timex method FixedClock.Now() time.Time
-github.com/ZoneCNH/kernel/timex method RealClock.Now() time.Time
-github.com/ZoneCNH/kernel/timex type Clock interface{ Now() time.Time }
-github.com/ZoneCNH/kernel/timex type FakeClock struct{ now time.Time }
-github.com/ZoneCNH/kernel/timex type FixedClock struct{ now time.Time }
-github.com/ZoneCNH/kernel/timex type RealClock struct{}
-github.com/ZoneCNH/kernel/validx func Invariant(ok bool, op string, message string) error
-github.com/ZoneCNH/kernel/validx func Precondition(ok bool, op string, message string) error
-github.com/ZoneCNH/kernel/validx func RequireNonEmpty(value string, name string) error
-github.com/ZoneCNH/kernel/versionx field BuildInfo.BuildTime string `json:"build_time"`
-github.com/ZoneCNH/kernel/versionx field BuildInfo.Commit string `json:"commit"`
-github.com/ZoneCNH/kernel/versionx field BuildInfo.GoVersion string `json:"go_version"`
-github.com/ZoneCNH/kernel/versionx field BuildInfo.Module string `json:"module"`
-github.com/ZoneCNH/kernel/versionx field BuildInfo.Version string `json:"version"`
-github.com/ZoneCNH/kernel/versionx field Compatibility.Major string
-github.com/ZoneCNH/kernel/versionx field Compatibility.Module string
-github.com/ZoneCNH/kernel/versionx func NewBuildInfo(module string, version string, commit string, buildTime string, goVersion string) BuildInfo
-github.com/ZoneCNH/kernel/versionx func NewVersionInfo(module string, version string, commit string, buildTime string, goVersion string) VersionInfo
-github.com/ZoneCNH/kernel/versionx method Compatibility.CompatibleWith(info BuildInfo) bool
-github.com/ZoneCNH/kernel/versionx type BuildInfo struct { Module string `json:"module"` Version string `json:"version"` Commit string `json:"commit"` BuildTime string `json:"build_time"` GoVersion string `json:"go_version"` }
-github.com/ZoneCNH/kernel/versionx type Compatibility struct { Module string Major string }
-github.com/ZoneCNH/kernel/versionx type VersionInfo BuildInfo
+# github.com/ZoneCNH/kernel public API snapshot
+# Generated by scripts/ci/api-diff-check.sh. Update only with API compatibility review.
+
+package errx
+const ErrorKindAlreadyExist ErrorKind = "already_exists"
+const ErrorKindAuth ErrorKind = "auth"
+const ErrorKindCanceled ErrorKind = "canceled"
+const ErrorKindConfig ErrorKind = "config"
+const ErrorKindConflict ErrorKind = "conflict"
+const ErrorKindConnection ErrorKind = "connection"
+const ErrorKindInternal ErrorKind = "internal"
+const ErrorKindNotFound ErrorKind = "not_found"
+const ErrorKindRateLimit ErrorKind = "rate_limit"
+const ErrorKindTimeout ErrorKind = "timeout"
+const ErrorKindUnavailable ErrorKind = "unavailable"
+const ErrorKindValidation ErrorKind = "validation"
+const SeverityCritical Severity = "critical"
+const SeverityError Severity = "error"
+const SeverityInfo Severity = "info"
+const SeverityWarning Severity = "warning"
+func AsError(err error) (*Error, bool)
+func IsKind(err error, kind ErrorKind) bool
+func NewError(kind ErrorKind, op string, message string) *Error
+func WrapError(kind ErrorKind, op string, message string, cause error) *Error
+method (Error) Error() string
+method (Error) Unwrap() error
+method (Error) WithCode(code string) *Error
+method (Error) WithRetryable(retryable bool) *Error
+method (Error) WithSeverity(severity Severity) *Error
+type Error struct { Kind ErrorKind `json:"kind"` Code string `json:"code,omitempty"` Severity Severity `json:"severity,omitempty"` Op string `json:"op,omitempty"` Message string `json:"message"` Cause error `json:"-"` Retryable bool `json:"retryable"` }
+type ErrorKind string
+type Severity string
+
+package timex
+func NewFakeClock(now time.Time) *FakeClock
+func NewFixedClock(now time.Time) FixedClock
+func NewRealClock() RealClock
+method (FakeClock) Advance(d time.Duration)
+method (FakeClock) Now() time.Time
+method (FixedClock) Now() time.Time
+method (RealClock) Now() time.Time
+type Clock interface{ Now() time.Time }
+type FakeClock struct{ now time.Time }
+type FixedClock struct{ now time.Time }
+type RealClock struct{}
+
+package lifecycx
+func NewManager(components ...Component) *Manager
+method (Manager) Components() []Component
+method (Manager) Start(ctx context.Context) error
+method (Manager) Stop(ctx context.Context) error
+type Closer interface { Close(ctx context.Context) error }
+type Component interface { Name() string Starter Stopper }
+type Lifecycle interface { Starter Closer }
+type Manager struct{ components []Component }
+type Starter interface { Start(ctx context.Context) error }
+type Stopper interface { Stop(ctx context.Context) error }
+
+package retryx
+func DefaultRetryPolicy() RetryPolicy
+func ShouldRetry(err error) bool
+method (RetryPolicy) Delay(attempt int) time.Duration
+method (RetryPolicy) DelayWithJitter(attempt int, ratio float64, fraction float64) time.Duration
+method (RetryPolicy) Validate() error
+type RetryPolicy struct { MaxAttempts int BaseDelay time.Duration MaxDelay time.Duration }
+
+package healthx
+const HealthDegraded HealthStatusValue = "degraded"
+const HealthHealthy HealthStatusValue = "healthy"
+const HealthUnhealthy HealthStatusValue = "unhealthy"
+func Aggregate(name string, statuses ...HealthStatus) HealthStatus
+func NewHealthStatus(name string, status HealthStatusValue, message string, checkedAt time.Time, latencyMs int64) HealthStatus
+method (HealthStatus) IsHealthy() bool
+method (HealthStatus) MarshalJSON() ([]byte, error)
+method (HealthStatus) WithMetadata(key string, value string) HealthStatus
+type HealthChecker interface { Name() string Check(ctx context.Context) HealthStatus }
+type HealthStatus struct { Name string `json:"name"` Status HealthStatusValue `json:"status"` Message string `json:"message"` CheckedAt time.Time `json:"checked_at"` LatencyMs int64 `json:"latency_ms"` Metadata map[string]string `json:"metadata"` }
+type HealthStatusValue string
+type Probe interface{ HealthChecker }
+
+package obsx
+func NewSecretString(value string) SecretString
+method (NoopLogger) Debug(context.Context, string, ...Field)
+method (NoopLogger) Error(context.Context, string, ...Field)
+method (NoopLogger) Info(context.Context, string, ...Field)
+method (NoopLogger) Warn(context.Context, string, ...Field)
+method (NoopMetrics) Count(context.Context, string, int64, ...Field)
+method (NoopMetrics) Observe(context.Context, string, float64, ...Field)
+method (NoopSpan) End()
+method (NoopSpan) RecordError(error)
+method (NoopSpan) SetFields(...Field)
+method (NoopTracer) Start(ctx context.Context, _ string, _ ...Field) (context.Context, Span)
+method (SecretString) IsZero() bool
+method (SecretString) MarshalJSON() ([]byte, error)
+method (SecretString) Reveal() string
+method (SecretString) Sanitize() any
+method (SecretString) String() string
+type Field struct { Key string Value any }
+type Logger interface { Debug(context.Context, string, ...Field) Info(context.Context, string, ...Field) Warn(context.Context, string, ...Field) Error(context.Context, string, ...Field) }
+type Metrics interface { Count(context.Context, string, int64, ...Field) Observe(context.Context, string, float64, ...Field) }
+type NoopLogger struct{}
+type NoopMetrics struct{}
+type NoopSpan struct{}
+type NoopTracer struct{}
+type Sanitizer interface{ Sanitize() any }
+type SecretString string
+type Span interface { End() RecordError(error) SetFields(...Field) }
+type Tracer interface { Start(context.Context, string, ...Field) (context.Context, Span) }
+
+package validx
+func Invariant(ok bool, op string, message string) error
+func Precondition(ok bool, op string, message string) error
+func RequireNonEmpty(value string, name string) error
+
+package syncx
+func NewSemaphoreLimiter(n int) *SemaphoreLimiter
+func NewWorkerGroup(ctx context.Context) *WorkerGroup
+method (SemaphoreLimiter) Acquire(ctx context.Context) error
+method (SemaphoreLimiter) Release()
+method (WorkerGroup) Go(fn func(context.Context) error)
+method (WorkerGroup) Wait() error
+type Limiter interface { Acquire(context.Context) error Release() }
+type SemaphoreLimiter struct{ ch chan struct{} }
+type WorkerGroup struct { ctx context.Context cancel context.CancelFunc wg sync.WaitGroup mu sync.Mutex err error }
+
+package versionx
+func NewBuildInfo(module, version, commit, buildTime, goVersion string) BuildInfo
+func NewVersionInfo(module, version, commit, buildTime, goVersion string) VersionInfo
+method (Compatibility) CompatibleWith(info BuildInfo) bool
+type BuildInfo struct { Module string `json:"module"` Version string `json:"version"` Commit string `json:"commit"` BuildTime string `json:"build_time"` GoVersion string `json:"go_version"` }
+type Compatibility struct { Module string Major string }
+type VersionInfo BuildInfo
+
+package contracttest
+func AssertErrorKind(t testing.TB, got error, want errx.ErrorKind)
+func AssertHealthStatus(t testing.TB, got healthx.HealthStatus, want healthx.HealthStatusValue)
+func AssertJSONFields(t testing.TB, value any, fields ...string)
+
