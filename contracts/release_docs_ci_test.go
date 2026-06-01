@@ -17,6 +17,9 @@ func TestReleaseCheckWiresDocumentationAndEvidenceGates(t *testing.T) {
 	assertContains(t, makefile, "release-clean-check:")
 	assertContains(t, makefile, "release-final-check:")
 	assertContains(t, makefile, "ci: fmt vet lint test race boundary security contracts api-check docs artifact-check examples")
+	assertContains(t, makefile, "\t$(MAKE) release-toolchain-check")
+	assertContains(t, makefile, "./scripts/ci/toolchain-check.sh")
+	assertContains(t, makefile, "./scripts/ci/api-diff-check.sh")
 	assertContains(t, makefile, "\t$(MAKE) ci")
 	assertContains(t, makefile, "\t$(MAKE) evidence")
 	assertContains(t, makefile, "\t$(MAKE) release-evidence-check")
@@ -37,9 +40,13 @@ func TestReleaseCheckRunsEvidenceAfterCIGates(t *testing.T) {
 	makefile := readRepoText(t, "Makefile")
 	targetBody := makeTargetBody(t, makefile, "release-check")
 
+	toolchain := strings.Index(targetBody, "\t$(MAKE) release-toolchain-check")
 	ci := strings.Index(targetBody, "\t$(MAKE) ci")
 	evidence := strings.Index(targetBody, "\t$(MAKE) evidence")
 	evidenceCheck := strings.Index(targetBody, "\t$(MAKE) release-evidence-check")
+	if toolchain == -1 {
+		t.Fatal("release-check does not run release-toolchain-check")
+	}
 	if ci == -1 {
 		t.Fatal("release-check does not run ci")
 	}
@@ -49,8 +56,8 @@ func TestReleaseCheckRunsEvidenceAfterCIGates(t *testing.T) {
 	if evidenceCheck == -1 {
 		t.Fatal("release-check does not validate release evidence")
 	}
-	if ci >= evidence || evidence >= evidenceCheck {
-		t.Fatal("release-check must run ci, evidence generation, and evidence validation in order")
+	if toolchain >= ci || ci >= evidence || evidence >= evidenceCheck {
+		t.Fatal("release-check must run toolchain, ci, evidence generation, and evidence validation in order")
 	}
 }
 
@@ -59,16 +66,20 @@ func TestReleaseFinalCheckBracketsReleaseCheckWithCleanChecks(t *testing.T) {
 	targetBody := makeTargetBody(t, makefile, "release-final-check")
 
 	firstCleanCheck := strings.Index(targetBody, "\t$(MAKE) release-clean-check")
+	toolchainCheck := strings.Index(targetBody, "\t$(MAKE) release-toolchain-check")
 	releaseCheck := strings.Index(targetBody, "\t$(MAKE) release-check")
 	lastCleanCheck := strings.LastIndex(targetBody, "\t$(MAKE) release-clean-check")
 	if firstCleanCheck == -1 || lastCleanCheck == -1 || firstCleanCheck == lastCleanCheck {
 		t.Fatal("release-final-check must run release clean check before and after release-check")
 	}
+	if toolchainCheck == -1 {
+		t.Fatal("release-final-check does not run release-toolchain-check")
+	}
 	if releaseCheck == -1 {
 		t.Fatal("release-final-check does not run release-check")
 	}
-	if firstCleanCheck >= releaseCheck || releaseCheck >= lastCleanCheck {
-		t.Fatal("release-final-check must run clean check, release-check, then clean check")
+	if firstCleanCheck >= toolchainCheck || toolchainCheck >= releaseCheck || releaseCheck >= lastCleanCheck {
+		t.Fatal("release-final-check must run clean check, toolchain check, release-check, then clean check")
 	}
 	if strings.Index(targetBody, "\t$(MAKE) lint-strict") <= releaseCheck {
 		t.Fatal("release-final-check must run strict lint after release-check")
@@ -110,9 +121,13 @@ func TestReleaseEvidenceScriptsPreserveFreshnessChecks(t *testing.T) {
 		"error_schema_sha256",
 		"health_schema_sha256",
 		"version_schema_sha256",
-		"public_api_sha256",
-		"consumer_compatibility",
-		"kernel-side-compatible",
+		"PUBLIC_API_SHA",
+		"schema_version",
+		"kernel.release-manifest.v1",
+		"GO_MIN_VERSION",
+		"GO_INTEGRATION_VERSION",
+		"contracts/public_api.snapshot",
+		"contracts/consumers/xgo/minimal_import_test.go",
 		"cp \"$OUT\" \"$LATEST\"",
 	} {
 		assertContains(t, generate, want)
@@ -130,8 +145,9 @@ func TestReleaseEvidenceScriptsPreserveFreshnessChecks(t *testing.T) {
 		"health schema hash mismatch",
 		"version schema hash mismatch",
 		"public API snapshot hash mismatch",
-		"consumer_compatibility",
-		"XGO_CONSUMER_COMPATIBILITY.md",
+		"manifest schema_version mismatch",
+		"manifest Go min version mismatch",
+		"manifest xgo consumer evidence missing",
 		"release-${VERSION}.md",
 	} {
 		assertContains(t, check, want)
@@ -332,6 +348,7 @@ func TestCIWorkflowsPreserveReleaseEvidenceGates(t *testing.T) {
 	release := readRepoText(t, filepath.Join(".github", "workflows", "release.yml"))
 
 	for _, want := range []string{
+		"run: make release-toolchain-check",
 		"run: make ci",
 		"run: make evidence",
 		"run: make release-evidence-check",
@@ -341,6 +358,8 @@ func TestCIWorkflowsPreserveReleaseEvidenceGates(t *testing.T) {
 	}
 
 	assertContains(t, release, "run: make release-final-check")
+	assertContains(t, ci, "source .github/versions.env")
+	assertContains(t, release, "source .github/versions.env")
 	assertContains(t, release, "path: release/manifest/*.json")
 }
 
@@ -350,14 +369,17 @@ func TestCIToolsArePinnedWithoutBecomingLocalHardDependencies(t *testing.T) {
 	release := readRepoText(t, filepath.Join(".github", "workflows", "release.yml"))
 	security := readRepoText(t, filepath.Join(".github", "workflows", "security.yml"))
 
+	versions := readRepoText(t, filepath.Join(".github", "versions.env"))
 	for _, workflow := range []string{ci, release} {
-		assertContains(t, workflow, "go-version: \"1.26.3\"")
-		assertContains(t, workflow, "go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.1.6")
-		assertContains(t, workflow, "go install golang.org/x/vuln/cmd/govulncheck@v1.3.0")
+		assertContains(t, workflow, "source .github/versions.env")
+		assertContains(t, workflow, "go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@${GOLANGCI_LINT_VERSION}")
+		assertContains(t, workflow, "go install golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION}")
 	}
 
-	assertContains(t, security, "go-version: \"1.26.3\"")
-	assertContains(t, security, "go install golang.org/x/vuln/cmd/govulncheck@v1.3.0")
+	assertContains(t, security, "source .github/versions.env")
+	assertContains(t, security, "go install golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION}")
+	assertContains(t, versions, "GOLANGCI_LINT_VERSION=v2.1.6")
+	assertContains(t, versions, "GOVULNCHECK_VERSION=v1.3.0")
 	assertContains(t, makefile, "golangci-lint not installed; skipping lint target")
 	assertContains(t, makefile, "govulncheck not installed; skipping vulnerability scan")
 	assertContains(t, makefile, "lint-strict:")
@@ -368,6 +390,7 @@ func TestSecurityWorkflowPreservesBoundaryContractGates(t *testing.T) {
 	security := readRepoText(t, filepath.Join(".github", "workflows", "security.yml"))
 
 	for _, want := range []string{
+		"run: make release-toolchain-check",
 		"run: make boundary",
 		"run: make security",
 		"run: make contracts",
@@ -435,6 +458,29 @@ func TestDocumentationHeadingsKeepChineseContext(t *testing.T) {
 		text := readRepoText(t, path)
 		if matches := englishOnlyHeading.FindAllString(text, -1); len(matches) > 0 {
 			t.Fatalf("%s contains headings with English but no Chinese context: %q", path, matches)
+		}
+	}
+}
+
+func TestSection26ReleaseGovernanceArtifactsAreTracked(t *testing.T) {
+	for _, path := range []string{
+		filepath.Join(".github", "versions.env"),
+		filepath.Join("scripts", "ci", "toolchain-check.sh"),
+		filepath.Join("scripts", "ci", "api-diff-check.sh"),
+		filepath.Join("contracts", "public_api.snapshot"),
+		filepath.Join("contracts", "consumers", "xgo", "minimal_import_test.go"),
+		filepath.Join("docs", "governance", "API_COMPATIBILITY_POLICY.md"),
+		filepath.Join("docs", "governance", "PACKAGE_MATURITY.md"),
+		filepath.Join("docs", "governance", "XGO_CONSUMER_COMPATIBILITY.md"),
+		filepath.Join("docs", "governance", "RELEASE_MANIFEST_SCHEMA.md"),
+		filepath.Join("contracts", "examples", "golden", "retry-policy-default.json"),
+		filepath.Join("contracts", "examples", "golden", "obsx-secret-redaction.json"),
+		filepath.Join("contracts", "examples", "golden", "lifecycx-rollback-order.json"),
+		filepath.Join("contracts", "examples", "golden", "syncx-first-error.json"),
+	} {
+		text := readRepoText(t, path)
+		if strings.TrimSpace(text) == "" {
+			t.Fatalf("%s must not be empty", path)
 		}
 	}
 }
