@@ -1,2817 +1,1322 @@
-# foundationx 完整可执行 Goal Prompt v1.0
 
-> 文件名：`foundationx_goal_executable_prompt_v1_0.md`
-> 目标模块：`github.com/ZoneCNH/foundationx`
-> 适用项目：x.go 独立基础库体系
-> 执行方法：Goal Runtime Prompt v3.1 + Harness + Self-improving + AutoResearch + Evidence Protocol
-> 生成日期：2026-06-01
-> 时区：Asia/Tokyo
+# 第二类：L0 内核库完整 Goal 执行方案 v1.2
 
----
+> 变更说明：v1.1 已将原 `foundationx` 命名统一改为 `kernel`；v1.2 已将原 `baselib-template` 统一改为 `xlib-standard`，模板仓库地址调整为 `https://github.com/ZoneCNH/xlib-standard`。
 
-# 0. 使用方式
-
-将本文完整交给 Agent Teams / Codex / Claude Code / Cursor Agent / GitHub Copilot Workspace 执行。
-
-执行前必须确认：
-
-```text
-1. 当前目标是创建或完善独立 Go module：github.com/ZoneCNH/foundationx
-2. foundationx 是所有基础库的 L0 契约层
-3. foundationx 不允许依赖 x.go
-4. foundationx 不允许依赖 PostgreSQL / Kafka / Redis / TDengine / OSS 等 driver
-5. foundationx 不允许包含 Market Data / Macro Data / Regime / Trading 等业务语义
-6. 所有完成声明必须使用 DONE with evidence:
-```
+> 适用对象：`L0 内核库 / 核心稳定层 / kernel 内核库`  
+> 默认绑定：`github.com/ZoneCNH/kernel` 作为 L0 内核库，`https://github.com/ZoneCNH/xlib-standard` 作为基础库模板标准，`x.go` 作为调用方与集成验证对象。  
+> Goal 协议：Goal Runtime Prompt v3.1  
+> 执行模式：Full Governance / Small Batch Execution  
+> 日期：2026-06-02
 
 ---
 
-# 1. 总目标（Master Goal）
+## 0. 结论先行
 
-```text
-GOAL-20260601-FOUNDATIONX-001
+### 0.1 本次同步裁决
 
-建立 foundationx 独立基础契约库，作为 x.go 基础库体系的 L0 层，为 postgresx、kafkax、redisx、taosx、configx、observex、ossx 等上层基础库提供统一的错误模型、生命周期模型、健康检查模型、重试策略、脱敏契约、时钟接口、版本信息和基础运行时契约。
+必须同步更新。`xlib-standard` 是所有 L0/L1 基础库的脚手架与工程标准事实源，原 `baselib-template` 名称和地址如果继续保留，会造成 Goal 文档、Issue、Agent 执行 Prompt、Traceability Matrix、Evidence Manifest 与后续仓库初始化流程不一致。
 
-foundationx 必须是稳定、极简、无业务语义、无 driver 依赖、无隐式全局状态、可单独测试、可单独发布、可被所有基础库复用的底层公共模块。
-```
+本次同步范围：
 
----
+| 项目 | 旧值 | 新值 | 是否必须更新 |
+|---|---|---|---|
+| 基础库模板名称 | `baselib-template` | `xlib-standard` | 是 |
+| 基础库模板仓库 | `github.com/ZoneCNH/baselib-template` | `https://github.com/ZoneCNH/xlib-standard` | 是 |
+| L0 内核库名称 | `foundationx` | `kernel` | 已在 v1.1 完成 |
+| L0 内核库仓库 | `github.com/ZoneCNH/foundationx` | `github.com/ZoneCNH/kernel` | 已在 v1.1 完成 |
+| Goal 文档版本 | v1.1 | v1.2 | 是 |
 
-# 2. 问题底层本质
+同步原则：从 v1.2 开始，`kernel` 是 L0 内核库事实源，`xlib-standard` 是基础库模板标准事实源，x.go 是集成验证调用方。
 
-foundationx 不是普通 utils 包。
+L0 内核库不是“工具函数集合”，而是整个工程体系中最底层、最稳定、最少依赖、最可复用的运行时内核。它的本质职责是：
 
-它的本质是：
+1. 固化跨项目共享的最小工程原语；
+2. 提供错误、时间、生命周期、重试、健康检查、可观测契约、验证、并发控制等基础能力；
+3. 让 Redis/Kafka/PostgreSQL/TDengine/OSS/ClickHouse 等上层基础库可以建立在统一契约之上；
+4. 让 x.go 不再重复造“局部标准”，而是通过稳定 L0 获得工程一致性；
+5. 用 Harness Gates + Evidence Protocol 确保任何 L0 变更都可测试、可审计、可回滚。
 
-```text
-基础库体系的最底层契约内核。
-```
-
-它不负责做具体事情，而负责定义所有基础库共同遵守的语义边界：
-
-```text
-错误如何分类
-资源如何启动和关闭
-健康状态如何表达
-重试策略如何描述
-敏感信息如何脱敏
-时间如何注入
-版本如何暴露
-完成如何证明
-```
-
-如果 foundationx 做错，上层所有基础库都会继承错误抽象。
-
-所以 foundationx 的第一原则不是“功能多”，而是：
-
-```text
-少、稳、清晰、不可污染。
-```
+**最终推荐路径：先完成 `kernel v0.1.0` 的 L0 最小内核，再让 Redis/Kafka/PostgreSQL/TAOS/OSS/ClickHouse 等基础库逐步依赖它。不要反过来让 L0 依赖任何具体基础设施库。**
 
 ---
 
-# 3. 不可再拆解的基本真理
+## 1. 问题的底层本质
 
-## 3.1 foundationx 必须是 L0
+### 1.1 表层问题
 
-```text
-foundationx 只能依赖 Go 标准库，原则上不依赖任何第三方库。
-```
+用户看起来是在问：“第二类 L0 内核库怎么做完整 Goal 方案？”
 
-允许：
+### 1.2 真实问题
 
-```go
-context
-errors
-fmt
-time
-crypto/rand
-sync
-```
+真实问题是：
 
-禁止：
+> 如何把 x.go 及所有公共基础库的最低层能力统一成一个稳定、低耦合、可验证、可演化、可复利的工程内核？
 
-```go
-database/sql
-pgx
-kafka-go
-redis/go-redis
-taos
-zap
-logrus
-otel
-prometheus
-gin
-echo
-fiber
-```
+L0 内核库的成功标准不是功能多，而是：
 
-## 3.2 foundationx 不做基础设施适配
-
-foundationx 不能连接任何外部系统。
-
-禁止：
-
-```text
-PostgreSQL 连接
-Kafka 连接
-Redis 连接
-TDengine 连接
-HTTP Server
-OSS Client
-```
-
-## 3.3 foundationx 不理解 x.go 业务
-
-禁止出现：
-
-```text
-BTCUSDT
-ETHUSDT
-Kline
-OrderBook
-MarketData
-MacroData
-MacroRegime
-MarketRegime
-TradingSignal
-Position
-RiskGate
-M1
-M2
-S1
-S2
-```
-
-## 3.4 foundationx 不持有全局状态
-
-禁止：
-
-```go
-var DefaultLogger ...
-var DefaultClock ...
-var GlobalConfig ...
-func Init(...)
-func GetDefault(...)
-```
-
-允许：
-
-```go
-type Clock interface {}
-type RealClock struct {}
-func NewRealClock() RealClock
-```
-
-## 3.5 foundationx 的 API 必须长期稳定
-
-foundationx 是被所有基础库依赖的底座，因此 API 变更成本极高。
-
-原则：
-
-```text
-v0.x 可以微调
-v1.x 后禁止破坏性变更
-破坏性变更必须走 /v2
-```
+- 足够稳定：很少破坏性变更；
+- 足够小：避免变成杂物库；
+- 足够强：能承载所有 L1/L2 基础库的共同契约；
+- 足够清晰：任何模块都知道能依赖什么、不能依赖什么；
+- 足够可验证：每个导出 API 都有测试、文档、示例和 Evidence；
+- 足够可治理：任何新能力进入 L0 前必须通过边界门禁。
 
 ---
 
-# 4. 被误认为真理的常见假设
+## 2. 不可再拆解的基本真理
 
-| 假设 | 为什么错 | 正确设计 |
+| 编号 | 基本真理 | 说明 |
 |---|---|---|
-| foundationx 可以放很多工具函数 | 会退化成杂物间 | 只放跨基础库契约 |
-| foundationx 可以依赖 logger | 会污染 L0 | 只定义接口，不依赖实现 |
-| foundationx 可以提供数据库错误封装 | 会引入 driver 语义 | 只定义 ErrorKind，上层映射 |
-| foundationx 可以定义业务错误码 | 会耦合 x.go | 只定义通用基础设施错误 |
-| foundationx 可以自动读取 env | 会产生运行时副作用 | 只提供类型，不做加载 |
-| foundationx 可以有默认全局 clock | 测试不可控 | 通过接口注入 |
-| foundationx 不需要 integration test | 对。它是 L0，不需要外部集成 | 重点做 unit/race/contract/boundary |
+| T-001 | L0 处在依赖图最底层 | 任何上层库可以依赖 L0，L0 不能依赖上层库。 |
+| T-002 | L0 的稳定性比功能数量更重要 | L0 一旦膨胀，上层所有库都会被污染。 |
+| T-003 | L0 必须避免业务语义 | 不能出现 BTC、Market、Macro、Regime、Binance、Order、Strategy 等业务概念。 |
+| T-004 | L0 必须避免具体基础设施绑定 | 不能直接依赖 Redis、Kafka、PostgreSQL、TDengine、OSS、ClickHouse、Prometheus、OpenTelemetry 客户端。 |
+| T-005 | L0 的 API 是长期契约 | API 设计错误会放大到所有基础库和 x.go。 |
+| T-006 | 没有 Evidence 不能声明完成 | 完成必须由测试、CI、文档、示例、release manifest、review 证明。 |
+| T-007 | L0 是复利资产 | 每次沉淀一个稳定原语，所有后续基础库都会受益。 |
+| T-008 | L0 不是框架 | 它应提供原语和契约，不应接管业务生命周期和领域决策。 |
+| T-009 | L0 需要强边界治理 | 新增包必须证明“多个上层库共同需要”，否则不进入 L0。 |
+| T-010 | L0 代码必须可被替换和组合 | 不允许隐式全局状态、不透明单例、隐藏 goroutine、隐藏 I/O。 |
 
 ---
 
-# 5. 可以被打破的限制
+## 3. 被误认为真理的常见假设
 
-## 5.1 不做大而全
-
-foundationx 不需要覆盖所有基础设施场景，只定义最小公共契约。
-
-## 5.2 不提供具体实现优先
-
-能用接口表达的，优先接口。
-
-例如：
-
-```go
-type Clock interface {
-    Now() time.Time
-}
-```
-
-具体库自己选择是否使用 `RealClock`、`FixedClock`。
-
-## 5.3 不追求一次性完美
-
-先做 MVA：
-
-```text
-Error
-Health
-Lifecycle
-Retry
-Sanitizer
-Clock
-Version
-```
-
-后续通过 retrospective 增量补丁。
+| 假设 | 为什么危险 | 正确裁决 |
+|---|---|---|
+| “基础库越全越好” | 会把 L0 变成杂物库，依赖图失控 | L0 只放不可再拆的共同原语 |
+| “先写功能，后补规范” | L0 API 一旦被上层使用，后续改动成本极高 | 先 Spec / Design / ADR，再实现 |
+| “L0 可以顺便封装 Redis/Kafka/PG” | 这会让 L0 依赖具体基础设施，破坏底层纯度 | 这些属于 L1/L2 独立基础库 |
+| “内部项目用，不需要文档” | L0 是跨库契约，没有文档就无法复用 | 每个包必须有 README、示例、测试 |
+| “测试通过就完成” | 没有 evidence chain，后续无法审计 | 必须同时有 CI、manifest、review、release notes |
+| “x.go 需要什么就往 L0 放什么” | 会把业务需求倒灌进内核 | 必须抽象成跨项目通用原语 |
+| “公共库可以用全局变量简化调用” | 破坏测试隔离、并发安全、可替换性 | 默认显式依赖注入，禁止隐式全局状态 |
+| “先做大而全 v1.0” | 大批量变更难审查、难回滚 | 小批量 v0.1.0 起步，逐步扩展 |
 
 ---
 
-# 6. 目标仓库与模块
+## 4. 可以被打破的限制
 
-## 6.1 推荐仓库
+| 默认限制 | 可打破方式 |
+|---|---|
+| 每个基础库重复实现 error/retry/health/log contract | 提炼到 L0，所有 L1/L2 复用 |
+| 每个 repo 都有一套不一致 Makefile/CI/release 规则 | 通过 xlib-standard 统一工程骨架 |
+| 公共库缺少完成证明 | 用 Evidence Protocol 强制补齐完成链 |
+| x.go 内部规范与外部基础库割裂 | 让 x.go 只消费稳定 L0 契约，不反向污染 L0 |
+| Agent 执行只产代码不产治理资产 | Goal Runtime v3.1 要求 Spec/Design/Plan/Tasks/Evidence/Retro 全链路 |
+| 库之间靠 README 口头约定 | 用导出接口、contract tests、golden examples 机器验证 |
 
-```text
-https://github.com/ZoneCNH/foundationx
-```
+---
 
-## 6.2 模块文件（go.mod）
+## 5. L0 内核库定位
 
-```go
-module github.com/ZoneCNH/foundationx
-
-go 1.23
-```
-
-如 x.go 统一使用更新版本，可同步，但必须保持 Go 版本策略在 README 中说明。
-
-## 6.3 包结构
-
-推荐使用根包：
+### 5.1 分层定义
 
 ```text
-foundationx
+L0 Kernel Libraries
+  ↓ 被依赖
+L1 Infrastructure Base Libraries
+  redisx / kafkax / postgresx / taosx / ossx / clickhousex / configx ...
+  ↓ 被依赖
+L2 Adapters / Runtime Integration
+  x.go internal adapters / service integration / runtime wiring
+  ↓ 被依赖
+L3 Domain / Application
+  market_data / macro_data / regime_engine / strategy / execution
 ```
 
-或者：
+### 5.2 L0 内核库一句话定义
 
-```text
-pkg/foundationx
-```
+> L0 内核库是无业务、低依赖、稳定 API 的工程原语集合，为所有基础设施库和 x.go 提供统一的错误、时间、生命周期、重试、健康、可观测契约、验证和并发控制基础。
 
-为避免 Go module 使用复杂度，推荐根包：
+### 5.3 L0 必须包含
 
-```text
-foundationx/
-├── go.mod
-├── errors.go
-├── health.go
-├── lifecycle.go
-├── retry.go
-├── sanitizer.go
-├── clock.go
-├── version.go
-├── doc.go
-└── *_test.go
-```
+| 包/模块 | 责任 | 约束 |
+|---|---|---|
+| `errx` | 错误分类、错误码、临时/永久/可重试判定、wrap/unpack | 不绑定 HTTP/DB/Kafka 具体错误 |
+| `timex` | Clock 接口、FakeClock、TTL、deadline 工具 | 测试必须可控，不直接隐藏 time.Now |
+| `lifecycx` | Component 生命周期、Start/Stop、Graceful Shutdown | 不启动隐藏 goroutine，必须可关闭 |
+| `retryx` | Retry Policy、Backoff、Jitter、Retry Budget | 不内置具体网络客户端 |
+| `healthx` | Liveness/Readiness/Dependency status 契约 | 不直接暴露 HTTP server |
+| `obsx` | Logger/Metrics/Tracer 最小接口 | 不直接依赖 Prometheus/Otel SDK |
+| `validx` | 参数校验、Invariant、Precondition | 不做业务规则校验 |
+| `syncx` | 并发安全原语、Once、WorkerGroup、Limiter 抽象 | 不隐藏资源生命周期 |
+| `versionx` | BuildInfo、Version、Compatibility metadata | 用于 release manifest 与集成诊断 |
+| `contracttest` | 基础库契约测试工具 | 只服务 L0/L1/L2 的 contract 验证 |
 
-但为了适配 baselib-template，也可以使用：
+### 5.4 L0 必须排除
 
-```text
-foundationx/
-└── pkg/
-    └── foundationx/
-```
+| 禁止进入 L0 的内容 | 原因 | 应放层级 |
+|---|---|---|
+| Redis/Kafka/PostgreSQL/TDengine/OSS/ClickHouse 客户端 | 具体基础设施绑定 | L1 |
+| Binance、Market、Macro、Regime、Strategy、Order | 业务语义 | L3 |
+| Prometheus/Otel 具体实现 | 第三方 SDK 绑定 | L1/L2 adapter |
+| HTTP server/router 框架 | 运行时承载能力，不是内核原语 | L1/L2 |
+| 配置多源加载完整实现 | 已由 configx 承担，L0 只可定义最小接口 | configx / L1 |
+| 密钥读取、Vault、K8s secret 读取 | 环境/基础设施绑定 | L1/L2 |
+| ORM、SQL Builder、Migration | 数据库能力 | postgresx / L1 |
+| 文件上传、对象存储 | OSS 能力 | ossx / L1 |
 
-最终裁决：
+---
 
-```text
-如果作为独立小库发布，优先根包。
-如果必须与 baselib-template 完全一致，使用 pkg/foundationx。
-```
+## 6. Goal Runtime v3.1 元信息
 
-本 Prompt 默认使用：
-
-```text
-pkg/foundationx
+```yaml
+goal_id: GOAL-20260601-002
+goal_name: L0 Kernel Library Full Governance Plan
+goal_protocol_version: Goal Runtime Prompt v3.1
+prompt_version: v1.2
+product_target_version: kernel v0.1.0
+execution_mode: Full
+execution_strategy: Small Batch Execution
+primary_repo: github.com/ZoneCNH/kernel
+template_repo: https://github.com/ZoneCNH/xlib-standard
+consumer_repo: x.go
+state_machine_initial_state: INIT
+state_machine_target_state: DONE
+release_target: v0.1.0
 ```
 
 ---
 
-# 7. 标准目录结构
+## 7. Goal 对象模型
+
+### 7.1 Core Object Graph
 
 ```text
-foundationx/
-├── go.mod
-├── README.md
-├── CHANGELOG.md
-├── LICENSE
-├── Makefile
-├── .gitignore
-├── .golangci.yml
-│
-├── pkg/
-│   └── foundationx/
-│       ├── doc.go
-│       ├── errors.go
-│       ├── health.go
-│       ├── lifecycle.go
-│       ├── retry.go
-│       ├── sanitizer.go
-│       ├── clock.go
-│       ├── version.go
-│       ├── errors_test.go
-│       ├── health_test.go
-│       ├── lifecycle_test.go
-│       ├── retry_test.go
-│       ├── sanitizer_test.go
-│       ├── clock_test.go
-│       └── version_test.go
-│
-├── internal/
-│   └── testutil/
-│       └── testutil.go
-│
-├── contracts/
-│   ├── error.schema.json
-│   ├── health.schema.json
-│   └── version.schema.json
-│
-├── examples/
-│   ├── error_kind/
-│   │   └── main.go
-│   ├── health_checker/
-│   │   └── main.go
-│   ├── retry_policy/
-│   │   └── main.go
-│   └── clock/
-│       └── main.go
-│
-├── docs/
-│   ├── spec.md
-│   ├── design.md
-│   ├── api.md
-│   ├── errors.md
-│   ├── health.md
-│   ├── lifecycle.md
-│   ├── retry.md
-│   ├── sanitizer.md
-│   ├── testing.md
-│   ├── release.md
-│   └── adr/
-│       ├── ADR-20260601-001-foundationx-l0-boundary.md
-│       └── ADR-20260601-002-error-kind-minimal-set.md
-│
-├── scripts/
-│   ├── check_boundary.sh
-│   ├── check_secrets.sh
-│   ├── check_contracts.sh
-│   └── generate_manifest.sh
-│
-├── release/
-│   └── manifest/
-│       └── v0.1.0.json
-│
-├── .github/
-│   └── workflows/
-│       ├── ci.yml
-│       ├── security.yml
-│       └── release.yml
-│
-└── .agent/
-    ├── goal.md
-    ├── spec.md
-    ├── design.md
-    ├── plan.md
-    ├── tasks.md
-    ├── harness.md
-    ├── gates.md
-    ├── evidence.md
-    ├── review.md
-    ├── release.md
-    └── retrospective.md
+GOAL-20260601-002
+  owns SPEC-l0-kernel-v1.0
+    contains REQ-SPEC-l0-kernel-v1.0-001..020
+      verified_by AC-REQ-*-001..N
+  implemented_by DESIGN-l0-kernel-v1.0
+    records ADR-20260601-001..010
+  executed_by PLAN-GOAL-20260601-002-v1.0
+    decomposes_to TASK-GOAL-20260601-002-001..030
+      verified_by TEST-TASK-*-001..N
+      proven_by EVID-TASK-*-20260601-001..N
+  reviewed_by REV-GOAL-20260601-002-20260601-001
+  released_by REL-20260601-l0-kernel
+  improves_through RETRO-20260601-002
+    produces PATCH-PROMPT-20260601-002
+    produces PATCH-HARNESS-20260601-002
+    produces PATCH-RULE-20260601-002
+```
+
+### 7.2 State Machine
+
+```text
+INIT
+→ CONTEXT_READY
+→ GOAL_READY
+→ SPEC_READY
+→ DESIGN_READY
+→ PLAN_READY
+→ TASKS_READY
+→ EXECUTING
+→ VERIFYING
+→ REVIEWING
+→ RELEASING
+→ RETROSPECTING
+→ DONE
+```
+
+### 7.3 异常状态
+
+```text
+BLOCKED
+FAILED
+NEEDS_RESEARCH
+NEEDS_DECISION
+NEEDS_REPLAN
+NEEDS_ROLLBACK
+NEEDS_HUMAN_APPROVAL
+INCONSISTENT_STATE
 ```
 
 ---
 
-# 8. 范围（Scope）
 
-## 8.1 范围内（In Scope）
+## 7A. Change Propagation：`baselib-template` → `xlib-standard`
+
+### 7A.1 变更性质
+
+这不是普通重命名，而是模板事实源迁移。所有引用基础库模板的对象都必须同步更新，否则 Agent 执行时会出现仓库地址、脚手架来源、工程规范、证据路径不一致。
+
+### 7A.2 必须同步的对象
+
+| 对象 | 必须同步内容 | 验证方式 |
+|---|---|---|
+| Goal | `template_repo` 改为 `https://github.com/ZoneCNH/xlib-standard` | Goal metadata grep 无旧名，历史说明除外 |
+| Spec | 模板来源、脚手架标准、目录规范 | `SPEC-l0-kernel-v1.0` 当前事实源使用新名 |
+| Design | 初始化流程、模块边界、模板继承关系 | ADR / Design 使用新仓库 |
+| Plan | Repo bootstrap、CI、release 步骤 | Plan tasks 引用新仓库 |
+| Tasks | 所有 clone/copy/template 任务 | Task 命令使用新地址 |
+| Tests | 模板兼容性测试、脚手架一致性测试 | CI 中模板来源为新地址 |
+| Evidence | Evidence manifest 记录新模板源 | release manifest 包含新仓库 URL |
+| Docs | README、ADR、CHANGELOG、Agent Prompt | 文档 grep 无旧名，历史说明除外 |
+| Issues | GitHub Issues / Linear / beads 描述 | Issue 正文和验收标准更新 |
+| Agent Prompt | 执行上下文、禁止旧名规则 | Agent 执行前 Context Gate 检查 |
+
+### 7A.3 禁止规则
+
+从 v1.2 起，任何新文档、Issue、PR、Release Manifest、Agent Prompt 不得再使用 `baselib-template` 作为当前事实源。历史引用必须明确标注为“旧名 / legacy name”。
+
+### 7A.4 同步完成判据
+
+完成声明必须使用：
 
 ```text
-ErrorKind
-Error struct
-Error wrapping / unwrapping
-IsKind / AsFoundationError helpers
-Retryable flag
-Operation name Op
-HealthStatus
-HealthChecker
-Lifecycle
-Start / Close contract
-RetryPolicy
-Backoff calculation
-Sanitizer interface
-SecretString
-Clock interface
-RealClock
-FixedClock
-VersionInfo
-BuildInfo
-```
-
-## 8.2 范围外（Out of Scope）
-
-```text
-PostgreSQL client
-Kafka client
-Redis client
-TDengine client
-OSS client
-HTTP server
-Logger implementation
-Metrics implementation
-Tracing implementation
-Configuration loader
-Business domain model
-x.go schema
-Migration runner
-Connection pool
+DONE with evidence:
+- grep evidence: no active `baselib-template` references outside legacy changelog notes
+- Goal metadata evidence: template_repo=https://github.com/ZoneCNH/xlib-standard
+- Docs evidence: README / ADR / Plan / Tasks / Release Manifest all use xlib-standard
+- CI evidence: template compatibility checks pass
 ```
 
 ---
 
-# 9. Public API 设计
+## 8. Context Recovery Protocol
 
-## 9.1 错误模型（Error Model）
+### 8.1 必须恢复的上下文
 
-文件：
+| 上下文 | 恢复动作 | 产物 |
+|---|---|---|
+| `kernel` 当前代码状态 | 扫描 go.mod、目录、导出 API、测试、CI、README | `docs/context/kernel-current-state.md` |
+| `xlib-standard` 模板约束 | 扫描模板目录、Makefile、docs、release scripts | `docs/context/xlib-standard-contract.md` |
+| x.go 调用方需求 | 识别 x.go 对 error/retry/health/lifecycle/obs 的共同需求 | `docs/context/xgo-consumer-needs.md` |
+| L1 基础库共同需求 | 汇总 redisx/kafkax/postgresx/taosx/ossx/clickhousex 共性 | `docs/context/l1-common-needs.md` |
+| CI/Release 基线 | 确认 make targets、GitHub Actions、release evidence | `docs/context/ci-release-baseline.md` |
+| 依赖边界 | 输出依赖图，确认 L0 不依赖 L1/L2/L3 | `docs/context/dependency-boundary.md` |
 
-```text
-pkg/foundationx/errors.go
-```
+### 8.2 Context Gate
 
-目标 API：
+必须满足：
 
-```go
-package foundationx
+- [ ] 已确认 L0 repo 当前模块路径；
+- [ ] 已确认 Go 版本基线；
+- [ ] 已确认是否允许第三方依赖；
+- [ ] 已确认 xlib-standard 必需目录与 Make target；
+- [ ] 已确认 x.go 只作为调用方，不成为 L0 依赖；
+- [ ] 已确认 L0 不读取 `/home/k8s/secrets/env/*`，该路径只由具体基础设施库或 x.go runtime 使用；
+- [ ] 已输出当前代码/文档/CI 缺口清单。
 
-import (
-	"errors"
-	"fmt"
-)
+若不满足，状态进入 `NEEDS_RESEARCH` 或 `BLOCKED`。
 
-type ErrorKind string
+---
 
-const (
-	ErrorKindConfig       ErrorKind = "config"
-	ErrorKindValidation   ErrorKind = "validation"
-	ErrorKindConnection   ErrorKind = "connection"
-	ErrorKindUnavailable  ErrorKind = "unavailable"
-	ErrorKindTimeout      ErrorKind = "timeout"
-	ErrorKindAuth         ErrorKind = "auth"
-	ErrorKindConflict     ErrorKind = "conflict"
-	ErrorKindRateLimit    ErrorKind = "rate_limit"
-	ErrorKindCanceled     ErrorKind = "canceled"
-	ErrorKindNotFound     ErrorKind = "not_found"
-	ErrorKindAlreadyExist ErrorKind = "already_exists"
-	ErrorKindInternal     ErrorKind = "internal"
-)
+## 9. Spec：SPEC-l0-kernel-v1.0
 
-type Error struct {
-	Kind      ErrorKind
-	Op        string
-	Message   string
-	Cause     error
-	Retryable bool
-}
+### 9.1 Spec 目标
 
-func NewError(kind ErrorKind, op string, message string) *Error {
-	return &Error{
-		Kind:    kind,
-		Op:      op,
-		Message: message,
-	}
-}
+构建一个可被所有公共基础库复用的 L0 内核库，满足：
 
-func WrapError(kind ErrorKind, op string, message string, cause error) *Error {
-	return &Error{
-		Kind:    kind,
-		Op:      op,
-		Message: message,
-		Cause:   cause,
-	}
-}
+1. 独立 Go module；
+2. 不依赖 x.go；
+3. 默认仅标准库，新增第三方依赖必须有 ADR；
+4. 导出 API 稳定、最小、可测试；
+5. 提供跨库共同原语；
+6. 通过 contract tests、unit tests、golden examples、docs-check、release evidence 验证；
+7. 以 v0.1.0 发布；
+8. 后续所有 L1 基础库优先复用。
 
-func (e *Error) Error() string {
-	if e == nil {
-		return ""
-	}
+### 9.2 Functional Requirements
 
-	if e.Op == "" {
-		return fmt.Sprintf("%s: %s", e.Kind, e.Message)
-	}
+| Req ID | Requirement | Acceptance Criteria |
+|---|---|---|
+| REQ-SPEC-l0-kernel-v1.0-001 | 提供 `errx` 错误分类能力 | AC-001：支持 Code/Kind/Severity/Retryable；AC-002：支持 wrap/unpack；AC-003：100% 单测覆盖核心路径 |
+| REQ-SPEC-l0-kernel-v1.0-002 | 提供 `timex` 可测试时间能力 | AC-001：Clock 接口；AC-002：RealClock/FakeClock；AC-003：无测试依赖真实 sleep |
+| REQ-SPEC-l0-kernel-v1.0-003 | 提供 `lifecycx` 生命周期原语 | AC-001：Component interface；AC-002：Start/Stop 顺序可控；AC-003：支持 graceful shutdown |
+| REQ-SPEC-l0-kernel-v1.0-004 | 提供 `retryx` 重试策略 | AC-001：固定/指数退避；AC-002：jitter；AC-003：retry budget；AC-004：可重试判定与 errx 集成 |
+| REQ-SPEC-l0-kernel-v1.0-005 | 提供 `healthx` 健康检查契约 | AC-001：Status 枚举；AC-002：Probe 接口；AC-003：dependency status 聚合 |
+| REQ-SPEC-l0-kernel-v1.0-006 | 提供 `obsx` 可观测契约 | AC-001：Logger 接口；AC-002：Metrics 接口；AC-003：Tracer 接口；AC-004：不依赖具体 SDK |
+| REQ-SPEC-l0-kernel-v1.0-007 | 提供 `validx` 基础校验 | AC-001：precondition；AC-002：invariant；AC-003：错误统一进入 errx |
+| REQ-SPEC-l0-kernel-v1.0-008 | 提供 `syncx` 并发控制原语 | AC-001：worker group；AC-002：limiter 抽象；AC-003：无 goroutine leak 测试 |
+| REQ-SPEC-l0-kernel-v1.0-009 | 提供 `versionx` 构建版本信息 | AC-001：BuildInfo；AC-002：Compatibility；AC-003：release manifest 可引用 |
+| REQ-SPEC-l0-kernel-v1.0-010 | 提供 `contracttest` 契约测试工具 | AC-001：L1 库可复用；AC-002：示例覆盖 redisx/postgresx 类调用方 |
+| REQ-SPEC-l0-kernel-v1.0-011 | 建立 docs/spec/design/adr 体系 | AC-001：每个导出包有 README；AC-002：每个关键决策有 ADR |
+| REQ-SPEC-l0-kernel-v1.0-012 | 建立 Makefile 统一入口 | AC-001：`make test`；AC-002：`make lint`；AC-003：`make docs-check`；AC-004：`make release-preflight` |
+| REQ-SPEC-l0-kernel-v1.0-013 | 建立 CI Gate | AC-001：PR 必跑 unit/docs/API/boundary；AC-002：main 分支保护 |
+| REQ-SPEC-l0-kernel-v1.0-014 | 建立 release evidence | AC-001：生成 release manifest；AC-002：记录 commit/test/coverage/docs/API diff |
+| REQ-SPEC-l0-kernel-v1.0-015 | 建立 API 兼容性策略 | AC-001：public API diff；AC-002：breaking change 需要 Human Approval |
+| REQ-SPEC-l0-kernel-v1.0-016 | 建立依赖边界检查 | AC-001：禁止依赖 x.go；AC-002：禁止依赖 L1/L2/L3；AC-003：第三方依赖需要 ADR |
+| REQ-SPEC-l0-kernel-v1.0-017 | 建立 example/golden 用例 | AC-001：每个核心包至少 1 个 example；AC-002：golden 输出稳定 |
+| REQ-SPEC-l0-kernel-v1.0-018 | 建立 Retro Patch 机制 | AC-001：每个 release 输出 prompt/harness/rule patch |
+| REQ-SPEC-l0-kernel-v1.0-019 | 支持 x.go 集成 smoke test | AC-001：x.go 可使用 L0 接口编译通过；AC-002：不修改 x.go 领域逻辑 |
+| REQ-SPEC-l0-kernel-v1.0-020 | v0.1.0 发布 | AC-001：tag；AC-002：changelog；AC-003：release manifest；AC-004：DONE with evidence |
 
-	return fmt.Sprintf("%s: %s: %s", e.Kind, e.Op, e.Message)
-}
+---
 
-func (e *Error) Unwrap() error {
-	if e == nil {
-		return nil
-	}
-	return e.Cause
-}
+## 10. Design：DESIGN-l0-kernel-v1.0
 
-// WithRetryable sets whether the operation may be retried by an upper layer.
-// It mutates the receiver and returns the same pointer for construction-time annotation.
-func (e *Error) WithRetryable(retryable bool) *Error {
-	if e == nil {
-		return nil
-	}
-	e.Retryable = retryable
-	return e
-}
+### 10.1 设计原则
 
-func IsKind(err error, kind ErrorKind) bool {
-	var target *Error
-	if errors.As(err, &target) {
-		return target.Kind == kind
-	}
-	return false
-}
+1. **Stdlib-first**：默认仅使用 Go 标准库。
+2. **No Business Semantics**：不出现 x.go 业务概念。
+3. **Dependency Direction Lock**：L0 只能被依赖，不能依赖上层。
+4. **Explicit Lifecycle**：所有启动的资源必须显式关闭。
+5. **No Hidden Global State**：默认禁止全局可变状态。
+6. **Contract First**：接口、错误语义、行为边界先行。
+7. **Evidence First**：每个包必须有测试、示例、文档。
+8. **Small API Surface**：导出符号越少越好。
+9. **Composable, not Framework**：提供组合原语，不接管应用主流程。
+10. **Release Safe**：每次 release 都可回滚、可审计。
 
-func AsFoundationError(err error) (*Error, bool) {
-	var target *Error
-	if errors.As(err, &target) {
-		return target, true
-	}
-	return nil, false
-}
-```
-
-### ErrorKind 设计原则
+### 10.2 推荐目录结构
 
 ```text
-ErrorKind 是基础设施错误分类，不是业务错误码。
-ErrorKind 数量必须克制。
-上层库可以映射 driver 错误到 ErrorKind。
-业务系统可以定义自己的业务错误，不应塞进 foundationx。
+kernel/
+  go.mod
+  README.md
+  CHANGELOG.md
+  Makefile
+  docs/
+    00-overview.md
+    01-boundary.md
+    02-api-policy.md
+    03-release-policy.md
+    spec/
+      SPEC-l0-kernel-v1.0.md
+    design/
+      DESIGN-l0-kernel-v1.0.md
+    adr/
+      ADR-20260601-001-l0-boundary.md
+      ADR-20260601-002-stdlib-first.md
+      ADR-20260601-003-api-compatibility.md
+    evidence/
+      .gitkeep
+  errx/
+    error.go
+    code.go
+    kind.go
+    retryable.go
+    error_test.go
+    README.md
+    example_test.go
+  timex/
+    clock.go
+    fake_clock.go
+    ttl.go
+    clock_test.go
+    README.md
+    example_test.go
+  lifecycx/
+    component.go
+    group.go
+    shutdown.go
+    group_test.go
+    README.md
+    example_test.go
+  retryx/
+    policy.go
+    backoff.go
+    jitter.go
+    budget.go
+    retry_test.go
+    README.md
+    example_test.go
+  healthx/
+    status.go
+    probe.go
+    aggregate.go
+    health_test.go
+    README.md
+    example_test.go
+  obsx/
+    logger.go
+    metrics.go
+    tracer.go
+    noop.go
+    obs_test.go
+    README.md
+    example_test.go
+  validx/
+    require.go
+    invariant.go
+    valid_test.go
+    README.md
+    example_test.go
+  syncx/
+    worker_group.go
+    limiter.go
+    sync_test.go
+    README.md
+    example_test.go
+  versionx/
+    build_info.go
+    compatibility.go
+    version_test.go
+    README.md
+    example_test.go
+  contracttest/
+    harness.go
+    README.md
+    example_test.go
+  scripts/
+    ci/
+      boundary-check.sh
+      docs-check.sh
+      api-check.sh
+      evidence-check.sh
+  .github/
+    workflows/
+      ci.yml
+      release.yml
+```
+
+### 10.3 包边界
+
+```text
+errx      ← validx / retryx 可依赖
+
+timex     ← retryx / lifecycx / syncx 可依赖
+
+obsx      ← lifecycx / retryx / healthx 可选择依赖，但必须允许 noop
+
+healthx   ← lifecycx 可聚合
+
+contracttest ← 仅测试使用，不进入生产路径
+```
+
+禁止依赖方向：
+
+```text
+kernel → x.go                禁止
+kernel → redisx/kafkax/...   禁止
+kernel → market/macro/regime 禁止
+kernel → concrete infra SDK   禁止，除非 ADR 明确批准且不属于 L0 core
+```
+
+### 10.4 API 稳定策略
+
+| 阶段 | 策略 |
+|---|---|
+| v0.1.0 | API 可轻微调整，但 breaking change 必须在 CHANGELOG 明示 |
+| v0.2.x | 开始引入 API diff gate |
+| v0.5.x | 上层基础库开始稳定依赖 |
+| v1.0.0 | Public API Freeze，破坏性变更必须进入 v2 |
+
+---
+
+## 11. ADR 决策记录
+
+| ADR ID | 决策 | 状态 |
+|---|---|---|
+| ADR-20260601-001 | L0 只承载跨库共同工程原语，不承载业务语义 | Accepted |
+| ADR-20260601-002 | L0 默认 stdlib-first，新增第三方依赖必须 Human Approval | Accepted |
+| ADR-20260601-003 | 可观测性只定义 interface，不绑定 Prometheus/Otel SDK | Accepted |
+| ADR-20260601-004 | 配置完整加载能力不进入 L0，由 configx 承担 | Accepted |
+| ADR-20260601-005 | L0 不读取任何 secret/env file，仅提供必要的抽象 | Accepted |
+| ADR-20260601-006 | retryx 与 errx 通过 retryable 语义集成 | Accepted |
+| ADR-20260601-007 | timex 必须提供 FakeClock，禁止测试依赖真实 sleep | Accepted |
+| ADR-20260601-008 | lifecycx 必须显式关闭资源，禁止隐藏 goroutine | Accepted |
+| ADR-20260601-009 | x.go 只作为 consumer smoke test，不进入 L0 依赖图 | Accepted |
+| ADR-20260601-010 | v0.1.0 以最小内核发布，不追求大而全 | Accepted |
+
+---
+
+## 12. Plan：PLAN-GOAL-20260601-002-v1.0
+
+### 12.1 Milestones
+
+| Milestone | 目标 | Gate |
+|---|---|---|
+| M0 Context Recovery | 恢复 repo/template/consumer/CI 上下文 | Context Gate |
+| M1 Boundary & Spec | 冻结 L0 边界、Spec、ADR | Spec Gate |
+| M2 Kernel API Skeleton | 建立包结构与最小 API | Design Gate |
+| M3 Core Implementation | 完成 errx/timex/lifecycx/retryx/healthx/obsx/validx/syncx/versionx | Implementation Gate |
+| M4 Contract & Examples | 完成 contracttest、examples、golden | Test Gate |
+| M5 Governance Gates | 完成 docs-check/boundary-check/api-check/evidence-check | Harness Gate |
+| M6 x.go Smoke Integration | 验证 x.go 可消费 L0，不反向依赖 | Integration Gate |
+| M7 Release v0.1.0 | tag/changelog/release manifest | Release Gate |
+| M8 Retrospective | 输出 Prompt/Harness/Rule Patch | Retrospective Gate |
+
+### 12.2 推荐执行顺序
+
+```text
+M0 → M1 → M2 → M3A(errx/timex) → M3B(lifecycx/retryx) → M3C(healthx/obsx/validx/syncx/versionx) → M4 → M5 → M6 → M7 → M8
 ```
 
 ---
 
-## 9.2 健康模型（Health Model）
+## 13. Tasks
 
-文件：
+| Task ID | Title | Output | Verification |
+|---|---|---|---|
+| TASK-GOAL-20260601-002-001 | Repo Context Audit | `docs/context/*` | Context Gate green |
+| TASK-GOAL-20260601-002-002 | L0 Boundary Doc | `docs/01-boundary.md` | Boundary review |
+| TASK-GOAL-20260601-002-003 | Spec Draft | `docs/spec/SPEC-l0-kernel-v1.0.md` | Spec Gate |
+| TASK-GOAL-20260601-002-004 | Design Draft | `docs/design/DESIGN-l0-kernel-v1.0.md` | Design Gate |
+| TASK-GOAL-20260601-002-005 | ADR Set | `docs/adr/*.md` | ADR review |
+| TASK-GOAL-20260601-002-006 | Makefile Baseline | `make test/lint/docs-check/...` | `make help` + CI |
+| TASK-GOAL-20260601-002-007 | Implement errx | `errx/*` | unit + example |
+| TASK-GOAL-20260601-002-008 | Implement timex | `timex/*` | deterministic tests |
+| TASK-GOAL-20260601-002-009 | Implement lifecycx | `lifecycx/*` | lifecycle tests |
+| TASK-GOAL-20260601-002-010 | Implement retryx | `retryx/*` | retry policy tests |
+| TASK-GOAL-20260601-002-011 | Implement healthx | `healthx/*` | probe tests |
+| TASK-GOAL-20260601-002-012 | Implement obsx | `obsx/*` | noop contract tests |
+| TASK-GOAL-20260601-002-013 | Implement validx | `validx/*` | validation tests |
+| TASK-GOAL-20260601-002-014 | Implement syncx | `syncx/*` | race/leak tests |
+| TASK-GOAL-20260601-002-015 | Implement versionx | `versionx/*` | build info tests |
+| TASK-GOAL-20260601-002-016 | Implement contracttest | `contracttest/*` | example contract tests |
+| TASK-GOAL-20260601-002-017 | Add Package READMEs | package README | docs-check |
+| TASK-GOAL-20260601-002-018 | Add Golden Examples | `example_test.go` | `go test` examples |
+| TASK-GOAL-20260601-002-019 | Boundary Check Script | `scripts/ci/boundary-check.sh` | CI green |
+| TASK-GOAL-20260601-002-020 | Docs Check Script | `scripts/ci/docs-check.sh` | CI green |
+| TASK-GOAL-20260601-002-021 | API Check Script | `scripts/ci/api-check.sh` | API diff report |
+| TASK-GOAL-20260601-002-022 | Evidence Check Script | `scripts/ci/evidence-check.sh` | manifest validation |
+| TASK-GOAL-20260601-002-023 | CI Workflow | `.github/workflows/ci.yml` | PR CI green |
+| TASK-GOAL-20260601-002-024 | Release Workflow | `.github/workflows/release.yml` | dry-run green |
+| TASK-GOAL-20260601-002-025 | x.go Smoke Test | consumer example | compile green |
+| TASK-GOAL-20260601-002-026 | Changelog | `CHANGELOG.md` | release gate |
+| TASK-GOAL-20260601-002-027 | Release Manifest | `docs/evidence/release-v0.1.0.md` | evidence gate |
+| TASK-GOAL-20260601-002-028 | Review Report | `docs/review/REV-*.md` | review gate |
+| TASK-GOAL-20260601-002-029 | Retrospective | `docs/retro/RETRO-*.md` | retro gate |
+| TASK-GOAL-20260601-002-030 | Tag v0.1.0 | Git tag/release | release evidence |
 
-```text
-pkg/foundationx/health.go
+---
+
+## 14. Harness Gates
+
+### 14.1 Gate 类型
+
+| Gate | 类型 | 作用 |
+|---|---|---|
+| Context Gate | Semantic | 判断上下文是否完整 |
+| Goal Gate | Semantic | 判断目标是否明确、可执行 |
+| Spec Gate | Hybrid | 检查 Req/AC 是否完整 |
+| Design Gate | Hybrid | 检查架构边界、ADR、依赖方向 |
+| Plan Gate | Semantic | 检查 Milestone/Task 是否可执行 |
+| Task Gate | Hybrid | 检查任务是否可测试、可证明 |
+| Implementation Gate | Executable | `go test ./...`、race、coverage |
+| Boundary Gate | Executable | 检查禁用依赖、禁用业务语义 |
+| Docs Gate | Executable | README/ADR/Spec/Design/package docs 完整 |
+| API Gate | Hybrid | Public API diff、breaking change 检查 |
+| Evidence Gate | Hybrid | Evidence 是否能支持完成声明 |
+| Review Gate | Semantic | 人工/Agent review 是否通过 |
+| Release Gate | Hybrid | tag、changelog、manifest、CI 全绿 |
+| Retrospective Gate | Semantic | 是否产生可复利 patch |
+
+### 14.2 必跑命令
+
+```bash
+make test
+make lint
+make docs-check
+make boundary-check
+make api-check
+make release-preflight VERSION=v0.1.0
+make release-evidence-check
+make release-final-check
 ```
 
-目标 API：
+若 `make docs-check` 不存在，必须作为 P0 任务先实现。所有依赖 docs-check 的 AC 不允许跳过。
 
-```go
-package foundationx
+---
 
-import (
-	"context"
-	"encoding/json"
-	"time"
-)
+## 15. Evidence Protocol
 
-type HealthStatusValue string
+### 15.1 Evidence 类型
 
-const (
-	HealthHealthy   HealthStatusValue = "healthy"
-	HealthDegraded  HealthStatusValue = "degraded"
-	HealthUnhealthy HealthStatusValue = "unhealthy"
-)
+| Evidence | 内容 |
+|---|---|
+| Code Evidence | commit diff、package implementation、API surface |
+| Test Evidence | unit test、race test、example test、contract test |
+| CI Evidence | workflow run URL、job summary、logs 摘要 |
+| Docs Evidence | README、Spec、Design、ADR、Changelog |
+| Boundary Evidence | dependency graph、forbidden imports scan |
+| API Evidence | exported API list、API diff |
+| Release Evidence | tag、release manifest、checksums、changelog |
+| Review Evidence | review comments、decision log |
+| Retro Evidence | prompt/harness/rule patches |
 
-type HealthStatus struct {
-	Name      string
-	Status    HealthStatusValue
-	Message   string
-	CheckedAt time.Time
-	LatencyMs int64
-	Metadata  map[string]string
-}
+### 15.2 完成声明格式
 
-type HealthChecker interface {
-	Name() string
-	Check(ctx context.Context) HealthStatus
-}
-
-func NewHealthStatus(
-	name string,
-	status HealthStatusValue,
-	message string,
-	checkedAt time.Time,
-	latencyMs int64,
-) HealthStatus {
-	return HealthStatus{
-		Name:      name,
-		Status:    status,
-		Message:   message,
-		CheckedAt: checkedAt,
-		LatencyMs: latencyMs,
-		Metadata:  map[string]string{},
-	}
-}
-
-func (s HealthStatus) WithMetadata(key string, value string) HealthStatus {
-	metadata := make(map[string]string, len(s.Metadata)+1)
-	for existingKey, existingValue := range s.Metadata {
-		metadata[existingKey] = existingValue
-	}
-	metadata[key] = value
-	s.Metadata = metadata
-	return s
-}
-
-func (s HealthStatus) MarshalJSON() ([]byte, error) {
-	type healthStatus HealthStatus
-	if s.Metadata == nil {
-		s.Metadata = map[string]string{}
-	}
-	return json.Marshal(healthStatus(s))
-}
-
-func (s HealthStatus) IsHealthy() bool {
-	return s.Status == HealthHealthy
-}
-```
-
-### Health 设计原则
+禁止：
 
 ```text
-HealthStatus 是状态表达，不做 HTTP 序列化绑定。
-HealthStatus JSON 中 metadata 必须保持对象形态。
-WithMetadata 不能修改源 HealthStatus 的 Metadata map。
-不能依赖 Gin/Echo/Fiber。
-不能定义 /healthz 路由。
-上层服务自行聚合 HealthChecker。
+已完成。
+```
+
+必须：
+
+```text
+DONE with evidence:
+- Goal: GOAL-20260601-002
+- Release: v0.1.0
+- Commit: <commit-sha>
+- CI: <ci-run-url>
+- Tests: go test ./... green, race green
+- Docs: docs-check green
+- Boundary: boundary-check green
+- API: api-check green
+- Release Manifest: docs/evidence/release-v0.1.0.md
+- Review: REV-GOAL-20260601-002-20260601-001
+- Retrospective: RETRO-20260601-002
 ```
 
 ---
 
-## 9.3 生命周期模型（Lifecycle Model）
+## 16. Traceability Matrix
 
-文件：
+| Requirement | AC | Design Section | Task | Test | Evidence | Status |
+|---|---|---|---|---|---|---|
+| REQ-001 errx | AC-001..003 | 10.2/10.3 | TASK-007 | TEST-TASK-007-* | EVID-TASK-007-* | Planned |
+| REQ-002 timex | AC-001..003 | 10.2/10.3 | TASK-008 | TEST-TASK-008-* | EVID-TASK-008-* | Planned |
+| REQ-003 lifecycx | AC-001..003 | 10.2/10.3 | TASK-009 | TEST-TASK-009-* | EVID-TASK-009-* | Planned |
+| REQ-004 retryx | AC-001..004 | 10.2/10.3 | TASK-010 | TEST-TASK-010-* | EVID-TASK-010-* | Planned |
+| REQ-005 healthx | AC-001..003 | 10.2/10.3 | TASK-011 | TEST-TASK-011-* | EVID-TASK-011-* | Planned |
+| REQ-006 obsx | AC-001..004 | 10.2/10.3 | TASK-012 | TEST-TASK-012-* | EVID-TASK-012-* | Planned |
+| REQ-007 validx | AC-001..003 | 10.2/10.3 | TASK-013 | TEST-TASK-013-* | EVID-TASK-013-* | Planned |
+| REQ-008 syncx | AC-001..003 | 10.2/10.3 | TASK-014 | TEST-TASK-014-* | EVID-TASK-014-* | Planned |
+| REQ-009 versionx | AC-001..003 | 10.2/10.3 | TASK-015 | TEST-TASK-015-* | EVID-TASK-015-* | Planned |
+| REQ-010 contracttest | AC-001..002 | 10.2/10.3 | TASK-016 | TEST-TASK-016-* | EVID-TASK-016-* | Planned |
+| REQ-011 docs | AC-001..002 | 10.1/10.2 | TASK-017 | docs-check | EVID-TASK-017-* | Planned |
+| REQ-012 make targets | AC-001..004 | 14.2 | TASK-006 | CI | EVID-TASK-006-* | Planned |
+| REQ-013 CI | AC-001..002 | 14 | TASK-023 | workflow | EVID-TASK-023-* | Planned |
+| REQ-014 release evidence | AC-001..002 | 15 | TASK-027 | evidence-check | EVID-TASK-027-* | Planned |
+| REQ-015 API compatibility | AC-001..002 | 10.4 | TASK-021 | api-check | EVID-TASK-021-* | Planned |
+| REQ-016 dependency boundary | AC-001..003 | 10.3 | TASK-019 | boundary-check | EVID-TASK-019-* | Planned |
+| REQ-017 examples | AC-001..002 | 10.2 | TASK-018 | go test examples | EVID-TASK-018-* | Planned |
+| REQ-018 retro | AC-001 | 24 | TASK-029 | retro gate | EVID-TASK-029-* | Planned |
+| REQ-019 x.go smoke | AC-001..002 | 19 | TASK-025 | compile smoke | EVID-TASK-025-* | Planned |
+| REQ-020 v0.1.0 release | AC-001..004 | 20 | TASK-030 | release-final-check | EVID-TASK-030-* | Planned |
+
+---
+
+## 17. Risk Register
+
+| Risk ID | Risk | Impact | Mitigation | Owner |
+|---|---|---|---|---|
+| RISK-GOAL-20260601-002-001 | L0 膨胀成 utils 杂物库 | 极高 | Boundary Gate + ADR + Human Approval | Architect |
+| RISK-GOAL-20260601-002-002 | L0 误依赖具体基础设施 SDK | 极高 | boundary-check 禁止 imports | Agent |
+| RISK-GOAL-20260601-002-003 | API 设计过早冻结错误 | 高 | v0.1.0 小范围试用，v1.0 前保留调整空间 | Architect |
+| RISK-GOAL-20260601-002-004 | docs-check 不存在导致证据链断裂 | 高 | TASK-020 P0 实现 | Agent |
+| RISK-GOAL-20260601-002-005 | x.go 业务需求污染 L0 | 高 | ADR-001 + review gate | Architect |
+| RISK-GOAL-20260601-002-006 | Hidden goroutine 导致资源泄露 | 高 | race/leak tests + explicit lifecycle | Agent |
+| RISK-GOAL-20260601-002-007 | third-party dependency 破坏 L0 纯度 | 中高 | stdlib-first + ADR + Human Approval | Architect |
+| RISK-GOAL-20260601-002-008 | 多个基础库各自 fork L0 原语 | 中高 | release v0.1.0 后统一迁移计划 | Maintainer |
+| RISK-GOAL-20260601-002-009 | 过度抽象导致难用 | 中 | examples + consumer smoke test | Agent |
+| RISK-GOAL-20260601-002-010 | 没有 rollback 方案 | 中 | release manifest + semver + tag rollback | Release Owner |
+
+---
+
+## 18. Change Propagation Matrix
+
+| Change Type | Must Update |
+|---|---|
+| Goal 变更 | Spec、Plan、Tasks、Traceability、Decision Log |
+| Spec 变更 | Design、ADR、Tasks、Tests、AC、Evidence |
+| Requirement 变更 | AC、Tasks、Tests、Traceability |
+| Public API 变更 | README、examples、API diff、CHANGELOG、compatibility docs |
+| Package boundary 变更 | Boundary doc、ADR、boundary-check |
+| Dependency 变更 | go.mod、ADR、security review、boundary-check |
+| CI Gate 变更 | Makefile、workflow、docs/release-policy.md |
+| Release 变更 | CHANGELOG、release manifest、tag、review |
+| x.go smoke 变更 | Consumer docs、integration evidence |
+| Failure/rollback | Risk Register、Decision Log、Retro Patch |
+
+---
+
+## 19. Rollback Protocol
+
+### 19.1 Rollback Trigger
+
+触发条件：
+
+- CI main red；
+- L1 基础库无法编译；
+- Public API breaking 未声明；
+- Boundary Gate 失败；
+- Release evidence 缺失；
+- x.go smoke test 失败且无法在当前小批次修复；
+- 发现 L0 依赖 L1/L2/L3 或具体基础设施 SDK。
+
+### 19.2 Rollback Steps
 
 ```text
-pkg/foundationx/lifecycle.go
-```
-
-目标 API：
-
-```go
-package foundationx
-
-import "context"
-
-type Starter interface {
-	Start(ctx context.Context) error
-}
-
-type Closer interface {
-	Close(ctx context.Context) error
-}
-
-type Lifecycle interface {
-	Starter
-	Closer
-}
-```
-
-设计原则：
-
-```text
-Start/Close 是通用资源生命周期。
-Close 必须由实现方保证幂等。
-foundationx 只定义接口，不实现资源管理器。
+1. 标记状态为 NEEDS_ROLLBACK
+2. 冻结新任务合入
+3. 找到最后一个 release/green commit
+4. revert 或切回 tag
+5. 生成 rollback evidence
+6. 更新 Risk Register 和 Decision Log
+7. 进入 Retrospective
+8. 输出 Rule Patch，防止同类问题复发
 ```
 
 ---
 
-## 9.4 重试策略（Retry Policy）
+## 20. Human Approval Gates
 
-文件：
+以下变更必须人工批准：
 
-```text
-pkg/foundationx/retry.go
-```
-
-目标 API：
-
-```go
-package foundationx
-
-import "time"
-
-type RetryPolicy struct {
-	MaxAttempts int
-	BaseDelay   time.Duration
-	MaxDelay    time.Duration
-}
-
-func DefaultRetryPolicy() RetryPolicy {
-	return RetryPolicy{
-		MaxAttempts: 3,
-		BaseDelay:   100 * time.Millisecond,
-		MaxDelay:    2 * time.Second,
-	}
-}
-
-func (p RetryPolicy) Validate() error {
-	if p.MaxAttempts < 1 {
-		return NewError(ErrorKindValidation, "RetryPolicy.Validate", "max attempts must be greater than zero")
-	}
-	if p.BaseDelay < 0 {
-		return NewError(ErrorKindValidation, "RetryPolicy.Validate", "base delay must be non-negative")
-	}
-	if p.MaxDelay < 0 {
-		return NewError(ErrorKindValidation, "RetryPolicy.Validate", "max delay must be non-negative")
-	}
-	if p.MaxDelay > 0 && p.BaseDelay > p.MaxDelay {
-		return NewError(ErrorKindValidation, "RetryPolicy.Validate", "base delay must not exceed max delay")
-	}
-	return nil
-}
-
-// Delay returns the exponential backoff delay for the 1-based attempt number.
-// It does not enforce MaxAttempts; callers decide whether an attempt should run.
-func (p RetryPolicy) Delay(attempt int) time.Duration {
-	if attempt <= 0 || p.BaseDelay <= 0 {
-		return 0
-	}
-
-	delay := p.BaseDelay
-	const maxDuration time.Duration = 1<<63 - 1
-	for i := 1; i < attempt; i++ {
-		if p.MaxDelay > 0 && delay >= p.MaxDelay {
-			delay = p.MaxDelay
-			break
-		}
-		if delay > maxDuration/2 {
-			delay = maxDuration
-			break
-		}
-		delay *= 2
-	}
-
-	if p.MaxDelay > 0 && delay > p.MaxDelay {
-		delay = p.MaxDelay
-	}
-
-	return delay
-}
-```
-
-注意：
-
-```text
-foundationx 不实现 Retry Executor。
-因为是否重试、如何处理 context、如何处理错误副作用，应由上层库决定。
-foundationx 只提供 RetryPolicy 和 Delay 计算；MaxAttempts 由上层执行循环负责判断。
-```
+1. 新增第三方依赖；
+2. 新增导出 package；
+3. 删除或重命名 public API；
+4. 修改错误语义；
+5. 修改 retry 默认语义；
+6. 修改 lifecycle start/stop 语义；
+7. 引入具体基础设施绑定；
+8. v0.x 到 v1.0 API Freeze；
+9. release v0.1.0 tag；
+10. 任何需要 x.go 迁移调用方式的变更。
 
 ---
 
-## 9.5 脱敏（Sanitizer）
+## 21. Failure Budget
 
-文件：
-
-```text
-pkg/foundationx/sanitizer.go
-```
-
-目标 API：
-
-```go
-package foundationx
-
-import "encoding/json"
-
-type Sanitizer interface {
-	Sanitize() any
-}
-
-type SecretString string
-
-func NewSecretString(value string) SecretString {
-	return SecretString(value)
-}
-
-func (s SecretString) String() string {
-	if s == "" {
-		return ""
-	}
-	return "***"
-}
-
-func (s SecretString) Sanitize() any {
-	return s.String()
-}
-
-func (s SecretString) MarshalJSON() ([]byte, error) {
-	return json.Marshal(s.String())
-}
-
-func (s SecretString) Reveal() string {
-	return string(s)
-}
-
-func (s SecretString) IsZero() bool {
-	return s == ""
-}
-```
-
-设计原则：
-
-```text
-SecretString 默认打印必须脱敏。
-SecretString JSON 序列化必须脱敏。
-Reveal 只能在构造 driver config 时显式使用。
-测试必须保证 fmt.Sprint(secret) 不泄露。
-```
+| 类型 | 预算 | 超限动作 |
+|---|---|---|
+| CI red | 最多 1 个小批次 | 停止新功能，优先修 CI |
+| API breaking | v0.1.0 前允许，但必须记录 | API Gate + CHANGELOG |
+| Boundary violation | 0 容忍 | 立即 rollback 或重构 |
+| Missing docs | 0 容忍 | 不允许 release |
+| Missing tests | 0 容忍 | 不允许 DONE |
+| Hidden global state | 0 容忍 | 不允许合入 |
+| Third-party dependency without ADR | 0 容忍 | 不允许合入 |
 
 ---
 
-## 9.6 时钟（Clock）
+## 22. MVA：Minimum Viable Action
 
-文件：
+最小可行行动不是一次性实现所有包，而是先建立可复利的最小内核闭环。
 
-```text
-pkg/foundationx/clock.go
-```
+### MVA-1：L0 边界冻结
 
-目标 API：
-
-```go
-package foundationx
-
-import "time"
-
-type Clock interface {
-	Now() time.Time
-}
-
-type RealClock struct{}
-
-func NewRealClock() RealClock {
-	return RealClock{}
-}
-
-func (RealClock) Now() time.Time {
-	return time.Now()
-}
-
-type FixedClock struct {
-	now time.Time
-}
-
-func NewFixedClock(now time.Time) FixedClock {
-	return FixedClock{now: now}
-}
-
-func (c FixedClock) Now() time.Time {
-	return c.now
-}
-```
-
-设计原则：
+产出：
 
 ```text
-Clock 用于提升测试可控性。
-foundationx 不提供全局默认 clock。
+docs/01-boundary.md
+docs/spec/SPEC-l0-kernel-v1.0.md
+docs/design/DESIGN-l0-kernel-v1.0.md
+docs/adr/ADR-20260601-001-l0-boundary.md
 ```
 
----
+### MVA-2：两个最小原语包
 
-## 9.7 版本（Version）
-
-文件：
+优先实现：
 
 ```text
-pkg/foundationx/version.go
-```
-
-目标 API：
-
-```go
-package foundationx
-
-type VersionInfo struct {
-	Module    string
-	Version   string
-	Commit    string
-	BuildTime string
-	GoVersion string
-}
-
-func NewVersionInfo(module, version, commit, buildTime, goVersion string) VersionInfo {
-	return VersionInfo{
-		Module:    module,
-		Version:   version,
-		Commit:    commit,
-		BuildTime: buildTime,
-		GoVersion: goVersion,
-	}
-}
-```
-
-设计原则：
-
-```text
-foundationx 不绑定 ldflags 方案。
-上层库可在 release 时注入具体值。
-```
-
----
-
-# 10. 规格（Spec）
-
-```text
-SPEC-foundationx-v1.0
-```
-
-## REQ-FOUNDATIONX-001：独立 Go module
-
-foundationx 必须是独立 Go module。
-
-Acceptance Criteria：
-
-```text
-AC-REQ-FOUNDATIONX-001-001: go.mod module 为 github.com/ZoneCNH/foundationx
-AC-REQ-FOUNDATIONX-001-002: go test ./... 通过
-AC-REQ-FOUNDATIONX-001-003: go list -deps ./... 不包含 github.com/bytechainx/x.go
-AC-REQ-FOUNDATIONX-001-004: go list -deps ./... 不包含 PostgreSQL/Kafka/Redis/TDengine/OSS driver
-```
-
-## REQ-FOUNDATIONX-002：L0 边界
-
-foundationx 只能提供基础契约，不得依赖基础设施实现。
-
-Acceptance Criteria：
-
-```text
-AC-REQ-FOUNDATIONX-002-001: 不 import database/sql
-AC-REQ-FOUNDATIONX-002-002: 不 import pgx
-AC-REQ-FOUNDATIONX-002-003: 不 import kafka-go / sarama / confluent-kafka-go
-AC-REQ-FOUNDATIONX-002-004: 不 import go-redis
-AC-REQ-FOUNDATIONX-002-005: 不 import TDengine driver
-AC-REQ-FOUNDATIONX-002-006: 不 import prometheus / otel / zap / logrus
-```
-
-## REQ-FOUNDATIONX-003：错误模型（Error Model）
-
-实现统一基础错误模型。
-
-Acceptance Criteria：
-
-```text
-AC-REQ-FOUNDATIONX-003-001: ErrorKind 覆盖 config/validation/connection/unavailable/timeout/auth/conflict/rate_limit/canceled/not_found/already_exists/internal
-AC-REQ-FOUNDATIONX-003-002: Error 实现 error interface
-AC-REQ-FOUNDATIONX-003-003: Error 支持 Unwrap
-AC-REQ-FOUNDATIONX-003-004: IsKind 可以识别 wrapped error
-AC-REQ-FOUNDATIONX-003-005: AsFoundationError 可以提取 *Error
-AC-REQ-FOUNDATIONX-003-006: Retryable 字段可设置和测试
-```
-
-## REQ-FOUNDATIONX-004：健康模型（Health Model）
-
-实现统一健康检查契约。
-
-Acceptance Criteria：
-
-```text
-AC-REQ-FOUNDATIONX-004-001: 定义 HealthHealthy / HealthDegraded / HealthUnhealthy
-AC-REQ-FOUNDATIONX-004-002: 定义 HealthStatus
-AC-REQ-FOUNDATIONX-004-003: 定义 HealthChecker interface
-AC-REQ-FOUNDATIONX-004-004: HealthStatus 支持 Metadata
-AC-REQ-FOUNDATIONX-004-005: HealthStatus.IsHealthy 正确
-AC-REQ-FOUNDATIONX-004-006: nil Metadata JSON 输出为空对象
-AC-REQ-FOUNDATIONX-004-007: WithMetadata 不修改源 HealthStatus
-```
-
-## REQ-FOUNDATIONX-005：生命周期模型（Lifecycle Model）
-
-实现生命周期契约。
-
-Acceptance Criteria：
-
-```text
-AC-REQ-FOUNDATIONX-005-001: 定义 Starter
-AC-REQ-FOUNDATIONX-005-002: 定义 Closer
-AC-REQ-FOUNDATIONX-005-003: 定义 Lifecycle
-AC-REQ-FOUNDATIONX-005-004: 接口使用 context.Context
-```
-
-## REQ-FOUNDATIONX-006：重试策略（RetryPolicy）
-
-实现重试策略描述和延迟计算。
-
-Acceptance Criteria：
-
-```text
-AC-REQ-FOUNDATIONX-006-001: DefaultRetryPolicy 返回可用默认值
-AC-REQ-FOUNDATIONX-006-002: Validate 能识别非法 MaxAttempts
-AC-REQ-FOUNDATIONX-006-003: Validate 能识别非法 Delay
-AC-REQ-FOUNDATIONX-006-004: Delay 使用指数退避
-AC-REQ-FOUNDATIONX-006-005: Delay 尊重 MaxDelay
-AC-REQ-FOUNDATIONX-006-006: Delay 溢出时饱和到最大 time.Duration
-AC-REQ-FOUNDATIONX-006-007: Delay 不按 MaxAttempts 截断，调用方负责停止条件
-```
-
-## REQ-FOUNDATIONX-007：脱敏与 SecretString（Sanitizer / SecretString）
-
-实现敏感信息脱敏契约。
-
-Acceptance Criteria：
-
-```text
-AC-REQ-FOUNDATIONX-007-001: SecretString.String 返回 ***
-AC-REQ-FOUNDATIONX-007-002: 空 SecretString.String 返回空字符串
-AC-REQ-FOUNDATIONX-007-003: SecretString.Reveal 返回原值
-AC-REQ-FOUNDATIONX-007-004: fmt.Sprint(secret) 不泄露原文
-AC-REQ-FOUNDATIONX-007-005: SecretString.IsZero 正确
-AC-REQ-FOUNDATIONX-007-006: SecretString.Sanitize 返回脱敏值
-AC-REQ-FOUNDATIONX-007-007: json.Marshal(secret) 不泄露原文
-```
-
-## REQ-FOUNDATIONX-008：时钟（Clock）
-
-实现可注入时钟接口。
-
-Acceptance Criteria：
-
-```text
-AC-REQ-FOUNDATIONX-008-001: 定义 Clock interface
-AC-REQ-FOUNDATIONX-008-002: RealClock.Now 返回当前时间
-AC-REQ-FOUNDATIONX-008-003: FixedClock.Now 返回固定时间
-AC-REQ-FOUNDATIONX-008-004: 不存在全局默认 clock
-```
-
-## REQ-FOUNDATIONX-009：版本信息（VersionInfo）
-
-实现版本信息结构。
-
-Acceptance Criteria：
-
-```text
-AC-REQ-FOUNDATIONX-009-001: VersionInfo 包含 Module/Version/Commit/BuildTime/GoVersion
-AC-REQ-FOUNDATIONX-009-002: NewVersionInfo 正确赋值
-```
-
-## REQ-FOUNDATIONX-010：文档（Documentation）
-
-提供基础文档。
-
-Acceptance Criteria：
-
-```text
-AC-REQ-FOUNDATIONX-010-001: README.md 完整
-AC-REQ-FOUNDATIONX-010-002: docs/spec.md 完整
-AC-REQ-FOUNDATIONX-010-003: docs/design.md 完整
-AC-REQ-FOUNDATIONX-010-004: docs/api.md 完整
-AC-REQ-FOUNDATIONX-010-005: docs/adr 至少包含 L0 boundary ADR
-```
-
-## REQ-FOUNDATIONX-011：门禁（Harness Gates）
-
-提供自动门禁。
-
-Acceptance Criteria：
-
-```text
-AC-REQ-FOUNDATIONX-011-001: make ci 通过
-AC-REQ-FOUNDATIONX-011-002: boundary gate 通过
-AC-REQ-FOUNDATIONX-011-003: secret gate 通过
-AC-REQ-FOUNDATIONX-011-004: contract gate 通过
-AC-REQ-FOUNDATIONX-011-005: release manifest 可生成
-```
-
----
-
-# 11. 设计（Design）
-
-```text
-DESIGN-foundationx-v1.0
-```
-
-## 11.1 设计原则
-
-```text
-1. L0-only
-2. Standard-library-first
-3. Contract over implementation
-4. No global mutable state
-5. No business semantics
-6. Stable public API
-7. Testable by default
-8. Evidence-first release
-```
-
-## 11.2 包设计
-
-```text
-pkg/foundationx/errors.go      错误模型
-pkg/foundationx/health.go      健康模型
-pkg/foundationx/lifecycle.go   生命周期契约
-pkg/foundationx/retry.go       重试策略
-pkg/foundationx/sanitizer.go   脱敏契约
-pkg/foundationx/clock.go       时钟接口
-pkg/foundationx/version.go     版本信息
-pkg/foundationx/doc.go         包文档
-```
-
-## 11.3 非目标设计
-
-不做：
-
-```text
-logger
-metrics
-tracer
-config loader
-driver client
-HTTP handler
-business model
+errx/
+timex/
 ```
 
 原因：
 
-```text
-这些属于 L1/L2 或业务层。
-foundationx 只定义最小共识。
-```
+- errx 是所有基础库错误语义的底座；
+- timex 是 retry/lifecycle/test determinism 的底座；
+- 二者依赖少、收益高、容易验证。
 
----
+### MVA-3：最小 Harness
 
-# 12. 计划（Plan）
-
-```text
-PLAN-GOAL-20260601-FOUNDATIONX-001-v1.0
-```
-
-## Phase 0：上下文恢复（Context Recovery）
-
-目标：
-
-```text
-确认 foundationx 在基础库体系中的位置、依赖边界和完成标准。
-```
-
-任务：
-
-```text
-1. 读取 baselib-template 规范
-2. 读取独立基础库模块规范
-3. 确认 foundationx 是 L0 层
-4. 确认禁止依赖 x.go 和所有 driver
-```
-
-输出：
-
-```text
-.agent/context.md
-```
-
-## Phase 1：骨架（Skeleton）
-
-目标：
-
-```text
-创建 foundationx 独立仓库骨架。
-```
-
-输出：
-
-```text
-go.mod
-README.md
-CHANGELOG.md
-Makefile
-pkg/foundationx/*
-docs/*
-scripts/*
-.agent/*
-```
-
-## Phase 2：核心 API（Core API）
-
-目标：
-
-```text
-实现 Error / Health / Lifecycle / Retry / Sanitizer / Clock / Version。
-```
-
-输出：
-
-```text
-pkg/foundationx/errors.go
-pkg/foundationx/health.go
-pkg/foundationx/lifecycle.go
-pkg/foundationx/retry.go
-pkg/foundationx/sanitizer.go
-pkg/foundationx/clock.go
-pkg/foundationx/version.go
-```
-
-## Phase 3：测试（Tests）
-
-目标：
-
-```text
-为所有核心 API 增加单元测试和边界测试。
-```
-
-输出：
-
-```text
-*_test.go
-coverage.out
-```
-
-## Phase 4：门禁脚本（Harness）
-
-目标：
-
-```text
-建立 boundary / secret / contract / release manifest gate。
-```
-
-输出：
-
-```text
-scripts/check_boundary.sh
-scripts/check_secrets.sh
-scripts/check_contracts.sh
-scripts/generate_manifest.sh
-.github/workflows/ci.yml
-```
-
-## Phase 5：文档（Docs）
-
-目标：
-
-```text
-补齐文档与 ADR。
-```
-
-输出：
-
-```text
-README.md
-docs/spec.md
-docs/design.md
-docs/api.md
-docs/errors.md
-docs/health.md
-docs/lifecycle.md
-docs/retry.md
-docs/sanitizer.md
-docs/testing.md
-docs/release.md
-docs/adr/*
-```
-
-## Phase 6：发布（Release）
-
-目标：
-
-```text
-生成 v0.1.0 release evidence。
-```
-
-输出：
-
-```text
-release/manifest/<version>.json
-release/manifest/latest.json
-CHANGELOG.md
-```
-
-## Phase 7：复盘（Retrospective）
-
-目标：
-
-```text
-总结可复用模式并形成下一轮 patch。
-```
-
-输出：
-
-```text
-.agent/retrospective.md
-.agent/patch_prompt.md
-.agent/patch_harness.md
-.agent/patch_rule.md
-```
-
----
-
-# 13. 任务拆分（Task Breakdown）
-
-## TASK-FOUNDATIONX-001：创建模块骨架
-
-输入：
-
-```text
-GOAL-20260601-FOUNDATIONX-001
-SPEC-foundationx-v1.0
-```
-
-操作：
+必须先有：
 
 ```bash
-mkdir -p foundationx
-cd foundationx
-go mod init github.com/ZoneCNH/foundationx
-mkdir -p pkg/foundationx docs/adr contracts examples scripts release/manifest .agent .github/workflows
-touch README.md CHANGELOG.md Makefile .gitignore .golangci.yml
+make test
+make docs-check
+make boundary-check
 ```
 
-验收：
+### MVA-4：最小 Evidence
 
 ```text
-go.mod 存在
-pkg/foundationx 存在
-docs/adr 存在
-scripts 存在
-.agent 存在
+docs/evidence/mva-errx-timex.md
 ```
 
-证据：
+MVA 完成声明必须是：
 
 ```text
-EVID-TASK-FOUNDATIONX-001-20260601-001: tree output
-EVID-TASK-FOUNDATIONX-001-20260601-002: go env GOMOD
+DONE with evidence: errx/timex + docs-check + boundary-check + tests green
 ```
 
 ---
 
-## TASK-FOUNDATIONX-002：实现 Error Model
+## 23. 1 天行动计划
 
-文件：
+### Day 1 目标
 
-```text
-pkg/foundationx/errors.go
-pkg/foundationx/errors_test.go
-```
+完成 L0 的边界冻结 + MVA 原语启动。
 
-实现：
+### Day 1 Tasks
 
-```text
-ErrorKind
-Error
-NewError
-WrapError
-Error()
-Unwrap()
-WithRetryable()
-IsKind()
-AsFoundationError()
-```
+1. 扫描 `kernel` 当前结构；
+2. 扫描 `xlib-standard` 必需规范；
+3. 生成 `docs/01-boundary.md`；
+4. 生成 `SPEC-l0-kernel-v1.0.md`；
+5. 生成 `DESIGN-l0-kernel-v1.0.md`；
+6. 生成 ADR-001/002/003；
+7. 建立 `errx/` skeleton；
+8. 建立 `timex/` skeleton；
+9. 实现 `make test`；
+10. 实现或修复 `make docs-check`；
+11. 实现 `make boundary-check` 最小版本；
+12. 生成 `docs/evidence/day1-context-and-boundary.md`。
 
-测试：
+### Day 1 Exit Criteria
 
-```text
-TestErrorString
-TestErrorUnwrap
-TestIsKind
-TestAsFoundationError
-TestErrorWithRetryableMutatesReceiver
-TestNilError
-```
-
-命令：
-
-```bash
-go test ./pkg/foundationx -run TestError -v
-```
-
-证据：
-
-```text
-EVID-TASK-FOUNDATIONX-002-20260601-001: go test output
-```
+- [ ] Spec Gate green；
+- [ ] Design Gate green；
+- [ ] `make test` green；
+- [ ] `make docs-check` green；
+- [ ] `make boundary-check` green；
+- [ ] errx/timex skeleton 合入；
+- [ ] Day 1 evidence 存档。
 
 ---
 
-## TASK-FOUNDATIONX-003：实现 Health Model
+## 24. 7 天行动计划
 
-文件：
+### Day 2-3：核心原语实现
 
-```text
-pkg/foundationx/health.go
-pkg/foundationx/health_test.go
-```
+完成：
 
-实现：
+- `errx`；
+- `timex`；
+- `lifecycx`；
+- `retryx`。
 
-```text
-HealthStatusValue
-HealthHealthy
-HealthDegraded
-HealthUnhealthy
-HealthStatus
-HealthChecker
-NewHealthStatus
-WithMetadata
-MarshalJSON
-IsHealthy
-```
-
-测试：
-
-```text
-TestNewHealthStatus
-TestHealthStatusWithMetadata
-TestHealthStatusWithMetadataDoesNotMutateSource
-TestHealthStatusJSONNilMetadataMarshalsAsObject
-TestHealthStatusIsHealthy
-TestHealthStatusNilMetadata
-```
-
-证据：
-
-```text
-EVID-TASK-FOUNDATIONX-003-20260601-001: go test output
-```
-
----
-
-## TASK-FOUNDATIONX-004：实现 Lifecycle Model
-
-文件：
-
-```text
-pkg/foundationx/lifecycle.go
-pkg/foundationx/lifecycle_test.go
-```
-
-实现：
-
-```text
-Starter
-Closer
-Lifecycle
-```
-
-测试：
-
-```text
-mockLifecycle implements Lifecycle
-compile-time interface assertions
-```
-
-示例：
-
-```go
-var _ foundationx.Lifecycle = (*mockLifecycle)(nil)
-```
-
-证据：
-
-```text
-EVID-TASK-FOUNDATIONX-004-20260601-001: go test output
-```
-
----
-
-## TASK-FOUNDATIONX-005：实现 RetryPolicy
-
-文件：
-
-```text
-pkg/foundationx/retry.go
-pkg/foundationx/retry_test.go
-```
-
-实现：
-
-```text
-RetryPolicy
-DefaultRetryPolicy
-Validate
-Delay
-```
-
-测试：
-
-```text
-TestDefaultRetryPolicyValid
-TestRetryPolicyValidateInvalidMaxAttempts
-TestRetryPolicyValidateInvalidBaseDelay
-TestRetryPolicyDelayExponential
-TestRetryPolicyDelayDoesNotEnforceMaxAttempts
-TestRetryPolicyDelayMaxDelay
-TestRetryPolicyDelaySaturatesOnOverflow
-```
-
-注意：
-
-```text
-Delay 必须保持确定性，不使用隐藏随机源。
-```
-
-证据：
-
-```text
-EVID-TASK-FOUNDATIONX-005-20260601-001: go test output
-```
-
----
-
-## TASK-FOUNDATIONX-006：实现 Sanitizer / SecretString
-
-文件：
-
-```text
-pkg/foundationx/sanitizer.go
-pkg/foundationx/sanitizer_test.go
-```
-
-实现：
-
-```text
-Sanitizer
-SecretString
-NewSecretString
-String
-Sanitize
-MarshalJSON
-Reveal
-IsZero
-```
-
-测试：
-
-```text
-TestSecretStringStringMasked
-TestSecretStringReveal
-TestSecretStringEmpty
-TestSecretStringFmtSprintDoesNotLeak
-TestSecretStringJSONMasked
-TestSecretStringJSONEmpty
-TestSecretStringIsZero
-TestSecretStringSanitizer
-```
-
-证据：
-
-```text
-EVID-TASK-FOUNDATIONX-006-20260601-001: go test output
-```
-
----
-
-## TASK-FOUNDATIONX-007：实现 Clock
-
-文件：
-
-```text
-pkg/foundationx/clock.go
-pkg/foundationx/clock_test.go
-```
-
-实现：
-
-```text
-Clock
-RealClock
-NewRealClock
-FixedClock
-NewFixedClock
-```
-
-测试：
-
-```text
-TestRealClockNow
-TestFixedClockNow
-TestClockInterface
-```
-
-证据：
-
-```text
-EVID-TASK-FOUNDATIONX-007-20260601-001: go test output
-```
-
----
-
-## TASK-FOUNDATIONX-008：实现 VersionInfo
-
-文件：
-
-```text
-pkg/foundationx/version.go
-pkg/foundationx/version_test.go
-```
-
-实现：
-
-```text
-VersionInfo
-NewVersionInfo
-```
-
-测试：
-
-```text
-TestNewVersionInfo
-```
-
-证据：
-
-```text
-EVID-TASK-FOUNDATIONX-008-20260601-001: go test output
-```
-
----
-
-## TASK-FOUNDATIONX-009：编写 examples
-
-目录：
-
-```text
-examples/error_kind/main.go
-examples/health_checker/main.go
-examples/retry_policy/main.go
-examples/clock/main.go
-```
-
-要求：
-
-```text
-每个 example 可 go run
-不得连接外部服务
-不得读取密钥
-不得出现 x.go 业务语义
-```
-
-命令：
-
-```bash
-go run ./examples/error_kind
-go run ./examples/health_checker
-go run ./examples/retry_policy
-go run ./examples/clock
-```
-
-证据：
-
-```text
-EVID-TASK-FOUNDATIONX-009-20260601-001: examples run output
-```
-
----
-
-## TASK-FOUNDATIONX-010：建立 Harness 脚本
-
-文件：
-
-```text
-scripts/check_boundary.sh
-scripts/check_secrets.sh
-scripts/check_contracts.sh
-scripts/generate_manifest.sh
-```
-
-### check_boundary.sh 脚本
-
-必须检查：
-
-```text
-不依赖 x.go
-不依赖 driver
-不出现业务术语
-```
-
-### check_secrets.sh 脚本
-
-必须检查：
-
-```text
-password=
-secret=
-token=
-access_key=
-BEGIN PRIVATE KEY
-AKIA
-```
-
-### check_contracts.sh 脚本
-
-必须检查：
-
-```text
-contracts/*.json 存在
-docs/api.md 存在
-```
-
-### generate_manifest.sh 脚本
-
-必须生成：
-
-```text
-release/manifest/<version>.json
-release/manifest/latest.json
-```
-
-版本解析顺序必须是 `VERSION`、`GITHUB_REF_NAME`、当前 HEAD 指向的 semver tag，最后回退到 `v0.1.0`。
-
-证据：
-
-```text
-EVID-TASK-FOUNDATIONX-010-20260601-001: scripts run output
-```
-
----
-
-## TASK-FOUNDATIONX-011：建立 Makefile
-
-目标：
-
-```makefile
-fmt
-vet
-lint
-test
-race
-boundary
-security
-contracts
-examples
-evidence
-ci
-release-check
-release-evidence-check
-release-clean-check
-release-final-check
-```
-
-验收：
-
-```bash
-make ci
-make release-check
-make release-final-check
-```
-
-证据：
-
-```text
-EVID-TASK-FOUNDATIONX-011-20260601-001: make ci output
-EVID-TASK-FOUNDATIONX-011-20260601-002: make release-check output
-EVID-TASK-FOUNDATIONX-011-20260601-003: make release-final-check output
-```
-
----
-
-## TASK-FOUNDATIONX-012：建立 GitHub Actions
-
-文件：
-
-```text
-.github/workflows/ci.yml
-.github/workflows/security.yml
-.github/workflows/release.yml
-```
-
-CI 至少运行：
-
-```text
-go fmt
-go vet
-go test
-go test -race
-boundary
-secret
-contract
-examples
-```
-
-证据：
-
-```text
-EVID-TASK-FOUNDATIONX-012-20260601-001: workflow files
-```
-
----
-
-## TASK-FOUNDATIONX-013：编写文档
-
-必须完成：
-
-```text
-README.md
-docs/spec.md
-docs/design.md
-docs/api.md
-docs/errors.md
-docs/health.md
-docs/lifecycle.md
-docs/retry.md
-docs/sanitizer.md
-docs/testing.md
-docs/release.md
-docs/adr/ADR-20260601-001-foundationx-l0-boundary.md
-docs/adr/ADR-20260601-002-error-kind-minimal-set.md
-```
-
-README 必须包含：
-
-```text
-定位
-非目标
-安装
-API 示例
-错误模型
-健康模型
-生命周期模型
-重试策略
-脱敏
-测试
-发布
-与 x.go 的边界
-```
-
-证据：
-
-```text
-EVID-TASK-FOUNDATIONX-013-20260601-001: docs checklist
-```
-
----
-
-## TASK-FOUNDATIONX-014：生成 Release Manifest
-
-命令：
-
-```bash
-make evidence
-```
-
-输出：
-
-```text
-release/manifest/<version>.json
-release/manifest/latest.json
-```
-
-Manifest 至少包含：
-
-```json
-{
-  "module": "github.com/ZoneCNH/foundationx",
-  "version": "v0.1.0",
-  "commit": "...",
-  "tree_sha": "...",
-  "workspace_status": "clean",
-  "go_version": "...",
-  "generated_at": "...",
-  "contracts": {
-    "error_schema_sha256": "...",
-    "health_schema_sha256": "...",
-    "version_schema_sha256": "..."
-  },
-  "checks": {
-    "fmt": "passed",
-    "vet": "passed",
-    "unit_test": "passed",
-    "race_test": "passed",
-    "boundary": "passed",
-    "secret_scan": "passed",
-    "contract": "passed",
-    "docs": "passed",
-    "examples": "passed"
-  }
-}
-```
-
-证据：
-
-```text
-EVID-TASK-FOUNDATIONX-014-20260601-001: manifest file
-```
-
----
-
-## TASK-FOUNDATIONX-015：复盘（Retrospective）
-
-输出：
-
-```text
-.agent/retrospective.md
-.agent/patch_prompt.md
-.agent/patch_harness.md
-.agent/patch_rule.md
-```
-
-必须回答：
-
-```text
-1. foundationx 的 API 是否过大？
-2. ErrorKind 是否过多？
-3. 是否有不该进入 L0 的能力？
-4. 是否有潜在业务语义污染？
-5. 哪些规则要复制到 postgresx / kafkax / redisx / taosx？
-6. 哪些 Harness Gate 需要增强？
-```
-
-证据：
-
-```text
-EVID-TASK-FOUNDATIONX-015-20260601-001: retrospective files
-```
-
----
-
-# 14. Harness 门禁（Harness Gates）
-
-## Gate 1：格式门禁（Format Gate）
-
-```bash
-go fmt ./...
-```
-
-失败即停止。
-
-## Gate 2：Vet 门禁（Vet Gate）
-
-```bash
-go vet ./...
-```
-
-失败即停止。
-
-## Gate 3：单元测试门禁（Unit Test Gate）
+Gate：
 
 ```bash
 go test ./...
-```
-
-失败即停止。
-
-## Gate 4：Race 门禁（Race Gate）
-
-```bash
 go test -race ./...
+make docs-check
+make boundary-check
 ```
 
-失败即停止。
+### Day 4-5：契约和治理补齐
 
-## Gate 5：边界门禁（Boundary Gate）
+完成：
 
-```bash
-./scripts/check_boundary.sh
-```
+- `healthx`；
+- `obsx`；
+- `validx`；
+- `syncx`；
+- `versionx`；
+- package README；
+- example tests。
 
-必须检查：
+### Day 6：CI + Evidence
 
-```text
-github.com/bytechainx/x.go
-database/sql
-pgx
-kafka
-redis
-taos
-prometheus
-otel
-zap
-logrus
-gin
-echo
-fiber
-BTCUSDT
-Kline
-MacroRegime
-TradingSignal
-```
+完成：
 
-## Gate 6：Secret 门禁（Secret Gate）
+- GitHub Actions CI；
+- `make api-check`；
+- `make release-preflight`；
+- `make release-evidence-check`；
+- release manifest draft。
 
-```bash
-./scripts/check_secrets.sh
-```
+### Day 7：Consumer Smoke + Release Candidate
 
-必须无疑似密钥。
+完成：
 
-## Gate 7：Contract 门禁（Contract Gate）
+- x.go consumer smoke test；
+- v0.1.0-rc.1；
+- review report；
+- risk register update；
+- retro draft。
 
-```bash
-./scripts/check_contracts.sh
-```
+### 7 天 Exit Criteria
 
-检查：
-
-```text
-contracts/error.schema.json
-contracts/health.schema.json
-contracts/version.schema.json
-docs/api.md
-```
-
-## Gate 8：Example 门禁（Example Gate）
-
-```bash
-go run ./examples/error_kind
-go run ./examples/health_checker
-go run ./examples/retry_policy
-go run ./examples/clock
-```
-
-## Gate 9：Evidence 门禁（Evidence Gate）
-
-```bash
-./scripts/generate_manifest.sh
-```
-
-必须生成 `release/manifest/<version>.json` 并同步更新 `release/manifest/latest.json`。
-
-## Gate 10：Release Evidence 门禁（Release Evidence Gate）
-
-```bash
-./scripts/check_release_evidence.sh
-```
-
-必须校验当前 HEAD 的 commit、tree、workspace status、schema hash、checks 与 `latest.json` 一致。
-
-## Gate 11：Release Clean 门禁（Release Clean Gate）
-
-```bash
-./scripts/check_release_clean.sh
-```
-
-正式 tag 发布前必须运行 `make release-final-check`，该门禁会在 `make release-check` 前后确认工作区干净，只允许顶层 `release/manifest/*.json` 作为生成物存在。
-
-## Gate 12：Review 门禁（Review Gate）
-
-检查：
-
-```text
-所有 REQ 有 AC
-所有 TASK 有 Evidence
-所有 API 有测试
-所有风险有处理
-```
+- [ ] 所有核心包最小实现完成；
+- [ ] 所有核心包有 README/example/unit tests；
+- [ ] CI 全绿；
+- [ ] Boundary/API/Docs/Evidence gates 全绿；
+- [ ] x.go smoke compile 通过；
+- [ ] v0.1.0-rc.1 可发布。
 
 ---
 
-# 15. Boundary Gate 脚本模板
+## 25. 30 天行动计划
+
+### Week 1：v0.1.0 内核闭环
+
+完成最小 L0 内核，发布 v0.1.0。
+
+### Week 2：L1 基础库试点迁移
+
+选择两个试点：
+
+1. `postgresx`：接入 errx/retryx/healthx/obsx；
+2. `redisx` 或 `kafkax`：接入 lifecycle/retry/health。
+
+产物：
+
+- L1 adoption guide；
+- migration notes；
+- contracttest examples；
+- L1 feedback issue list。
+
+### Week 3：API 收敛和缺口修复
+
+根据 L1 试点反馈，处理：
+
+- API 太复杂；
+- API 不足；
+- 错误语义不清；
+- retry/lifecycle 与真实 infra client 适配问题；
+- docs/examples 不足。
+
+发布：
+
+```text
+kernel v0.2.0
+```
+
+### Week 4：治理固化和 v0.3.0 稳定候选
+
+完成：
+
+- API diff gate 强化；
+- dependency boundary 自动化；
+- release manifest 标准化；
+- L1 adoption matrix；
+- x.go integration baseline；
+- self-improving patch pack。
+
+发布目标：
+
+```text
+kernel v0.3.0
+```
+
+### 30 天 Exit Criteria
+
+- [ ] kernel v0.1.0 已发布；
+- [ ] 至少 2 个 L1 基础库完成试点接入；
+- [ ] x.go 不再重复实现同类 error/retry/health/lifecycle 原语；
+- [ ] API diff / boundary / docs / evidence gates 固化；
+- [ ] 形成 L0 Contribution Policy；
+- [ ] 形成 L0 → L1 adoption guide；
+- [ ] 形成 Retro Patch，用于后续所有基础库。
+
+---
+
+## 26. 衡量指标
+
+### 26.1 工程指标
+
+| Metric | Target |
+|---|---|
+| `go test ./...` | 100% green |
+| `go test -race ./...` | 100% green |
+| docs-check | 100% green |
+| boundary-check | 100% green |
+| API check | 生成 API diff，无未声明 breaking |
+| Package README coverage | 100% |
+| Example coverage | 每个核心包 ≥1 |
+| Exported API count | 控制增长，每次新增必须解释 |
+| Third-party dependency count | v0.1.0 目标 0 |
+| x.go reverse dependency | 0 |
+| L1 reverse dependency | 0 |
+
+### 26.2 复利指标
+
+| Metric | Target |
+|---|---|
+| L1 复用数量 | 30 天 ≥2 个基础库 |
+| 重复代码减少 | L1 error/retry/health/lifecycle 重复实现下降 |
+| 新基础库启动时间 | 使用 xlib-standard + kernel 后下降 |
+| Gate 复用率 | L1 基础库复用 L0 gates/scripts |
+| ADR 复用率 | L1 基础库引用 L0 ADR/Policy |
+| Agent 执行失败率 | 同类任务失败率下降 |
+
+### 26.3 质量指标
+
+| Metric | Target |
+|---|---|
+| flaky tests | 0 |
+| hidden goroutine leak | 0 |
+| global mutable state | 0 |
+| business semantic leakage | 0 |
+| boundary violation | 0 |
+| undocumented public API | 0 |
+| missing evidence release | 0 |
+
+---
+
+## 27. AI / 自动化 / 研究增强介入位置
+
+### 27.1 AutoResearch
+
+触发条件：
+
+- Go 版本与 API 兼容性不确定；
+- 第三方依赖是否必要不确定；
+- L1 基础库共同需求不明确；
+- x.go 当前重复代码无法确认；
+- Makefile/CI/xlib-standard 实际能力不明；
+- 测试失败原因不明确；
+- Public API breaking 影响不明确。
+
+产物：
+
+```text
+docs/research/RESEARCH-YYYYMMDD-*.md
+```
+
+每个 research 必须包含：
+
+```text
+Question
+Known Facts
+Unknowns
+Sources / Evidence
+Decision Options
+Recommendation
+Impact on Spec/Design/Plan/Tasks
+```
+
+### 27.2 Agent Teams
+
+| Agent | 责任 |
+|---|---|
+| Architect Agent | 边界、Spec、Design、ADR、API 裁决 |
+| Kernel Engineer Agent | errx/timex/lifecycx/retryx/healthx 等实现 |
+| Harness Agent | Makefile、CI、boundary/docs/API/evidence gates |
+| Test Agent | unit/race/example/contract/golden tests |
+| Docs Agent | README、package docs、examples、adoption guide |
+| Integration Agent | x.go smoke、L1 adoption examples |
+| Review Agent | traceability、risk、release readiness |
+| Retro Agent | self-improving patch、harness patch、rule patch |
+
+### 27.3 自动化资产
+
+| Asset | 用途 |
+|---|---|
+| package generator | 快速生成 package skeleton + README + example + test |
+| API diff bot | 检测导出符号变化 |
+| boundary scanner | 禁止业务语义和上层依赖 |
+| docs-check | 确认文档完整性 |
+| evidence collector | 自动生成 release manifest |
+| adoption scanner | 检查 L1 是否重复实现 L0 原语 |
+| retro patch generator | 从失败和 review 中生成规则补丁 |
+
+---
+
+## 28. 可复利增长的系统架构
+
+### 28.1 复利链路
+
+```text
+L0 Kernel Primitive
+  → Contract Tests
+  → L1 Base Library Reuse
+  → x.go Runtime Consistency
+  → Less Duplicate Code
+  → Stronger Gates
+  → Better Retro Patches
+  → Faster Next Library
+```
+
+### 28.2 复利资产清单
+
+| 资产 | 复利方式 |
+|---|---|
+| `errx` | 所有基础库统一错误语义，减少错误处理分裂 |
+| `retryx` | 所有网络/存储客户端统一重试策略 |
+| `healthx` | 所有服务统一健康检查输出 |
+| `obsx` | 所有库统一日志/指标/追踪契约 |
+| `lifecycx` | 所有 runtime 组件统一启动停止语义 |
+| `timex` | 所有时间相关测试可确定性执行 |
+| `contracttest` | 所有 L1 库可复用相同契约测试 |
+| `xlib-standard` | 新基础库创建成本下降 |
+| `Harness Gates` | 每个库的完成证明标准一致 |
+| `Retro Patch` | 每次失败都会强化后续执行系统 |
+
+---
+
+## 29. gstack / superpowers / Harness / CE / Self-improving / AutoResearch / Goal-Oriented Thinking 映射
+
+### 29.1 gstack
+
+```text
+North Star:
+  建立 x.go 与所有基础库共享的稳定工程内核
+
+Layer Goal:
+  L0 kernel v0.1.0
+
+Module Goals:
+  errx / timex / lifecycx / retryx / healthx / obsx / validx / syncx / versionx / contracttest
+
+Task Goals:
+  每个 package 有 API + tests + docs + examples + evidence
+
+Evidence Goals:
+  CI green + docs-check + boundary-check + release manifest
+```
+
+### 29.2 Superpowers
+
+| Superpower | 在 L0 中的实现 |
+|---|---|
+| Contract-first | 先接口、语义、AC，再实现 |
+| Deterministic Testing | FakeClock、No real sleep、race tests |
+| Boundary Automation | 禁止反向依赖和业务语义 |
+| Golden Examples | 每个 package example 可执行 |
+| Release Evidence | 每次 release 有 manifest |
+| API Surface Control | public API diff gate |
+| Reuse Flywheel | L1 基础库持续复用 L0 |
+
+### 29.3 Harness
+
+Harness 的核心作用是把“代码写完”改成“证据链完整”。L0 必须以 Gates 管理完成度。
+
+### 29.4 Compound Engineering
+
+L0 的每个原语都是后续基础库的复利资产。一次高质量实现，多处长期收益。
+
+### 29.5 Self-improving
+
+每次失败、review、release 后必须输出：
+
+```text
+PATCH-PROMPT-YYYYMMDD-NNN
+PATCH-HARNESS-YYYYMMDD-NNN
+PATCH-RULE-YYYYMMDD-NNN
+```
+
+### 29.6 AutoResearch
+
+未知项不猜测，不硬编码。进入 NEEDS_RESEARCH，形成 research note 后再决策。
+
+### 29.7 Goal-Oriented Thinking
+
+任何 Task 必须能追溯到 Requirement 和 Acceptance Criteria。不能证明价值的任务不执行。
+
+---
+
+## 30. 最终可执行 Prompt
+
+下面内容可直接交给 Agent Teams 执行。
+
+```markdown
+# Goal Runtime Execution Prompt — L0 Kernel Library / kernel v0.1.0
+
+You are an Agent Team executing Goal Runtime Prompt v3.1.
+
+## Goal
+
+Implement and release the L0 Kernel Library for `github.com/ZoneCNH/kernel`, using `https://github.com/ZoneCNH/xlib-standard` as the base library template and `x.go` only as a downstream consumer smoke target.
+
+Goal ID: GOAL-20260601-002  
+Spec ID: SPEC-l0-kernel-v1.0  
+Design ID: DESIGN-l0-kernel-v1.0  
+Plan ID: PLAN-GOAL-20260601-002-v1.0  
+Target Release: kernel v0.1.0  
+Execution Mode: Full Governance / Small Batch Execution
+
+## Non-negotiable Constraints
+
+1. kernel is L0. It must not depend on x.go, L1 infrastructure libraries, L2 adapters, or L3 domain code.
+2. Do not introduce Redis, Kafka, PostgreSQL, TDengine, OSS, ClickHouse, Prometheus, OpenTelemetry, Binance, Market, Macro, Regime, Strategy, or Order semantics into L0 core.
+3. Default to Go standard library only. Any third-party dependency requires ADR + Human Approval.
+4. No hidden global mutable state.
+5. No hidden goroutine lifecycle. Anything started must be stoppable.
+6. Every exported package must have README, example, unit tests, and evidence.
+7. No DONE claim without Evidence Protocol.
+8. If `make docs-check` does not exist, implement it before relying on any docs-related acceptance criteria.
+9. x.go is a consumer smoke target only. Do not modify x.go domain behavior to satisfy L0.
+10. Secrets under `/home/k8s/secrets/env/*` are not read by L0. They are runtime concerns for concrete infrastructure libraries or applications.
+
+## Required Packages for v0.1.0
+
+- errx
+- timex
+- lifecycx
+- retryx
+- healthx
+- obsx
+- validx
+- syncx
+- versionx
+- contracttest
+
+## Execution State Machine
+
+INIT → CONTEXT_READY → GOAL_READY → SPEC_READY → DESIGN_READY → PLAN_READY → TASKS_READY → EXECUTING → VERIFYING → REVIEWING → RELEASING → RETROSPECTING → DONE
+
+If uncertainty appears, move to NEEDS_RESEARCH. If CI or boundary fails, move to NEEDS_REPLAN or NEEDS_ROLLBACK.
+
+## Required Deliverables
+
+1. docs/context/*.md
+2. docs/spec/SPEC-l0-kernel-v1.0.md
+3. docs/design/DESIGN-l0-kernel-v1.0.md
+4. docs/adr/*.md
+5. Implement required packages
+6. Package README + example_test.go + unit tests
+7. Makefile targets:
+   - make test
+   - make lint
+   - make docs-check
+   - make boundary-check
+   - make api-check
+   - make release-preflight VERSION=v0.1.0
+   - make release-evidence-check
+   - make release-final-check
+8. GitHub Actions CI
+9. x.go consumer smoke evidence
+10. CHANGELOG.md
+11. docs/evidence/release-v0.1.0.md
+12. docs/review/REV-GOAL-20260601-002-20260601-001.md
+13. docs/retro/RETRO-20260601-002.md
+14. PATCH-PROMPT / PATCH-HARNESS / PATCH-RULE outputs
+
+## Verification Commands
+
+Run and record evidence for:
 
 ```bash
-#!/usr/bin/env bash
-set -euo pipefail
-
-echo "checking foundationx boundary..."
-
-FORBIDDEN_DEPS=(
-  "github.com/bytechainx/x.go"
-  "database/sql"
-  "github.com/jackc/pgx"
-  "github.com/segmentio/kafka-go"
-  "github.com/IBM/sarama"
-  "github.com/confluentinc/confluent-kafka-go"
-  "github.com/redis/go-redis"
-  "github.com/taosdata"
-  "github.com/prometheus"
-  "go.opentelemetry.io"
-  "go.uber.org/zap"
-  "github.com/sirupsen/logrus"
-  "github.com/gin-gonic/gin"
-  "github.com/labstack/echo"
-  "github.com/gofiber/fiber"
-)
-
-DEPS="$(go list -deps ./...)"
-
-for dep in "${FORBIDDEN_DEPS[@]}"; do
-  if echo "$DEPS" | grep -q "$dep"; then
-    echo "ERROR: forbidden dependency found: $dep"
-    exit 1
-  fi
-done
-
-FORBIDDEN_TERMS=(
-  "BTCUSDT"
-  "ETHUSDT"
-  "Kline"
-  "OrderBook"
-  "MarketData"
-  "MacroData"
-  "MacroRegime"
-  "MarketRegime"
-  "TradingSignal"
-  "Position"
-  "RiskGate"
-  "M1"
-  "M2"
-  "S1"
-  "S2"
-)
-
-for term in "${FORBIDDEN_TERMS[@]}"; do
-  if grep -R "$term" ./pkg ./internal --exclude-dir=.git; then
-    echo "ERROR: forbidden business term found: $term"
-    exit 1
-  fi
-done
-
-echo "foundationx boundary check passed"
-```
-
----
-
-# 16. Secret Gate 脚本模板
-
-```bash
-#!/usr/bin/env bash
-set -euo pipefail
-
-echo "checking secrets..."
-
-PATTERNS=(
-  "password="
-  "passwd="
-  "secret="
-  "token="
-  "access_key="
-  "secret_key="
-  "AKIA[0-9A-Z]{16}"
-  "BEGIN RSA PRIVATE KEY"
-  "BEGIN OPENSSH PRIVATE KEY"
-  "BEGIN PRIVATE KEY"
-)
-
-for pattern in "${PATTERNS[@]}"; do
-  if grep -R -E "$pattern" . \
-    --exclude-dir=.git \
-    --exclude-dir=vendor \
-    --exclude="*.sum"; then
-    echo "ERROR: possible secret found: $pattern"
-    exit 1
-  fi
-done
-
-echo "secret check passed"
-```
-
----
-
-# 17. Makefile 模板
-
-```makefile
-GO ?= go
-GOENV := GOWORK=off
-
-.PHONY: fmt
-fmt:
-	$(GOENV) $(GO) fmt ./...
-
-.PHONY: vet
-vet:
-	$(GOENV) $(GO) vet ./...
-
-.PHONY: lint
-lint:
-	@if command -v golangci-lint >/dev/null 2>&1; then \
-		$(GOENV) golangci-lint run ./...; \
-	else \
-		echo "golangci-lint not installed; skipping lint target"; \
-	fi
-
-.PHONY: test
-test:
-	$(GOENV) $(GO) test ./...
-
-.PHONY: race
-race:
-	$(GOENV) $(GO) test -race ./...
-
-.PHONY: cover
-cover:
-	$(GOENV) $(GO) test -coverprofile=coverage.out ./...
-
-.PHONY: boundary
-boundary:
-	./scripts/check_boundary.sh
-
-.PHONY: security
-security:
-	@if command -v govulncheck >/dev/null 2>&1; then \
-		$(GOENV) govulncheck ./...; \
-	else \
-		echo "govulncheck not installed; skipping vulnerability scan"; \
-	fi
-	./scripts/check_secrets.sh
-
-.PHONY: contracts
-contracts:
-	./scripts/check_contracts.sh
-
-.PHONY: docs
-docs:
-	./scripts/check_docs.sh
-
-.PHONY: examples
-examples:
-	$(GOENV) $(GO) run ./examples/error_kind
-	$(GOENV) $(GO) run ./examples/health_checker
-	$(GOENV) $(GO) run ./examples/retry_policy
-	$(GOENV) $(GO) run ./examples/clock
-
-.PHONY: evidence
-evidence:
-	./scripts/generate_manifest.sh
-
-.PHONY: release-evidence-check
-release-evidence-check:
-	./scripts/check_release_evidence.sh
-
-.PHONY: release-clean-check
-release-clean-check:
-	./scripts/check_release_clean.sh
-
-.PHONY: ci
-ci: fmt vet lint test race boundary security contracts docs examples
-
-.PHONY: release-check
-release-check:
-	$(MAKE) ci
-	$(MAKE) evidence
-	$(MAKE) release-evidence-check
-
-.PHONY: release-final-check
-release-final-check:
-	$(MAKE) release-clean-check
-	$(MAKE) release-check
-	$(MAKE) release-clean-check
-```
-
----
-
-# 18. GitHub Actions 模板
-
-```yaml
-name: foundationx-ci
-
-on:
-  pull_request:
-  push:
-    branches:
-      - main
-
-jobs:
-  ci:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-
-      - name: Setup Go
-        uses: actions/setup-go@v6
-        with:
-          go-version: "1.23"
-
-      - name: Make scripts executable
-        run: chmod +x scripts/*.sh
-
-      - name: CI
-        run: make ci
-
-      - name: Generate evidence
-        run: make evidence
-
-      - name: Check generated evidence
-        run: make release-evidence-check
-
-      - name: Upload release manifest
-        uses: actions/upload-artifact@v6
-        with:
-          name: foundationx-release-manifest
-          path: release/manifest/*.json
-```
-
----
-
-# 19. 可追溯矩阵（Traceability Matrix）
-
-| Requirement | Acceptance Criteria | Design | Task | Test | Evidence | Status |
-|---|---|---|---|---|---|---|
-| REQ-FOUNDATIONX-001 | AC-001-* | Module Design | TASK-001 | go test ./... | EVID-001 | DONE |
-| REQ-FOUNDATIONX-002 | AC-002-* | L0 Boundary | TASK-010 | boundary gate | EVID-010 | DONE |
-| REQ-FOUNDATIONX-003 | AC-003-* | Error Model | TASK-002 | errors_test.go | EVID-002 | DONE |
-| REQ-FOUNDATIONX-004 | AC-004-* | Health Model | TASK-003 | health_test.go | EVID-003 | DONE |
-| REQ-FOUNDATIONX-005 | AC-005-* | Lifecycle | TASK-004 | lifecycle_test.go | EVID-004 | DONE |
-| REQ-FOUNDATIONX-006 | AC-006-* | RetryPolicy | TASK-005 | retry_test.go | EVID-005 | DONE |
-| REQ-FOUNDATIONX-007 | AC-007-* | Sanitizer | TASK-006 | sanitizer_test.go | EVID-006 | DONE |
-| REQ-FOUNDATIONX-008 | AC-008-* | Clock | TASK-007 | clock_test.go | EVID-007 | DONE |
-| REQ-FOUNDATIONX-009 | AC-009-* | VersionInfo | TASK-008 | version_test.go | EVID-008 | DONE |
-| REQ-FOUNDATIONX-010 | AC-010-* | Docs | TASK-013 | docs checklist | EVID-013 | DONE |
-| REQ-FOUNDATIONX-011 | AC-011-* | Harness | TASK-010/011/014 | make ci | EVID-011/014 | DONE |
-
----
-
-# 20. 风险登记（Risk Register）
-
-## RISK-FOUNDATIONX-001：API 过度膨胀
-
-风险：
-
-```text
-foundationx 被塞入太多工具函数，退化为 utils。
-```
-
-缓解：
-
-```text
-任何新增 API 必须证明至少被两个上层基础库需要。
-```
-
-## RISK-FOUNDATIONX-002：业务语义污染
-
-风险：
-
-```text
-x.go 的市场、宏观、交易概念进入 foundationx。
-```
-
-缓解：
-
-```text
-Boundary Gate 检查业务词汇。
-Review Gate 人工确认。
-```
-
-## RISK-FOUNDATIONX-003：driver 依赖污染
-
-风险：
-
-```text
-foundationx 为方便错误处理引入具体 driver。
-```
-
-缓解：
-
-```text
-只定义 ErrorKind，不映射 driver。
-映射逻辑放到 postgresx/kafkax/redisx/taosx。
-```
-
-## RISK-FOUNDATIONX-004：SecretString 被误用
-
-风险：
-
-```text
-Reveal 被用于日志。
-```
-
-缓解：
-
-```text
-文档明确禁止。
-上层库日志只打印 String/Sanitize。
-```
-
-## RISK-FOUNDATIONX-005：RetryPolicy 被误认为 Retry Executor
-
-风险：
-
-```text
-上层库误以为 foundationx 会执行重试。
-```
-
-缓解：
-
-```text
-文档明确 foundationx 只提供策略和 Delay，Delay 不按 MaxAttempts 截断执行。
-```
-
----
-
-# 21. 决策日志（Decision Log）
-
-## DEC-20260601-001：foundationx 作为 L0 契约层
-
-决策：
-
-```text
-foundationx 只依赖标准库，不引入 driver、logger、metrics、HTTP framework。
-```
-
-原因：
-
-```text
-降低基础库体系的根依赖风险，确保可被所有模块安全复用。
-```
-
-## DEC-20260601-002：ErrorKind 使用通用分类，不使用业务错误码
-
-决策：
-
-```text
-ErrorKind 只表示基础设施通用错误类型。
-```
-
-原因：
-
-```text
-业务错误码应由业务系统或上层库定义。
-```
-
-## DEC-20260601-003：RetryPolicy 不实现 retry executor
-
-决策：
-
-```text
-foundationx 不提供 DoWithRetry，Delay 只做确定性的 attempt 延迟计算。
-```
-
-原因：
-
-```text
-重试副作用、幂等性、context cancel 和错误处理策略依赖具体上层库。
-```
-
-## DEC-20260601-004：SecretString 显式 Reveal
-
-决策：
-
-```text
-SecretString 默认脱敏，只有 Reveal 显式返回原文。
-```
-
-原因：
-
-```text
-减少日志泄露概率。
-```
-
----
-
-# 22. AutoResearch 协议（AutoResearch Protocol）
-
-foundationx 本身应尽量避免外部依赖，因此 AutoResearch 只在以下情况触发：
-
-```text
-1. Go 版本标准库行为不确定
-2. errors.As / errors.Is 行为不确定
-3. time.Duration 溢出边界不确定
-4. SemVer / Go module v2 路径规则不确定
-5. GitHub Actions action 版本过期
-```
-
-AutoResearch 输出必须是 ADR：
-
-```text
-docs/adr/ADR-YYYYMMDD-NNN-<topic>.md
-```
-
-禁止：
-
-```text
-因 AutoResearch 引入不必要第三方库。
-```
-
----
-
-# 23. Review 清单（Review Checklist）
-
-Review 前必须检查：
-
-```text
-[ ] go.mod 独立
-[ ] 不依赖 x.go
-[ ] 不依赖 driver
-[ ] 不依赖 logger/metrics/tracing 实现
-[ ] 不含业务语义
-[ ] 无全局可变状态
-[ ] Error Model 测试完整
-[ ] Health Model 测试完整
-[ ] Lifecycle 接口测试完整
-[ ] RetryPolicy 测试完整
-[ ] SecretString 测试不泄露
-[ ] Clock 测试完整
-[ ] VersionInfo 测试完整
-[ ] examples 可运行
-[ ] docs 完整
-[ ] ADR 完整
-[ ] scripts 可执行
-[ ] make ci 通过
-[ ] release manifest 生成
-```
-
----
-
-# 24. 发布协议（Release Protocol）
-
-## 24.1 v0.1.0 发布前
-
-常规发布验证执行：
-
-```bash
-make release-check
-```
-
-正式 tag 发布前执行：
-
-```bash
+go test ./...
+go test -race ./...
+make test
+make lint
+make docs-check
+make boundary-check
+make api-check
+make release-preflight VERSION=v0.1.0
+make release-evidence-check
 make release-final-check
 ```
 
-必须通过：
+## Completion Format
 
-```text
-fmt
-vet
-lint
-test
-race
-boundary
-security
-contracts
-docs
-examples
-evidence
-release-evidence-check
-release-clean-check
-```
-
-## 24.2 变更日志（CHANGELOG）
-
-```markdown
-## 版本 v0.1.0 - 2026-06-01
-
-### 新增（Added）
-- 新增 ErrorKind 与 Error model。
-- 明确 Error.WithRetryable 修改并返回同一个错误指针。
-- 新增 HealthStatus 与 HealthChecker contract。
-- 新增 HealthStatus JSON metadata object contract。
-- 新增 Lifecycle contract。
-- 新增 RetryPolicy。
-- 明确 RetryPolicy.Delay 不按 MaxAttempts 截断执行循环。
-- 新增 Sanitizer 与 SecretString。
-- 新增 Clock interface，以及 RealClock 和 FixedClock。
-- 新增 VersionInfo。
-- 新增 boundary、secret、contract 与 evidence gates。
-
-### 安全（Security）
-- SecretString 默认输出 masked string。
-- SecretString JSON 输出默认使用 masked string。
-- 新增 Secret gate，防止意外提交 secret。
-
-### 破坏性变更（Breaking Changes）
-- 无。
-```
-
-## 24.3 发布 Manifest（Release Manifest）
-
-路径：
-
-```text
-release/manifest/<version>.json
-release/manifest/latest.json
-```
-
-发布声明：
-
-```text
-DONE with evidence:
-- make release-check passed
-- make release-final-check passed before formal tag release
-- release/manifest/<version>.json generated
-- release/manifest/latest.json generated
-- boundary gate passed
-- secret gate passed
-- examples passed
-- docs completed
-```
-
----
-
-# 25. 复盘协议（Retrospective Protocol）
-
-输出：
-
-```text
-.agent/retrospective.md
-```
-
-模板：
-
-```markdown
-# 复盘：foundationx（Retrospective）
-
-## 发布（Release）
-- Version:
-- Commit:
-- Date:
-
-## 有效项（What worked）
--
-
-## 失败项（What failed）
--
-
-## API 稳定性关注点（API stability concerns）
--
-
-## 边界风险（Boundary risks）
--
-
-## 测试缺口（Test gaps）
--
-
-## Harness 改进（Harness improvements）
--
-
-## 规则补丁（Rule patches）
--
-
-## 受影响的下游模块（Next modules impacted）
-- postgresx:
-- kafkax:
-- redisx:
-- taosx:
-- configx:
-- observex:
-```
-
-输出 patch：
-
-```text
-PATCH-PROMPT-20260601-FOUNDATIONX-001
-PATCH-HARNESS-20260601-FOUNDATIONX-001
-PATCH-RULE-20260601-FOUNDATIONX-001
-```
-
----
-
-# 26. 最终 DoD（Final DoD）
-
-## 任务 DoD（Task DoD）
-
-```text
-代码实现完成
-测试完成
-无业务语义污染
-无 forbidden dependency
-无 secret 泄露
-go fmt / go vet / go test 通过
-```
-
-## 模块 DoD（Module DoD）
-
-```text
-Error Model 完整
-Health Model 完整
-Lifecycle 完整
-RetryPolicy 完整
-Sanitizer 完整
-Clock 完整
-VersionInfo 完整
-README 完整
-docs 完整
-examples 完整
-Harness scripts 完整
-CI 完整
-Release Manifest 完整
-```
-
-## 目标 DoD（Goal DoD）
-
-```text
-foundationx 可作为 postgresx/kafkax/redisx/taosx/configx/observex 的底层依赖
-foundationx 不依赖 x.go
-foundationx 不依赖任何 driver
-foundationx 不包含业务语义
-foundationx v0.1.0 release evidence 完整
-retrospective patch 生成
-```
-
-完成声明必须是：
-
-```text
-DONE with evidence:
-- go test ./... passed
-- go test -race ./... passed
-- make ci passed
-- make release-check passed
-- make release-final-check passed before formal tag release
-- boundary gate passed
-- secret gate passed
-- examples passed
-- release/manifest/<version>.json generated
-- release/manifest/latest.json generated
-```
-
----
-
-# 27. 最小可行执行顺序
-
-Agent 执行时按以下顺序，不要跳步：
-
-```text
-1. 创建 go module 和目录结构
-2. 实现 errors.go + tests
-3. 实现 health.go + tests
-4. 实现 lifecycle.go + tests
-5. 实现 retry.go + tests
-6. 实现 sanitizer.go + tests
-7. 实现 clock.go + tests
-8. 实现 version.go + tests
-9. 编写 examples
-10. 编写 scripts
-11. 编写 Makefile
-12. 编写 GitHub Actions
-13. 编写 docs 和 ADR
-14. 运行 make ci
-15. 运行 make release-check
-16. 生成并校验 release manifest
-17. 正式 tag 发布前运行 make release-final-check
-18. 编写 retrospective
-19. 输出 DONE with evidence
-```
-
----
-
-# 28. 给 Agent 的最终执行指令
-
-```text
-你现在要执行 GOAL-20260601-FOUNDATIONX-001。
-
-请严格按 Goal Runtime Prompt v3.1 执行：
-Goal → Context Recovery → Spec → Design → Plan → Tasks → Execution → Verification → Evidence → Review → Release → Retrospective → Self-improving。
-
-你必须创建或完善 github.com/ZoneCNH/foundationx。
-
-硬性约束：
-1. foundationx 是 L0 基础契约库。
-2. 不允许依赖 github.com/bytechainx/x.go。
-3. 不允许依赖 PostgreSQL/Kafka/Redis/TDengine/OSS driver。
-4. 不允许依赖 logger/metrics/tracing/HTTP framework 的具体实现。
-5. 不允许包含 x.go 业务语义。
-6. 不允许隐式全局状态。
-7. 不允许写入密钥。
-8. 不允许没有 Evidence 就声称 DONE。
-
-必须实现：
-1. ErrorKind / Error / IsKind / AsFoundationError
-2. HealthStatus / HealthChecker
-3. Starter / Closer / Lifecycle
-4. RetryPolicy / Delay / Validate
-5. Sanitizer / SecretString
-6. Clock / RealClock / FixedClock
-7. VersionInfo
-8. tests
-9. examples
-10. Harness scripts
-11. Makefile
-12. GitHub Actions
-13. docs / ADR
-14. release manifest
-15. retrospective patches
-
-执行完成后输出：
+Only declare completion as:
 
 DONE with evidence:
-- 具体命令
-- 具体测试结果
-- 具体文件路径
-- release manifest 路径
-- known risks
-- next recommended issue
+- Goal: GOAL-20260601-002
+- Release: v0.1.0
+- Commit: <commit-sha>
+- CI: <ci-run-url>
+- Tests: <summary>
+- Docs: <docs-check evidence>
+- Boundary: <boundary-check evidence>
+- API: <api-check evidence>
+- Release Manifest: docs/evidence/release-v0.1.0.md
+- Review: docs/review/REV-GOAL-20260601-002-20260601-001.md
+- Retrospective: docs/retro/RETRO-20260601-002.md
 ```
 
 ---
 
-# 29. 最终推荐路径
+## 31. 最终推荐路径
+
+1. **先做 L0，不做 L1。** 先把 kernel 的 L0 原语和门禁做稳，再推进 redisx/kafkax/postgresx/taosx/ossx/clickhousex。
+2. **先做 errx + timex。** 这是最小复利点，能支撑 retry/lifecycle/test determinism。
+3. **先补 docs-check / boundary-check。** 没有这两个 gate，L0 会退化为主观完成。
+4. **L0 不允许变成工具箱。** 每个新包必须证明至少两个以上 L1/L2 调用方需要。
+5. **v0.1.0 小而硬。** 不追求包多，追求边界清晰、证据完整、可发布。
+6. **用 x.go 做 smoke，不让 x.go 污染 L0。** x.go 只能验证消费，不决定 L0 业务方向。
+7. **30 天内形成 L0 → L1 的复利飞轮。** 至少让两个 L1 基础库接入 kernel，反向验证 API。
+
+最终建议：
 
 ```text
-foundationx 先做小，不做大。
-先建立稳定 L0 契约，再让 postgresx/kafkax/redisx/taosx 复用。
-任何新增能力必须证明至少两个上层基础库需要。
-否则不进入 foundationx。
+Day 1：冻结边界 + errx/timex skeleton + docs-check/boundary-check
+Day 7：kernel v0.1.0-rc.1 + x.go smoke
+Day 30：kernel v0.3.0 + 至少 2 个 L1 基础库接入 + L0 Contribution Policy 固化
 ```
 
-最重要的三条红线：
-
-```text
-1. 不依赖 x.go
-2. 不依赖 driver
-3. 不承载业务语义
-```
-
-最小交付：
-
-```text
-v0.1.0 = Error + Health + Lifecycle + Retry + Sanitizer + Clock + Version + Tests + Harness + Evidence
-```
