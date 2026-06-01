@@ -10,6 +10,10 @@ VERSIONS_FILE=".github/versions.env"
 . "$VERSIONS_FILE"
 
 mkdir -p release/manifest
+PINS="$ROOT/.github/versions.env"
+[ -s "$PINS" ] || { echo "missing $PINS" >&2; exit 1; }
+# shellcheck disable=SC1090
+source "$PINS"
 
 resolve_version() {
   if [ -n "${VERSION:-}" ]; then
@@ -43,6 +47,10 @@ sha256_file() {
   shasum -a 256 "$1" | awk '{print $1}'
 }
 
+json_escape() {
+  python3 -c 'import json,sys; print(json.dumps(sys.stdin.read().rstrip("\n"))[1:-1])'
+}
+
 workspace_status() {
   if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     printf 'unknown'
@@ -66,32 +74,63 @@ COMMIT="$(git rev-parse HEAD 2>/dev/null || printf 'unknown')"
 TREE_SHA="$(git rev-parse 'HEAD^{tree}' 2>/dev/null || printf 'unknown')"
 WORKSPACE_STATUS="$(workspace_status)"
 GO_VERSION="$(go version | sed 's/"/\\"/g')"
+GO_ACTUAL="$(go env GOVERSION)"
 GENERATED_AT="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
 ERROR_SCHEMA_SHA="$(sha256_file contracts/error.schema.json)"
 HEALTH_SCHEMA_SHA="$(sha256_file contracts/health.schema.json)"
 VERSION_SCHEMA_SHA="$(sha256_file contracts/version.schema.json)"
 PUBLIC_API_SHA="$(sha256_file contracts/public_api.snapshot)"
+REASON="external consumer repository/tag validation is recorded in docs/evidence/xgo-consumer-smoke.md"
+REASON_ESCAPED="$(printf '%s' "$REASON" | json_escape)"
 
 cat > "$OUT" <<JSON
 {
   "schema_version": "kernel.release-manifest.v1",
-  "module": "$(json_escape "$MODULE")",
-  "version": "$(json_escape "$VERSION")",
-  "commit": "$(json_escape "$COMMIT")",
-  "tree_sha": "$(json_escape "$TREE_SHA")",
-  "workspace_status": "$(json_escape "$WORKSPACE_STATUS")",
-  "go_version": "$(json_escape "$GO_VERSION")",
-  "go": {
-    "min_version": "$(json_escape "$GO_MIN_VERSION")",
-    "integration_version": "$(json_escape "$GO_INTEGRATION_VERSION")",
-    "verified_versions": ["$(json_escape "$GO_MIN_VERSION")", "$(json_escape "$GO_INTEGRATION_VERSION")"],
-    "actual_version": "$(json_escape "$GO_VERSION")"
+  "module": "$MODULE",
+  "version": "$VERSION",
+  "commit": "$COMMIT",
+  "tree_sha": "$TREE_SHA",
+  "workspace_status": "$WORKSPACE_STATUS",
+  "go_version": "$GO_VERSION",
+  "generated_at": "$GENERATED_AT",
+  "toolchain": {
+    "go_min_version": "$GO_MIN_VERSION",
+    "go_integration_version": "$GO_INTEGRATION_VERSION",
+    "go_actual_version": "$GO_ACTUAL",
+    "golangci_lint_version": "$GOLANGCI_LINT_VERSION",
+    "govulncheck_version": "$GOVULNCHECK_VERSION",
+    "gotestsum_version": "$GOTESTSUM_VERSION",
+    "gofumpt_version": "$GOFUMPT_VERSION",
+    "staticcheck_version": "$STATICCHECK_VERSION"
   },
-  "generated_at": "$(json_escape "$GENERATED_AT")",
+  "go": {
+    "min_version": "$GO_MIN_VERSION",
+    "verified_versions": ["$GO_MIN_VERSION", "$GO_INTEGRATION_VERSION"],
+    "actual_version": "$GO_ACTUAL"
+  },
+  "api": {
+    "snapshot": "contracts/public_api.snapshot",
+    "public_api_sha256": "$PUBLIC_API_SHA",
+    "compatibility_policy": "docs/governance/API_COMPATIBILITY_POLICY.md"
+  },
+  "consumer_compatibility": {
+    "xgo": {
+      "policy": "docs/governance/XGO_CONSUMER_COMPATIBILITY.md",
+      "evidence": "docs/evidence/xgo-consumer-smoke.md",
+      "status": "documented",
+      "verified": false,
+      "reason": "$REASON_ESCAPED"
+    }
+  },
+  "governance": {
+    "package_maturity": "docs/governance/PACKAGE_MATURITY.md"
+  },
   "contracts": {
     "error_schema_sha256": "$ERROR_SCHEMA_SHA",
     "health_schema_sha256": "$HEALTH_SCHEMA_SHA",
-    "version_schema_sha256": "$VERSION_SCHEMA_SHA"
+    "version_schema_sha256": "$VERSION_SCHEMA_SHA",
+    "public_api_sha256": "$PUBLIC_API_SHA",
+    "golden_behavior_path": "contracts/golden"
   },
   "api": {
     "snapshot": "contracts/public_api.snapshot",
@@ -116,10 +155,11 @@ cat > "$OUT" <<JSON
     "contract": "passed",
     "api": "passed",
     "api_diff": "passed",
-    "consumer_compat": "passed",
     "docs": "passed",
     "artifact_docs": "passed",
-    "examples": "passed"
+    "examples": "passed",
+    "toolchain": "passed",
+    "consumer_compatibility": "documented"
   }
 }
 JSON

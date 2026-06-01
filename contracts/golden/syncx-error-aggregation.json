@@ -1,0 +1,4 @@
+{
+  "first_error": "first failure",
+  "canceled_after_first_error": true
+}

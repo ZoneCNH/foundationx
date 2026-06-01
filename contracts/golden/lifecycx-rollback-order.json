@@ -1,4 +1,4 @@
 {
-  "start_error": "start failed: c",
+  "error": "start c",
   "events": ["start:a", "start:b", "start:c", "stop:b", "stop:a"]
 }

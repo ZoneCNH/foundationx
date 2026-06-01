@@ -1,0 +1,7 @@
+{
+  "max_attempts": 3,
+  "base_delay_ms": 100,
+  "max_delay_ms": 1000,
+  "delays_ms": [0, 100, 200, 400, 800, 1000],
+  "jitter_ms": [90, 100, 110]
+}

@@ -1,0 +1,8 @@
+{
+  "kind": "unavailable",
+  "code": "example.Connect",
+  "severity": "error",
+  "op": "contracts.example",
+  "message": "dependency unavailable",
+  "retryable": true
+}

@@ -6,127 +6,153 @@ import (
 	"errors"
 	"os"
 	"reflect"
-	"strings"
-	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/ZoneCNH/kernel/errx"
+	"github.com/ZoneCNH/kernel/healthx"
 	"github.com/ZoneCNH/kernel/lifecycx"
 	"github.com/ZoneCNH/kernel/obsx"
 	"github.com/ZoneCNH/kernel/retryx"
 	"github.com/ZoneCNH/kernel/syncx"
+	"github.com/ZoneCNH/kernel/versionx"
 )
 
-func TestRetryPolicyGoldenBehavior(t *testing.T) {
-	policy := retryx.DefaultRetryPolicy()
-	actual := struct {
-		MaxAttempts int      `json:"max_attempts"`
-		BaseDelay   string   `json:"base_delay"`
-		MaxDelay    string   `json:"max_delay"`
-		Delays      []string `json:"delays"`
-	}{
-		MaxAttempts: policy.MaxAttempts,
-		BaseDelay:   policy.BaseDelay.String(),
-		MaxDelay:    policy.MaxDelay.String(),
-	}
-	for attempt := 0; attempt <= 5; attempt++ {
-		actual.Delays = append(actual.Delays, policy.Delay(attempt).String())
-	}
-	assertGoldenJSON(t, "examples/golden/retry-policy-default.json", actual)
-}
-
-func TestObsSecretRedactionGoldenBehavior(t *testing.T) {
-	secret := obsx.NewSecretString("super-secret-token")
-	actual := struct {
-		String   string `json:"string"`
-		JSON     string `json:"json"`
-		Sanitize any    `json:"sanitize"`
-		IsZero   bool   `json:"is_zero"`
-	}{
-		String:   secret.String(),
-		Sanitize: secret.Sanitize(),
-		IsZero:   secret.IsZero(),
-	}
-	encoded, err := json.Marshal(secret)
-	if err != nil {
-		t.Fatalf("marshal secret: %v", err)
-	}
-	if strings.Contains(string(encoded), secret.Reveal()) || strings.Contains(actual.String, secret.Reveal()) {
-		t.Fatalf("secret redaction leaked raw value")
-	}
-	actual.JSON = string(encoded)
-	assertGoldenJSON(t, "examples/golden/obs-secret-redaction.json", actual)
-}
-
-func TestLifecycleRollbackOrderGoldenBehavior(t *testing.T) {
-	var order []string
-	manager := lifecycx.NewManager(
-		&goldenComponent{name: "alpha", order: &order},
-		&goldenComponent{name: "beta", order: &order},
-		&goldenComponent{name: "gamma", order: &order, startErr: errors.New("gamma start failed")},
-	)
-	err := manager.Start(context.Background())
-	if err == nil || err.Error() != "gamma start failed" {
-		t.Fatalf("Start() error = %v, want gamma start failed", err)
-	}
-	actual := struct {
-		Error string   `json:"error"`
-		Order []string `json:"order"`
-	}{Error: err.Error(), Order: order}
-	assertGoldenJSON(t, "examples/golden/lifecycle-rollback-order.json", actual)
-}
-
-func TestWorkerGroupErrorAggregationGoldenBehavior(t *testing.T) {
-	group := syncx.NewWorkerGroup(context.Background())
-	var observedCancellation atomic.Bool
-	group.Go(func(context.Context) error { return errors.New("primary failure") })
-	group.Go(func(ctx context.Context) error {
-		<-ctx.Done()
-		observedCancellation.Store(true)
-		return nil
+func TestGoldenBehaviorContracts(t *testing.T) {
+	t.Run("errx JSON", func(t *testing.T) {
+		err := errx.NewError(errx.ErrorKindUnavailable, "contracts.example", "dependency unavailable").WithRetryable(true).WithCode("example.Connect").WithSeverity(errx.SeverityError)
+		assertGoldenJSON(t, "golden/error-unavailable.json", err)
+		assertGoldenJSON(t, "examples/golden/error-unavailable.json", err)
 	})
-	err := group.Wait()
-	if err == nil || err.Error() != "primary failure" {
-		t.Fatalf("Wait() error = %v, want primary failure", err)
-	}
-	actual := struct {
-		Policy               string `json:"policy"`
-		Error                string `json:"error"`
-		ObservedCancellation bool   `json:"observed_cancellation"`
-	}{Policy: "first-error", Error: err.Error(), ObservedCancellation: observedCancellation.Load()}
-	assertGoldenJSON(t, "examples/golden/sync-workergroup-aggregation.json", actual)
+
+	t.Run("healthx JSON", func(t *testing.T) {
+		status := healthx.NewHealthStatus("example", healthx.HealthHealthy, "ok", time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC), 7).WithMetadata("region", "local")
+		assertGoldenJSON(t, "golden/health-healthy.json", status)
+		assertGoldenJSON(t, "examples/golden/health-healthy.json", status)
+	})
+
+	t.Run("versionx JSON", func(t *testing.T) {
+		info := versionx.NewVersionInfo("github.com/ZoneCNH/kernel", "v0.1.0", "local", "2026-06-01T00:00:00Z", "go1.23")
+		assertGoldenJSON(t, "golden/version-v0.1.0.json", info)
+		assertGoldenJSON(t, "examples/golden/version-v0.1.0.json", info)
+	})
+
+	t.Run("retryx delay behavior", func(t *testing.T) {
+		policy := retryx.RetryPolicy{MaxAttempts: 3, BaseDelay: 100 * time.Millisecond, MaxDelay: time.Second}
+		got := map[string]any{
+			"max_attempts":  policy.MaxAttempts,
+			"base_delay_ms": policy.BaseDelay.Milliseconds(),
+			"max_delay_ms":  policy.MaxDelay.Milliseconds(),
+			"delays_ms": []int64{
+				policy.Delay(0).Milliseconds(),
+				policy.Delay(1).Milliseconds(),
+				policy.Delay(2).Milliseconds(),
+				policy.Delay(3).Milliseconds(),
+				policy.Delay(4).Milliseconds(),
+				policy.Delay(5).Milliseconds(),
+			},
+			"jitter_ms": []int64{
+				policy.DelayWithJitter(1, 0.10, -1).Milliseconds(),
+				policy.DelayWithJitter(1, 0.10, 0).Milliseconds(),
+				policy.DelayWithJitter(1, 0.10, 1).Milliseconds(),
+			},
+		}
+		assertGoldenJSON(t, "golden/retry-delay-default.json", got)
+	})
+
+	t.Run("obsx secret redaction", func(t *testing.T) {
+		secret := obsx.NewSecretString("secret-token")
+		got := map[string]any{
+			"display":  secret.String(),
+			"json":     mustMarshalString(t, secret),
+			"empty":    obsx.NewSecretString("").String(),
+			"revealed": secret.Reveal(),
+		}
+		assertGoldenJSON(t, "golden/obsx-secret-redaction.json", got)
+	})
+
+	t.Run("lifecycx rollback order", func(t *testing.T) {
+		var events []string
+		manager := lifecycx.NewManager(
+			recordingComponent{name: "a", events: &events},
+			recordingComponent{name: "b", events: &events},
+			recordingComponent{name: "c", events: &events, startErr: errors.New("start c")},
+		)
+		err := manager.Start(context.Background())
+		if err == nil {
+			t.Fatal("expected start error")
+		}
+		assertGoldenJSON(t, "golden/lifecycx-rollback-order.json", map[string]any{"error": err.Error(), "events": events})
+	})
+
+	t.Run("syncx first error aggregation", func(t *testing.T) {
+		group := syncx.NewWorkerGroup(context.Background())
+		canceled := make(chan bool, 1)
+		group.Go(func(context.Context) error { return errors.New("first failure") })
+		group.Go(func(ctx context.Context) error {
+			<-ctx.Done()
+			canceled <- true
+			return nil
+		})
+		err := group.Wait()
+		if err == nil {
+			t.Fatal("expected worker group error")
+		}
+		assertGoldenJSON(t, "golden/syncx-error-aggregation.json", map[string]any{"first_error": err.Error(), "canceled_after_first_error": <-canceled})
+	})
 }
 
-type goldenComponent struct {
+type recordingComponent struct {
 	name     string
-	order    *[]string
+	events   *[]string
 	startErr error
+	stopErr  error
 }
 
-func (c *goldenComponent) Name() string { return c.name }
-func (c *goldenComponent) Start(context.Context) error {
-	*c.order = append(*c.order, "start:"+c.name)
+func (c recordingComponent) Name() string { return c.name }
+func (c recordingComponent) Start(context.Context) error {
+	*c.events = append(*c.events, "start:"+c.name)
 	return c.startErr
 }
-func (c *goldenComponent) Stop(context.Context) error {
-	*c.order = append(*c.order, "stop:"+c.name)
-	return nil
+func (c recordingComponent) Stop(context.Context) error {
+	*c.events = append(*c.events, "stop:"+c.name)
+	return c.stopErr
 }
 
 func assertGoldenJSON(t *testing.T, path string, value any) {
 	t.Helper()
-	data, err := json.MarshalIndent(value, "", "  ")
-	if err != nil {
-		t.Fatalf("marshal golden value: %v", err)
-	}
-	data = append(data, '\n')
-	want, err := os.ReadFile(path)
+	wantData, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatalf("read golden %s: %v", path, err)
 	}
-	if !reflect.DeepEqual(data, want) {
-		t.Fatalf("golden mismatch for %s\ngot:\n%s\nwant:\n%s", path, data, want)
+	gotData, err := json.Marshal(value)
+	if err != nil {
+		t.Fatalf("marshal actual %s: %v", path, err)
+	}
+	var want any
+	if err := json.Unmarshal(wantData, &want); err != nil {
+		t.Fatalf("parse golden %s: %v", path, err)
+	}
+	var got any
+	if err := json.Unmarshal(gotData, &got); err != nil {
+		t.Fatalf("parse actual %s: %v", path, err)
+	}
+	if !reflect.DeepEqual(got, want) {
+		wantPretty, _ := json.MarshalIndent(want, "", "  ")
+		gotPretty, _ := json.MarshalIndent(got, "", "  ")
+		t.Fatalf("golden mismatch %s\ngot:  %s\nwant: %s", path, gotPretty, wantPretty)
 	}
 }
 
-var _ = time.Second
+func mustMarshalString(t *testing.T, value any) string {
+	t.Helper()
+	data, err := json.Marshal(value)
+	if err != nil {
+		t.Fatalf("marshal string: %v", err)
+	}
+	var got string
+	if err := json.Unmarshal(data, &got); err != nil {
+		t.Fatalf("unmarshal string: %v", err)
+	}
+	return got
+}
