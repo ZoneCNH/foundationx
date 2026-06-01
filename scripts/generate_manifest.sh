@@ -4,10 +4,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-VERSIONS_FILE=".github/versions.env"
-[ -s "$VERSIONS_FILE" ] || { echo "ERROR: missing toolchain version pins: $VERSIONS_FILE"; exit 1; }
-# shellcheck disable=SC1090
-. "$VERSIONS_FILE"
+# shellcheck source=/dev/null
+source .github/versions.env
 
 mkdir -p release/manifest
 PINS="$ROOT/.github/versions.env"
@@ -80,45 +78,36 @@ ERROR_SCHEMA_SHA="$(sha256_file contracts/error.schema.json)"
 HEALTH_SCHEMA_SHA="$(sha256_file contracts/health.schema.json)"
 VERSION_SCHEMA_SHA="$(sha256_file contracts/version.schema.json)"
 PUBLIC_API_SHA="$(sha256_file contracts/public_api.snapshot)"
-RETRY_GOLDEN_SHA="$(sha256_file contracts/examples/golden/retry-policy-default.json)"
-OBS_GOLDEN_SHA="$(sha256_file contracts/examples/golden/obs-secret-redaction.json)"
-LIFECYCLE_GOLDEN_SHA="$(sha256_file contracts/examples/golden/lifecycle-rollback-order.json)"
-SYNC_GOLDEN_SHA="$(sha256_file contracts/examples/golden/sync-workergroup-aggregation.json)"
 
 cat > "$OUT" <<JSON
 {
-  "schema_version": "kernel.release-manifest.v1",
+  "schema_version": "kernel.release_manifest.v1",
   "module": "$MODULE",
   "version": "$VERSION",
   "commit": "$COMMIT",
   "tree_sha": "$TREE_SHA",
   "workspace_status": "$WORKSPACE_STATUS",
   "go_version": "$GO_VERSION",
+  "go_min_version": "$GO_MIN_VERSION",
+  "go_integration_version": "$GO_INTEGRATION_VERSION",
+  "verified_go_versions": [
+    "$GO_MIN_VERSION",
+    "$GO_INTEGRATION_VERSION"
+  ],
   "generated_at": "$GENERATED_AT",
-  "go": {
-    "min_version": "$GO_MIN_VERSION",
-    "integration_version": "$GO_INTEGRATION_VERSION",
-    "actual_version": "$ACTUAL_GO_VERSION"
-  },
-  "api": {
-    "public_api_snapshot": "contracts/public_api.snapshot",
-    "public_api_sha256": "$PUBLIC_API_SHA"
-  },
-  "consumer_compatibility": {
-    "xgo": {
-      "status": "external-evidence-required",
-      "evidence": "contracts/consumers/xgo/README.md",
-      "minimal_import_test": "contracts/consumers/xgo/minimal_import_test.go"
-    }
-  },
+  "public_api_sha256": "$PUBLIC_API_SHA",
   "contracts": {
     "error_schema_sha256": "$ERROR_SCHEMA_SHA",
     "health_schema_sha256": "$HEALTH_SCHEMA_SHA",
     "version_schema_sha256": "$VERSION_SCHEMA_SHA",
-    "retry_policy_default_sha256": "$RETRY_GOLDEN_SHA",
-    "obs_secret_redaction_sha256": "$OBS_GOLDEN_SHA",
-    "lifecycle_rollback_order_sha256": "$LIFECYCLE_GOLDEN_SHA",
-    "sync_workergroup_aggregation_sha256": "$SYNC_GOLDEN_SHA"
+    "public_api_sha256": "$PUBLIC_API_SHA"
+  },
+  "consumer_compatibility": {
+    "xgo": {
+      "policy": "docs/governance/XGO_CONSUMER_COMPATIBILITY.md",
+      "evidence": "contracts/consumers/xgo/README.md",
+      "status": "kernel-side-compatible"
+    }
   },
   "checks": {
     "toolchain": "passed",

@@ -13,4 +13,15 @@
 
 ## 发布门禁
 
-`make release-final-check` 必须执行 toolchain、CI、API diff、evidence 与 clean-worktree 检查。缺失 pinned 工具或 API 快照漂移必须阻断发布。
+## Change Rules（变更规则）
+
+- Additive exported APIs are allowed after documentation and contract examples are updated.
+- Removed or renamed exported APIs require a major compatibility decision and release notes.
+- Signature changes require a migration note and an updated snapshot in the same reviewed change.
+- Behavior changes require golden contract updates that explain the compatibility impact.
+
+## Release Evidence（发布证据）
+
+Release manifests record `public_api_sha256`, `verified_go_versions`, and consumer compatibility evidence so downstream consumers can verify the API baseline used for a release.
+
+The final release gate is `make release-final-check`, which runs the API drift check before release evidence is accepted.

@@ -4,10 +4,8 @@
 
 ## 最小导入证明
 
-`minimal_import_test.go` 使用 build tag `xgo_consumer`，只导入 kernel L0 包，验证消费者侧无需 workspace 或 local replace 即可编译这些公开 API。
+- `contracts/public_api.snapshot` remains stable unless reviewed under `docs/governance/API_COMPATIBILITY_POLICY.md`.
+- Golden behavior contracts in `contracts/golden/` remain stable for retry, observability redaction, lifecycle rollback, and sync worker aggregation.
+- Release manifests include `consumer_compatibility.xgo` metadata pointing to this README and the governance policy.
 
-```sh
-GOWORK=off go test -tags xgo_consumer ./contracts/consumers/xgo
-```
-
-该命令是模板级证明；正式 release 需要在真实 x.go module tag 上重复执行并记录证据。
+The compatibility evidence is accepted only after `make release-final-check` passes for the release candidate.

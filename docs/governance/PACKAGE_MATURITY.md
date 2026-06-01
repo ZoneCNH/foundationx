@@ -22,4 +22,6 @@
 
 ## 晋级要求
 
-包晋级 stable-candidate 前必须具备文档、公开 API 快照、golden 行为覆盖和 release evidence 校验。
+If a package loses contract coverage or requires a breaking behavior decision, release notes must identify the package as under compatibility review until coverage and documentation are restored.
+
+`make release-final-check` is the required release gate for keeping these package maturity classifications publishable.

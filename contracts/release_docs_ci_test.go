@@ -20,12 +20,17 @@ func TestReleaseCheckWiresDocumentationAndEvidenceGates(t *testing.T) {
 	assertContains(t, makefile, "\t$(MAKE) ci")
 	assertContains(t, makefile, "\t$(MAKE) evidence")
 	assertContains(t, makefile, "\t$(MAKE) release-evidence-check")
+	assertContains(t, makefile, "\t$(MAKE) toolchain-check")
 	assertContains(t, makefile, "./scripts/check_docs.sh")
 	assertContains(t, makefile, "./scripts/ci/api-check.sh")
+	assertContains(t, makefile, "./scripts/ci/api-diff-check.sh")
+	assertContains(t, makefile, "./scripts/ci/toolchain-check.sh")
 	assertContains(t, makefile, "./scripts/ci/artifact-check.sh")
 	assertContains(t, makefile, "./scripts/generate_manifest.sh")
 	assertContains(t, makefile, "./scripts/check_release_evidence.sh")
 	assertContains(t, makefile, "./scripts/check_release_clean.sh")
+	assertContains(t, makefile, "lint-strict:")
+	assertContains(t, makefile, "security-strict:")
 }
 
 func TestReleaseCheckRunsEvidenceAfterCIGates(t *testing.T) {
@@ -65,6 +70,12 @@ func TestReleaseFinalCheckBracketsReleaseCheckWithCleanChecks(t *testing.T) {
 	if firstCleanCheck >= releaseCheck || releaseCheck >= lastCleanCheck {
 		t.Fatal("release-final-check must run clean check, release-check, then clean check")
 	}
+	if strings.Index(targetBody, "\t$(MAKE) lint-strict") <= releaseCheck {
+		t.Fatal("release-final-check must run strict lint after release-check")
+	}
+	if strings.Index(targetBody, "\t$(MAKE) security-strict") <= releaseCheck {
+		t.Fatal("release-final-check must run strict security after release-check")
+	}
 }
 
 func TestXlibStandardAnalysisPinsReviewedGovernanceBaseline(t *testing.T) {
@@ -92,9 +103,16 @@ func TestReleaseEvidenceScriptsPreserveFreshnessChecks(t *testing.T) {
 	for _, want := range []string{
 		"tree_sha",
 		"workspace_status",
+		"schema_version",
+		"GO_MIN_VERSION",
+		"GO_INTEGRATION_VERSION",
+		"verified_go_versions",
 		"error_schema_sha256",
 		"health_schema_sha256",
 		"version_schema_sha256",
+		"public_api_sha256",
+		"consumer_compatibility",
+		"kernel-side-compatible",
 		"cp \"$OUT\" \"$LATEST\"",
 	} {
 		assertContains(t, generate, want)
@@ -105,9 +123,15 @@ func TestReleaseEvidenceScriptsPreserveFreshnessChecks(t *testing.T) {
 		"manifest commit does not match current HEAD",
 		"manifest tree_sha does not match current HEAD tree",
 		"manifest workspace_status does not match current workspace",
+		"manifest schema_version mismatch",
+		"manifest go_min_version does not match .github/versions.env",
+		"manifest go_integration_version does not match .github/versions.env",
 		"error schema hash mismatch",
 		"health schema hash mismatch",
 		"version schema hash mismatch",
+		"public API snapshot hash mismatch",
+		"consumer_compatibility",
+		"XGO_CONSUMER_COMPATIBILITY.md",
 		"release-${VERSION}.md",
 	} {
 		assertContains(t, check, want)
@@ -327,13 +351,17 @@ func TestCIToolsArePinnedWithoutBecomingLocalHardDependencies(t *testing.T) {
 	security := readRepoText(t, filepath.Join(".github", "workflows", "security.yml"))
 
 	for _, workflow := range []string{ci, release} {
+		assertContains(t, workflow, "go-version: \"1.26.3\"")
 		assertContains(t, workflow, "go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.1.6")
-		assertContains(t, workflow, "go install golang.org/x/vuln/cmd/govulncheck@v1.1.4")
+		assertContains(t, workflow, "go install golang.org/x/vuln/cmd/govulncheck@v1.3.0")
 	}
 
-	assertContains(t, security, "go install golang.org/x/vuln/cmd/govulncheck@v1.1.4")
+	assertContains(t, security, "go-version: \"1.26.3\"")
+	assertContains(t, security, "go install golang.org/x/vuln/cmd/govulncheck@v1.3.0")
 	assertContains(t, makefile, "golangci-lint not installed; skipping lint target")
 	assertContains(t, makefile, "govulncheck not installed; skipping vulnerability scan")
+	assertContains(t, makefile, "lint-strict:")
+	assertContains(t, makefile, "security-strict:")
 }
 
 func TestSecurityWorkflowPreservesBoundaryContractGates(t *testing.T) {
@@ -376,6 +404,10 @@ func TestFormalReleaseDocsUseFinalGate(t *testing.T) {
 		filepath.Join("docs", "release.md"),
 		filepath.Join("docs", "spec.md"),
 		filepath.Join("docs", "testing.md"),
+		filepath.Join("docs", "governance", "API_COMPATIBILITY_POLICY.md"),
+		filepath.Join("docs", "governance", "PACKAGE_MATURITY.md"),
+		filepath.Join("docs", "governance", "XGO_CONSUMER_COMPATIBILITY.md"),
+		filepath.Join("contracts", "consumers", "xgo", "README.md"),
 	} {
 		text := readRepoText(t, path)
 		assertContains(t, text, "make release-final-check")

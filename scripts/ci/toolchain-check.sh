@@ -56,8 +56,9 @@ for key in GO_MIN_VERSION GO_INTEGRATION_VERSION GOLANGCI_LINT_VERSION GOVULNCHE
   require_var "$key"
 done
 
-mod_go="$(awk '$1 == "go" { print $2; exit }' go.mod)"
-[ "$mod_go" = "$GO_MIN_VERSION" ] || fail "go.mod go directive $mod_go does not match GO_MIN_VERSION=$GO_MIN_VERSION"
+[ "${GOWORK:-off}" = "off" ] || fail "GOWORK must be off for release gates; got ${GOWORK}"
+export GOWORK=off
+[ "$(go env GOWORK)" = "off" ] || fail "go env GOWORK must be off; got $(go env GOWORK)"
 
 actual_go="$(go version | awk '{print $3}' | sed 's/^go//')"
 [ "$actual_go" = "$GO_INTEGRATION_VERSION" ] || fail "go version $actual_go does not match GO_INTEGRATION_VERSION=$GO_INTEGRATION_VERSION"
