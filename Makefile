@@ -9,6 +9,10 @@ fmt:
 vet:
 	$(GOENV) $(GO) vet ./...
 
+.PHONY: toolchain-check
+toolchain-check:
+	./scripts/ci/toolchain-check.sh --strict
+
 .PHONY: lint
 lint:
 	@if command -v golangci-lint >/dev/null 2>&1; then \
@@ -49,6 +53,10 @@ contracts:
 .PHONY: api-check
 api-check:
 	./scripts/ci/api-check.sh
+
+.PHONY: api-diff-check
+api-diff-check:
+	./scripts/ci/api-diff-check.sh
 
 .PHONY: docs
 docs:
@@ -96,6 +104,7 @@ release-check:
 .PHONY: release-final-check
 release-final-check:
 	$(MAKE) release-clean-check
+	$(MAKE) toolchain-check
 	$(MAKE) release-check
 	$(MAKE) release-clean-check
 

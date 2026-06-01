@@ -10,6 +10,7 @@ for file in \
   contracts/error.schema.json \
   contracts/health.schema.json \
   contracts/version.schema.json \
+  contracts/public_api.snapshot \
   docs/api.md
 do
   if [ ! -s "$file" ]; then
@@ -28,6 +29,8 @@ for schema in contracts/*.schema.json; do
     exit 1
   fi
 done
+
+./scripts/ci/api-diff-check.sh
 
 GOWORK=off go test ./contracts
 

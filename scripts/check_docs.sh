@@ -28,6 +28,9 @@ docs/sync.md
 docs/version.md
 docs/contracttest.md
 docs/evidence/README.md
+docs/governance/API_COMPATIBILITY_POLICY.md
+docs/governance/PACKAGE_MATURITY.md
+docs/governance/XGO_CONSUMER_COMPATIBILITY.md
 docs/context/CTX-GOAL-20260601-002.md
 docs/spec/SPEC-l0-kernel-v1.0.md
 docs/design/DESIGN-l0-kernel-v1.0.md
