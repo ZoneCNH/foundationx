@@ -63,6 +63,27 @@ func TestReleaseEvidenceScriptsPreserveFreshnessChecks(t *testing.T) {
 	}
 }
 
+func TestReleaseEvidenceScriptsResolveTagVersionConsistently(t *testing.T) {
+	for _, path := range []string{
+		filepath.Join("scripts", "generate_manifest.sh"),
+		filepath.Join("scripts", "check_release_evidence.sh"),
+	} {
+		script := readRepoText(t, path)
+		for _, want := range []string{
+			"VERSION:-",
+			"GITHUB_REF_NAME:-",
+			"^v[0-9]+\\.[0-9]+\\.[0-9]+",
+			"git tag --points-at HEAD --list 'v[0-9]*.[0-9]*.[0-9]*'",
+			"printf 'v0.1.0'",
+		} {
+			assertContains(t, script, want)
+		}
+	}
+
+	release := readRepoText(t, filepath.Join(".github", "workflows", "release.yml"))
+	assertContains(t, release, "VERSION: ${{ github.ref_name }}")
+}
+
 func TestCIWorkflowsPreserveReleaseEvidenceGates(t *testing.T) {
 	ci := readRepoText(t, filepath.Join(".github", "workflows", "ci.yml"))
 	release := readRepoText(t, filepath.Join(".github", "workflows", "release.yml"))
