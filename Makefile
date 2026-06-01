@@ -50,9 +50,14 @@ security:
 contracts:
 	./scripts/check_contracts.sh
 
+.PHONY: api-diff-check
+api-diff-check:
+	./scripts/ci/api-diff-check.sh
+
 .PHONY: api-check
 api-check:
 	./scripts/ci/api-check.sh
+	$(MAKE) api-diff-check
 
 .PHONY: api-diff-check
 api-diff-check:
@@ -88,6 +93,10 @@ evidence:
 release-evidence-check:
 	./scripts/check_release_evidence.sh
 
+.PHONY: release-toolchain-check
+release-toolchain-check:
+	./scripts/ci/toolchain-check.sh
+
 .PHONY: release-clean-check
 release-clean-check:
 	./scripts/check_release_clean.sh
@@ -97,6 +106,7 @@ ci: fmt vet lint test race boundary security contracts api-check docs artifact-c
 
 .PHONY: release-check
 release-check:
+	$(MAKE) release-toolchain-check
 	$(MAKE) ci
 	$(MAKE) evidence
 	$(MAKE) release-evidence-check
@@ -104,7 +114,7 @@ release-check:
 .PHONY: release-final-check
 release-final-check:
 	$(MAKE) release-clean-check
-	$(MAKE) toolchain-check
+	$(MAKE) release-toolchain-check
 	$(MAKE) release-check
 	$(MAKE) release-clean-check
 

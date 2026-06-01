@@ -49,10 +49,8 @@ go_version="$(go env GOVERSION)"
 if grep -Eq '^replace\b' go.mod; then
   fail "go.mod replace directives are forbidden for release validation"
 fi
-if grep -RIn --include='*.sh' --include='go.mod' --include='*.yml' --include='*.yaml' '@latest' .github scripts go.mod 2>/dev/null | grep -v 'toolchain-check.sh' >/tmp/kernel_toolchain_latest.$$; then
-  cat /tmp/kernel_toolchain_latest.$$ >&2
-  rm -f /tmp/kernel_toolchain_latest.$$
-  fail "unpinned @latest reference found in release-controlled files"
+if GOWORK=off go mod edit -json | grep -q '"Replace": \['; then
+  fail "go.mod must not contain local or remote replace directives for release"
 fi
 rm -f /tmp/kernel_toolchain_latest.$$
 

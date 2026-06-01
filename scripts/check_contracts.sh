@@ -31,7 +31,6 @@ for schema in contracts/*.schema.json; do
 done
 
 ./scripts/ci/api-diff-check.sh
-
-GOWORK=off go test ./contracts
+GOWORK=off go test ./contracts...
 
 echo "contract check passed"
