@@ -4,7 +4,27 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-VERSION="${VERSION:-v0.1.0}"
+resolve_version() {
+  if [ -n "${VERSION:-}" ]; then
+    printf '%s' "$VERSION"
+    return
+  fi
+  if [ -n "${GITHUB_REF_NAME:-}" ] && printf '%s' "$GITHUB_REF_NAME" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+'; then
+    printf '%s' "$GITHUB_REF_NAME"
+    return
+  fi
+  if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    local tag
+    tag="$(git tag --points-at HEAD --list 'v[0-9]*.[0-9]*.[0-9]*' | sort | tail -n 1)"
+    if [ -n "$tag" ]; then
+      printf '%s' "$tag"
+      return
+    fi
+  fi
+  printf 'v0.1.0'
+}
+
+VERSION="$(resolve_version)"
 MANIFEST="release/manifest/${VERSION}.json"
 LATEST="release/manifest/latest.json"
 
