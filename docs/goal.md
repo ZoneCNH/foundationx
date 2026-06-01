@@ -182,7 +182,7 @@ release_target: v0.1.0
 
 ## 7. Goal 对象模型
 
-### 7.1 Core Object Graph
+### 7.1 核心对象图 Core Object Graph
 
 ```text
 GOAL-20260601-002
@@ -203,7 +203,7 @@ GOAL-20260601-002
     produces PATCH-RULE-20260601-002
 ```
 
-### 7.2 State Machine
+### 7.2 状态机 State Machine
 
 ```text
 INIT
@@ -237,7 +237,7 @@ INCONSISTENT_STATE
 ---
 
 
-## 7A. Change Propagation：`baselib-template` → `xlib-standard`
+## 7A. 变更传播 Change Propagation：`baselib-template` → `xlib-standard`
 
 ### 7A.1 变更性质
 
@@ -276,7 +276,7 @@ DONE with evidence:
 
 ---
 
-## 8. Context Recovery Protocol
+## 8. 上下文恢复协议 Context Recovery Protocol
 
 ### 8.1 必须恢复的上下文
 
@@ -289,7 +289,7 @@ DONE with evidence:
 | CI/Release 基线 | 确认 make targets、GitHub Actions、release evidence | `docs/context/ci-release-baseline.md` |
 | 依赖边界 | 输出依赖图，确认 L0 不依赖 L1/L2/L3 | `docs/context/dependency-boundary.md` |
 
-### 8.2 Context Gate
+### 8.2 上下文门禁 Context Gate
 
 必须满足：
 
@@ -305,7 +305,7 @@ DONE with evidence:
 
 ---
 
-## 9. Spec：SPEC-l0-kernel-v1.0
+## 9. 规格 Spec：SPEC-l0-kernel-v1.0
 
 ### 9.1 Spec 目标
 
@@ -320,7 +320,7 @@ DONE with evidence:
 7. 以 v0.1.0 发布；
 8. 后续所有 L1 基础库优先复用。
 
-### 9.2 Functional Requirements
+### 9.2 功能需求 Functional Requirements
 
 | Req ID | Requirement | Acceptance Criteria |
 |---|---|---|
@@ -347,7 +347,7 @@ DONE with evidence:
 
 ---
 
-## 10. Design：DESIGN-l0-kernel-v1.0
+## 10. 设计 Design：DESIGN-l0-kernel-v1.0
 
 ### 10.1 设计原则
 
@@ -515,9 +515,9 @@ kernel → concrete infra SDK   禁止，除非 ADR 明确批准且不属于 L0 
 
 ---
 
-## 12. Plan：PLAN-GOAL-20260601-002-v1.0
+## 12. 计划 Plan：PLAN-GOAL-20260601-002-v1.0
 
-### 12.1 Milestones
+### 12.1 里程碑 Milestones
 
 | Milestone | 目标 | Gate |
 |---|---|---|
@@ -539,7 +539,7 @@ M0 → M1 → M2 → M3A(errx/timex) → M3B(lifecycx/retryx) → M3C(healthx/ob
 
 ---
 
-## 13. Tasks
+## 13. 任务 Tasks
 
 | Task ID | Title | Output | Verification |
 |---|---|---|---|
@@ -576,7 +576,7 @@ M0 → M1 → M2 → M3A(errx/timex) → M3B(lifecycx/retryx) → M3C(healthx/ob
 
 ---
 
-## 14. Harness Gates
+## 14. 验证门禁 Harness Gates
 
 ### 14.1 Gate 类型
 
@@ -614,7 +614,7 @@ make release-final-check
 
 ---
 
-## 15. Evidence Protocol
+## 15. 证据协议 Evidence Protocol
 
 ### 15.1 Evidence 类型
 
@@ -657,7 +657,7 @@ DONE with evidence:
 
 ---
 
-## 16. Traceability Matrix
+## 16. 可追溯矩阵 Traceability Matrix
 
 | Requirement | AC | Design Section | Task | Test | Evidence | Status |
 |---|---|---|---|---|---|---|
@@ -684,7 +684,7 @@ DONE with evidence:
 
 ---
 
-## 17. Risk Register
+## 17. 风险登记 Risk Register
 
 | Risk ID | Risk | Impact | Mitigation | Owner |
 |---|---|---|---|---|
@@ -701,7 +701,7 @@ DONE with evidence:
 
 ---
 
-## 18. Change Propagation Matrix
+## 18. 变更传播矩阵 Change Propagation Matrix
 
 | Change Type | Must Update |
 |---|---|
@@ -718,9 +718,9 @@ DONE with evidence:
 
 ---
 
-## 19. Rollback Protocol
+## 19. 回滚协议 Rollback Protocol
 
-### 19.1 Rollback Trigger
+### 19.1 回滚触发 Rollback Trigger
 
 触发条件：
 
@@ -732,7 +732,7 @@ DONE with evidence:
 - x.go smoke test 失败且无法在当前小批次修复；
 - 发现 L0 依赖 L1/L2/L3 或具体基础设施 SDK。
 
-### 19.2 Rollback Steps
+### 19.2 回滚步骤 Rollback Steps
 
 ```text
 1. 标记状态为 NEEDS_ROLLBACK
@@ -747,7 +747,7 @@ DONE with evidence:
 
 ---
 
-## 20. Human Approval Gates
+## 20. 人工审批门禁 Human Approval Gates
 
 以下变更必须人工批准：
 
@@ -764,7 +764,7 @@ DONE with evidence:
 
 ---
 
-## 21. Failure Budget
+## 21. 失败预算 Failure Budget
 
 | 类型 | 预算 | 超限动作 |
 |---|---|---|
@@ -778,7 +778,7 @@ DONE with evidence:
 
 ---
 
-## 22. MVA：Minimum Viable Action
+## 22. 最小可行动作 MVA：Minimum Viable Action
 
 最小可行行动不是一次性实现所有包，而是先建立可复利的最小内核闭环。
 
@@ -838,7 +838,7 @@ DONE with evidence: errx/timex + docs-check + boundary-check + tests green
 
 完成 L0 的边界冻结 + MVA 原语启动。
 
-### Day 1 Tasks
+### Day 1 任务 Tasks
 
 1. 扫描 `kernel` 当前结构；
 2. 扫描 `xlib-standard` 必需规范；
@@ -853,7 +853,7 @@ DONE with evidence: errx/timex + docs-check + boundary-check + tests green
 11. 实现 `make boundary-check` 最小版本；
 12. 生成 `docs/evidence/day1-context-and-boundary.md`。
 
-### Day 1 Exit Criteria
+### Day 1 退出标准 Exit Criteria
 
 - [ ] Spec Gate green；
 - [ ] Design Gate green；
@@ -897,7 +897,7 @@ make boundary-check
 - package README；
 - example tests。
 
-### Day 6：CI + Evidence
+### Day 6：CI + 证据 Evidence
 
 完成：
 
@@ -907,7 +907,7 @@ make boundary-check
 - `make release-evidence-check`；
 - release manifest draft。
 
-### Day 7：Consumer Smoke + Release Candidate
+### Day 7：消费者冒烟 Consumer Smoke + 发布候选 Release Candidate
 
 完成：
 
@@ -1038,7 +1038,7 @@ kernel v0.3.0
 
 ## 27. AI / 自动化 / 研究增强介入位置
 
-### 27.1 AutoResearch
+### 27.1 自动研究 AutoResearch
 
 触发条件：
 
@@ -1068,7 +1068,7 @@ Recommendation
 Impact on Spec/Design/Plan/Tasks
 ```
 
-### 27.2 Agent Teams
+### 27.2 智能体团队 Agent Teams
 
 | Agent | 责任 |
 |---|---|
@@ -1129,7 +1129,7 @@ L0 Kernel Primitive
 
 ## 29. gstack / superpowers / Harness / CE / Self-improving / AutoResearch / Goal-Oriented Thinking 映射
 
-### 29.1 gstack
+### 29.1 技术栈 gstack
 
 ```text
 North Star:
@@ -1148,7 +1148,7 @@ Evidence Goals:
   CI green + docs-check + boundary-check + release manifest
 ```
 
-### 29.2 Superpowers
+### 29.2 超能力 Superpowers
 
 | Superpower | 在 L0 中的实现 |
 |---|---|
@@ -1160,15 +1160,15 @@ Evidence Goals:
 | API Surface Control | public API diff gate |
 | Reuse Flywheel | L1 基础库持续复用 L0 |
 
-### 29.3 Harness
+### 29.3 验证框架 Harness
 
 Harness 的核心作用是把“代码写完”改成“证据链完整”。L0 必须以 Gates 管理完成度。
 
-### 29.4 Compound Engineering
+### 29.4 复合工程 Compound Engineering
 
 L0 的每个原语都是后续基础库的复利资产。一次高质量实现，多处长期收益。
 
-### 29.5 Self-improving
+### 29.5 自我改进 Self-improving
 
 每次失败、review、release 后必须输出：
 
@@ -1178,11 +1178,11 @@ PATCH-HARNESS-YYYYMMDD-NNN
 PATCH-RULE-YYYYMMDD-NNN
 ```
 
-### 29.6 AutoResearch
+### 29.6 自动研究 AutoResearch
 
 未知项不猜测，不硬编码。进入 NEEDS_RESEARCH，形成 research note 后再决策。
 
-### 29.7 Goal-Oriented Thinking
+### 29.7 目标导向思维 Goal-Oriented Thinking
 
 任何 Task 必须能追溯到 Requirement 和 Acceptance Criteria。不能证明价值的任务不执行。
 
@@ -1197,7 +1197,7 @@ PATCH-RULE-YYYYMMDD-NNN
 
 You are an Agent Team executing Goal Runtime Prompt v3.1.
 
-## Goal
+## 目标 Goal
 
 Implement and release the L0 Kernel Library for `github.com/ZoneCNH/kernel`, using `https://github.com/ZoneCNH/xlib-standard` as the base library template and `x.go` only as a downstream consumer smoke target.
 
@@ -1208,7 +1208,7 @@ Plan ID: PLAN-GOAL-20260601-002-v1.0
 Target Release: kernel v0.1.0  
 Execution Mode: Full Governance / Small Batch Execution
 
-## Non-negotiable Constraints
+## 不可协商约束 Non-negotiable Constraints
 
 1. kernel is L0. It must not depend on x.go, L1 infrastructure libraries, L2 adapters, or L3 domain code.
 2. Do not introduce Redis, Kafka, PostgreSQL, TDengine, OSS, ClickHouse, Prometheus, OpenTelemetry, Binance, Market, Macro, Regime, Strategy, or Order semantics into L0 core.
@@ -1221,7 +1221,7 @@ Execution Mode: Full Governance / Small Batch Execution
 9. x.go is a consumer smoke target only. Do not modify x.go domain behavior to satisfy L0.
 10. Secrets under `/home/k8s/secrets/env/*` are not read by L0. They are runtime concerns for concrete infrastructure libraries or applications.
 
-## Required Packages for v0.1.0
+## v0.1.0 必需包 Required Packages
 
 - errx
 - timex
@@ -1234,13 +1234,13 @@ Execution Mode: Full Governance / Small Batch Execution
 - versionx
 - contracttest
 
-## Execution State Machine
+## 执行状态机 Execution State Machine
 
 INIT → CONTEXT_READY → GOAL_READY → SPEC_READY → DESIGN_READY → PLAN_READY → TASKS_READY → EXECUTING → VERIFYING → REVIEWING → RELEASING → RETROSPECTING → DONE
 
 If uncertainty appears, move to NEEDS_RESEARCH. If CI or boundary fails, move to NEEDS_REPLAN or NEEDS_ROLLBACK.
 
-## Required Deliverables
+## 必需交付物 Required Deliverables
 
 1. docs/context/*.md
 2. docs/spec/SPEC-l0-kernel-v1.0.md
@@ -1265,7 +1265,7 @@ If uncertainty appears, move to NEEDS_RESEARCH. If CI or boundary fails, move to
 13. docs/retro/RETRO-20260601-002.md
 14. PATCH-PROMPT / PATCH-HARNESS / PATCH-RULE outputs
 
-## Verification Commands
+## 验证命令 Verification Commands
 
 Run and record evidence for:
 
@@ -1282,7 +1282,7 @@ make release-evidence-check
 make release-final-check
 ```
 
-## Completion Format
+## 完成格式 Completion Format
 
 Only declare completion as:
 

@@ -33,6 +33,10 @@ cover:
 boundary:
 	./scripts/check_boundary.sh
 
+.PHONY: boundary-check
+boundary-check:
+	$(MAKE) boundary
+
 .PHONY: security
 security:
 	@if command -v govulncheck >/dev/null 2>&1; then \
@@ -50,6 +54,10 @@ contracts:
 docs:
 	./scripts/check_docs.sh
 
+.PHONY: docs-check
+docs-check:
+	$(MAKE) docs
+
 .PHONY: examples
 examples:
 	$(GOENV) $(GO) run ./examples/error_kind
@@ -65,6 +73,11 @@ evidence:
 release-evidence-check:
 	./scripts/check_release_evidence.sh
 
+.PHONY: evidence-check
+evidence-check:
+	$(MAKE) evidence
+	$(MAKE) release-evidence-check
+
 .PHONY: release-clean-check
 release-clean-check:
 	./scripts/check_release_clean.sh
@@ -77,6 +90,10 @@ release-check:
 	$(MAKE) ci
 	$(MAKE) evidence
 	$(MAKE) release-evidence-check
+
+.PHONY: release-preflight
+release-preflight:
+	$(MAKE) release-check
 
 .PHONY: release-final-check
 release-final-check:

@@ -12,6 +12,10 @@ import (
 func TestReleaseCheckWiresDocumentationAndEvidenceGates(t *testing.T) {
 	makefile := readRepoText(t, "Makefile")
 
+	assertContains(t, makefile, "docs-check:")
+	assertContains(t, makefile, "boundary-check:")
+	assertContains(t, makefile, "evidence-check:")
+	assertContains(t, makefile, "release-preflight:")
 	assertContains(t, makefile, "release-check:")
 	assertContains(t, makefile, "release-clean-check:")
 	assertContains(t, makefile, "release-final-check:")
@@ -23,6 +27,42 @@ func TestReleaseCheckWiresDocumentationAndEvidenceGates(t *testing.T) {
 	assertContains(t, makefile, "./scripts/generate_manifest.sh")
 	assertContains(t, makefile, "./scripts/check_release_evidence.sh")
 	assertContains(t, makefile, "./scripts/check_release_clean.sh")
+}
+
+func TestGoalRequiredMakeAliasesWireToCanonicalGates(t *testing.T) {
+	makefile := readRepoText(t, "Makefile")
+
+	for _, tc := range []struct {
+		target string
+		want   []string
+	}{
+		{
+			target: "docs-check",
+			want:   []string{"\t$(MAKE) docs"},
+		},
+		{
+			target: "boundary-check",
+			want:   []string{"\t$(MAKE) boundary"},
+		},
+		{
+			target: "evidence-check",
+			want: []string{
+				"\t$(MAKE) evidence",
+				"\t$(MAKE) release-evidence-check",
+			},
+		},
+		{
+			target: "release-preflight",
+			want:   []string{"\t$(MAKE) release-check"},
+		},
+	} {
+		t.Run(tc.target, func(t *testing.T) {
+			body := makeTargetBody(t, makefile, tc.target)
+			for _, want := range tc.want {
+				assertContains(t, body, want)
+			}
+		})
+	}
 }
 
 func TestReleaseCheckRunsEvidenceAfterCIGates(t *testing.T) {
