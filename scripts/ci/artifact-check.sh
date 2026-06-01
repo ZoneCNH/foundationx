@@ -3,6 +3,11 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 
 required_paths=(
+  .github/versions.env
+  scripts/ci/toolchain-check.sh
+  scripts/ci/api-diff-check.sh
+  scripts/ci/internal/apisnapshot/main.go
+  contracts/public_api.snapshot
   docs/context/CTX-GOAL-20260601-002.md
   docs/spec/SPEC-l0-kernel-v1.0.md
   docs/design/DESIGN-l0-kernel-v1.0.md
@@ -14,24 +19,26 @@ required_paths=(
   docs/adr/ADR-20260601-008-health-version-contracts.md
   docs/adr/ADR-20260601-009-contracttest-golden-examples.md
   docs/adr/ADR-20260601-010-release-evidence-gates.md
+  docs/governance/API_COMPATIBILITY_POLICY.md
+  docs/governance/DEPRECATION_POLICY.md
+  docs/governance/PACKAGE_MATURITY.md
+  docs/governance/XGO_CONSUMER_COMPATIBILITY.md
+  docs/governance/RELEASE_MANIFEST_SCHEMA.md
+  docs/governance/KERNEL_FOUNDATION_RULES.md
   docs/evidence/release-v0.1.0.md
   docs/evidence/release-v0.2.0.md
   docs/review/REV-GOAL-20260601-002-20260601-001.md
   docs/retro/RETRO-20260601-002.md
+  contracts/consumers/xgo/README.md
+  contracts/consumers/xgo/minimal_import_test.go
   contracts/examples/golden/README.md
   contracts/examples/golden/error-unavailable.json
   contracts/examples/golden/health-healthy.json
   contracts/examples/golden/version-v0.1.0.json
-  .github/versions.env
-  contracts/public_api.snapshot
-  contracts/golden/retry-delays.json
-  contracts/golden/obsx-redaction.json
-  contracts/golden/lifecycx-rollback-order.json
-  contracts/golden/syncx-workergroup-first-error.json
-  contracts/consumers/xgo/README.md
-  docs/governance/API_COMPATIBILITY_POLICY.md
-  docs/governance/PACKAGE_MATURITY.md
-  docs/governance/XGO_CONSUMER_COMPATIBILITY.md
+  contracts/examples/golden/retry-policy-default.json
+  contracts/examples/golden/obs-secret-redaction.json
+  contracts/examples/golden/lifecycle-rollback-order.json
+  contracts/examples/golden/sync-workergroup-aggregation.json
 )
 
 status=0

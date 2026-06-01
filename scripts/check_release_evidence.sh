@@ -4,8 +4,10 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-# shellcheck source=/dev/null
-source .github/versions.env
+VERSIONS_FILE=".github/versions.env"
+[ -s "$VERSIONS_FILE" ] || { echo "ERROR: missing toolchain version pins: $VERSIONS_FILE"; exit 1; }
+# shellcheck disable=SC1090
+. "$VERSIONS_FILE"
 
 resolve_version() {
   if [ -n "${VERSION:-}" ]; then
@@ -74,7 +76,7 @@ require_manifest_text() {
 [ -s "$LATEST" ] || fail "latest release manifest missing or empty: $LATEST"
 cmp -s "$MANIFEST" "$LATEST" || fail "$LATEST does not match $MANIFEST"
 
-[ "$(json_string schema_version)" = "kernel.release_manifest.v1" ] || fail "manifest schema_version mismatch"
+[ "$(json_string schema_version)" = "kernel.release-manifest.v1" ] || fail "manifest schema_version does not match kernel.release-manifest.v1"
 
 expected_module="$(GOWORK=off go list -m)"
 [ "$(json_string module)" = "$expected_module" ] || fail "manifest module does not match $expected_module"
@@ -99,27 +101,35 @@ grep -q '"verified_go_versions"' "$MANIFEST" || fail "manifest missing verified_
 grep -q "\"$GO_MIN_VERSION\"" "$MANIFEST" || fail "manifest missing GO_MIN_VERSION in verified_go_versions"
 grep -q "\"$GO_INTEGRATION_VERSION\"" "$MANIFEST" || fail "manifest missing GO_INTEGRATION_VERSION in verified_go_versions"
 
+actual_go_version="$(go version | awk '{print $3}' | sed 's/^go//')"
+[ "$(json_string min_version)" = "$GO_MIN_VERSION" ] || fail "manifest go.min_version does not match GO_MIN_VERSION"
+[ "$(json_string integration_version)" = "$GO_INTEGRATION_VERSION" ] || fail "manifest go.integration_version does not match GO_INTEGRATION_VERSION"
+[ "$(json_string actual_version)" = "$actual_go_version" ] || fail "manifest go.actual_version does not match current Go"
+
+[ "$(json_string public_api_snapshot)" = "contracts/public_api.snapshot" ] || fail "manifest public API snapshot path mismatch"
+[ "$(json_string public_api_sha256)" = "$(sha256_file contracts/public_api.snapshot)" ] || fail "public API snapshot hash mismatch"
+
 [ "$(json_string error_schema_sha256)" = "$(sha256_file contracts/error.schema.json)" ] || fail "error schema hash mismatch"
 [ "$(json_string health_schema_sha256)" = "$(sha256_file contracts/health.schema.json)" ] || fail "health schema hash mismatch"
 [ "$(json_string version_schema_sha256)" = "$(sha256_file contracts/version.schema.json)" ] || fail "version schema hash mismatch"
-[ "$(json_string public_api_sha256)" = "$(sha256_file contracts/public_api.snapshot)" ] || fail "public API snapshot hash mismatch"
+[ "$(json_string retry_policy_default_sha256)" = "$(sha256_file contracts/examples/golden/retry-policy-default.json)" ] || fail "retry policy golden hash mismatch"
+[ "$(json_string obs_secret_redaction_sha256)" = "$(sha256_file contracts/examples/golden/obs-secret-redaction.json)" ] || fail "obs secret redaction golden hash mismatch"
+[ "$(json_string lifecycle_rollback_order_sha256)" = "$(sha256_file contracts/examples/golden/lifecycle-rollback-order.json)" ] || fail "lifecycle rollback golden hash mismatch"
+[ "$(json_string sync_workergroup_aggregation_sha256)" = "$(sha256_file contracts/examples/golden/sync-workergroup-aggregation.json)" ] || fail "sync worker group golden hash mismatch"
 
-grep -q '"consumer_compatibility"' "$MANIFEST" || fail "manifest missing consumer_compatibility"
-grep -q '"xgo"' "$MANIFEST" || fail "manifest missing xgo consumer compatibility"
-grep -q '"policy": "docs/governance/XGO_CONSUMER_COMPATIBILITY.md"' "$MANIFEST" || fail "manifest missing xgo compatibility policy path"
-grep -q '"evidence": "contracts/consumers/xgo/README.md"' "$MANIFEST" || fail "manifest missing xgo compatibility evidence path"
-grep -q '"status": "kernel-side-compatible"' "$MANIFEST" || fail "manifest missing xgo compatibility status"
-
-for check in fmt vet unit_test race_test boundary secret_scan contract api api_diff docs artifact_docs examples; do
+for check in toolchain fmt vet unit_test race_test boundary secret_scan contract api api_diff docs artifact_docs examples release_evidence; do
   grep -q "\"${check}\": \"passed\"" "$MANIFEST" || fail "manifest missing passed check: $check"
 done
-grep -q '"consumer_compatibility": "documented"' "$MANIFEST" || fail "manifest missing documented consumer compatibility check"
-[ "$(json_value consumer_compatibility.xgo.policy)" = "docs/governance/XGO_CONSUMER_COMPATIBILITY.md" ] || fail "manifest xgo policy path mismatch"
-[ "$(json_value consumer_compatibility.xgo.evidence)" = "docs/evidence/xgo-consumer-smoke.md" ] || fail "manifest xgo evidence path mismatch"
-[ "$(json_value consumer_compatibility.xgo.verified)" = "false" ] || fail "manifest xgo external verification state must be explicit"
+grep -q '"consumer_compatibility": "documented_external"' "$MANIFEST" || fail "manifest missing consumer compatibility evidence check"
+grep -q '"status": "external-evidence-required"' "$MANIFEST" || fail "manifest missing xgo external evidence status"
+grep -q '"evidence": "contracts/consumers/xgo/README.md"' "$MANIFEST" || fail "manifest missing xgo evidence path"
 
 for artifact in \
   .github/versions.env \
+  scripts/ci/toolchain-check.sh \
+  scripts/ci/api-diff-check.sh \
+  scripts/ci/internal/apisnapshot/main.go \
+  contracts/public_api.snapshot \
   docs/context/CTX-GOAL-20260601-002.md \
   docs/spec/SPEC-l0-kernel-v1.0.md \
   docs/design/DESIGN-l0-kernel-v1.0.md \
@@ -131,6 +141,12 @@ for artifact in \
   docs/adr/ADR-20260601-008-health-version-contracts.md \
   docs/adr/ADR-20260601-009-contracttest-golden-examples.md \
   docs/adr/ADR-20260601-010-release-evidence-gates.md \
+  docs/governance/API_COMPATIBILITY_POLICY.md \
+  docs/governance/DEPRECATION_POLICY.md \
+  docs/governance/PACKAGE_MATURITY.md \
+  docs/governance/XGO_CONSUMER_COMPATIBILITY.md \
+  docs/governance/RELEASE_MANIFEST_SCHEMA.md \
+  docs/governance/KERNEL_FOUNDATION_RULES.md \
   docs/evidence/release-v0.1.0.md \
   "docs/evidence/release-${VERSION}.md" \
   docs/evidence/xgo-consumer-smoke.md \
@@ -139,23 +155,16 @@ for artifact in \
   docs/governance/XGO_CONSUMER_COMPATIBILITY.md \
   docs/review/REV-GOAL-20260601-002-20260601-001.md \
   docs/retro/RETRO-20260601-002.md \
-  docs/governance/API_COMPATIBILITY_POLICY.md \
-  docs/governance/PACKAGE_MATURITY.md \
-  docs/governance/XGO_CONSUMER_COMPATIBILITY.md \
-  contracts/public_api.snapshot \
-  contracts/golden/retry-delays.json \
-  contracts/golden/obsx-redaction.json \
-  contracts/golden/lifecycx-rollback-order.json \
-  contracts/golden/syncx-workergroup-first-error.json \
   contracts/consumers/xgo/README.md \
+  contracts/consumers/xgo/minimal_import_test.go \
   contracts/examples/golden/README.md \
   contracts/examples/golden/error-unavailable.json \
   contracts/examples/golden/health-healthy.json \
   contracts/examples/golden/version-v0.1.0.json \
   contracts/examples/golden/retry-policy-default.json \
-  contracts/examples/golden/obsx-secret-redaction.json \
-  contracts/examples/golden/lifecycx-rollback-order.json \
-  contracts/examples/golden/syncx-first-error.json; do
+  contracts/examples/golden/obs-secret-redaction.json \
+  contracts/examples/golden/lifecycle-rollback-order.json \
+  contracts/examples/golden/sync-workergroup-aggregation.json; do
   [ -s "$artifact" ] || fail "required goal artifact missing or empty: $artifact"
 done
 

@@ -40,12 +40,12 @@ func TestReleaseCheckRunsEvidenceAfterCIGates(t *testing.T) {
 	makefile := readRepoText(t, "Makefile")
 	targetBody := makeTargetBody(t, makefile, "release-check")
 
-	toolchain := strings.Index(targetBody, "\t$(MAKE) release-toolchain-check")
+	toolchain := strings.Index(targetBody, "\t$(MAKE) toolchain-check")
 	ci := strings.Index(targetBody, "\t$(MAKE) ci")
 	evidence := strings.Index(targetBody, "\t$(MAKE) evidence")
 	evidenceCheck := strings.Index(targetBody, "\t$(MAKE) release-evidence-check")
 	if toolchain == -1 {
-		t.Fatal("release-check does not run release-toolchain-check")
+		t.Fatal("release-check does not run toolchain-check")
 	}
 	if ci == -1 {
 		t.Fatal("release-check does not run ci")
@@ -57,7 +57,7 @@ func TestReleaseCheckRunsEvidenceAfterCIGates(t *testing.T) {
 		t.Fatal("release-check does not validate release evidence")
 	}
 	if toolchain >= ci || ci >= evidence || evidence >= evidenceCheck {
-		t.Fatal("release-check must run toolchain, ci, evidence generation, and evidence validation in order")
+		t.Fatal("release-check must run toolchain-check, ci, evidence generation, and evidence validation in order")
 	}
 }
 
@@ -121,13 +121,11 @@ func TestReleaseEvidenceScriptsPreserveFreshnessChecks(t *testing.T) {
 		"error_schema_sha256",
 		"health_schema_sha256",
 		"version_schema_sha256",
-		"PUBLIC_API_SHA",
 		"schema_version",
-		"kernel.release-manifest.v1",
-		"GO_MIN_VERSION",
-		"GO_INTEGRATION_VERSION",
-		"contracts/public_api.snapshot",
-		"contracts/consumers/xgo/minimal_import_test.go",
+		"public_api_sha256",
+		"retry_policy_default_sha256",
+		"consumer_compatibility",
+		"external-evidence-required",
 		"cp \"$OUT\" \"$LATEST\"",
 	} {
 		assertContains(t, generate, want)
@@ -144,10 +142,10 @@ func TestReleaseEvidenceScriptsPreserveFreshnessChecks(t *testing.T) {
 		"error schema hash mismatch",
 		"health schema hash mismatch",
 		"version schema hash mismatch",
+		"manifest schema_version does not match kernel.release-manifest.v1",
 		"public API snapshot hash mismatch",
-		"manifest schema_version mismatch",
-		"manifest Go min version mismatch",
-		"manifest xgo consumer evidence missing",
+		"retry policy golden hash mismatch",
+		"manifest missing xgo external evidence status",
 		"release-${VERSION}.md",
 	} {
 		assertContains(t, check, want)
