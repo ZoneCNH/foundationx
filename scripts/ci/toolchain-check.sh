@@ -50,8 +50,28 @@ go_version="$(go env GOVERSION)"
 [[ "$go_version" == "go$GO_INTEGRATION_VERSION" ]] || fail "go version mismatch: want go$GO_INTEGRATION_VERSION got $go_version"
 [[ "$(GOWORK=off go env GOWORK)" == "off" ]] || fail "GOWORK=off is not honored"
 
-if grep -Eq '^replace\b' go.mod; then
-  fail "go.mod replace directives are forbidden for release validation"
+version_ge() {
+  local actual="$1" required="$2"
+  awk -v a="$actual" -v b="$required" 'BEGIN {
+    split(a, av, "."); split(b, bv, ".");
+    for (i = 1; i <= 3; i++) { ai = av[i] + 0; bi = bv[i] + 0; if (ai > bi) exit 0; if (ai < bi) exit 1; }
+    exit 0
+  }'
+}
+
+actual_mod_go="$(awk '$1 == "go" { print $2; exit }' go.mod)"
+[ -n "$actual_mod_go" ] || fail "go.mod has no go directive"
+version_ge "$actual_mod_go" "$GO_MIN_VERSION" || fail "go.mod go $actual_mod_go is below GO_MIN_VERSION=$GO_MIN_VERSION"
+
+actual_go="$(go env GOVERSION | sed 's/^go//')"
+version_ge "$actual_go" "$GO_MIN_VERSION" || fail "go $actual_go is below GO_MIN_VERSION=$GO_MIN_VERSION"
+
+[ "${GOWORK:-off}" = "off" ] || fail "GOWORK environment must be off for release checks"
+[ "$(GOWORK=off go env GOWORK)" = "off" ] || fail "go env GOWORK must resolve to off"
+
+latest_pattern='@''latest'
+if grep -R -n -E "$latest_pattern" go.mod go.sum .github scripts Makefile 2>/dev/null; then
+  fail "release paths must not reference ${latest_pattern}"
 fi
 if grep -RIn --include='*.sh' --include='go.mod' --include='*.yml' --include='*.yaml' '@latest' .github scripts go.mod 2>/dev/null | grep -v 'toolchain-check.sh' >/tmp/kernel_toolchain_latest.$$; then
   cat /tmp/kernel_toolchain_latest.$$ >&2
@@ -60,10 +80,17 @@ if grep -RIn --include='*.sh' --include='go.mod' --include='*.yml' --include='*.
 fi
 rm -f /tmp/kernel_toolchain_latest.$$
 
-if need_cmd golangci-lint; then version_contains golangci-lint "$GOLANGCI_LINT_VERSION"; fi
-if need_cmd govulncheck; then version_contains govulncheck "$GOVULNCHECK_VERSION"; fi
-if command -v gotestsum >/dev/null 2>&1; then version_contains gotestsum "$GOTESTSUM_VERSION" warn; elif [[ "$STRICT" == 1 ]]; then warn "gotestsum missing; not required for release-final hard gate"; fi
-if command -v gofumpt >/dev/null 2>&1; then version_contains gofumpt "$GOFUMPT_VERSION" warn; elif [[ "$STRICT" == 1 ]]; then warn "gofumpt missing; not required for release-final hard gate"; fi
-if command -v staticcheck >/dev/null 2>&1; then version_contains staticcheck "$STATICCHECK_VERSION" warn; elif [[ "$STRICT" == 1 ]]; then warn "staticcheck missing; not required for release-final hard gate"; fi
+check_tool_exact() {
+  local name="$1" expected="$2" cmd="$3"
+  command -v "$name" >/dev/null 2>&1 || fail "$name not installed; required $expected"
+  local got
+  got="$($cmd 2>&1 || true)"
+  printf '%s\n' "$got" | grep -F -q "$expected" || {
+    local summary
+    summary="$(printf '%s' "$got" | tr '\n' ';' | cut -c1-200)"
+    fail "$name version mismatch; required $expected; got: ${summary:-unknown}"
+  }
+  info "$name $expected"
+}
 
 echo "toolchain-check: ok"
