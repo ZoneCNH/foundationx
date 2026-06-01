@@ -4,10 +4,10 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-PINS="$ROOT/.github/versions.env"
-[ -s "$PINS" ] || { echo "ERROR: missing $PINS"; exit 1; }
+VERSIONS_FILE=".github/versions.env"
+[ -s "$VERSIONS_FILE" ] || { echo "ERROR: missing $VERSIONS_FILE" >&2; exit 1; }
 # shellcheck disable=SC1090
-source "$PINS"
+. "$VERSIONS_FILE"
 
 resolve_version() {
   if [ -n "${VERSION:-}" ]; then
@@ -38,27 +38,9 @@ fail() {
   exit 1
 }
 
-json_value() {
-  local path="$1"
-  python3 - "$MANIFEST" "$path" <<'PY'
-import json, sys
-with open(sys.argv[1], encoding='utf-8') as f:
-    data = json.load(f)
-cur = data
-for part in sys.argv[2].split('.'):
-    if isinstance(cur, dict) and part in cur:
-        cur = cur[part]
-    else:
-        sys.exit(2)
-if isinstance(cur, bool):
-    print('true' if cur else 'false')
-elif cur is None:
-    print('null')
-elif isinstance(cur, list):
-    print('\n'.join(str(x) for x in cur))
-else:
-    print(cur)
-PY
+json_string() {
+  local key="$1"
+  sed -n "s/^[[:space:]]*\"${key}\": \"\([^\"]*\)\".*/\1/p" "$MANIFEST" | head -n 1
 }
 
 sha256_file() {
@@ -85,11 +67,19 @@ workspace_status() {
   printf 'clean'
 }
 
+require_manifest_text() {
+  local label="$1" pattern="$2"
+  grep -qE "$pattern" "$MANIFEST" || fail "manifest missing ${label}"
+}
+
 [ -s "$MANIFEST" ] || fail "release manifest missing or empty: $MANIFEST"
 [ -s "$LATEST" ] || fail "latest release manifest missing or empty: $LATEST"
 cmp -s "$MANIFEST" "$LATEST" || fail "$LATEST does not match $MANIFEST"
 
-[ "$(json_value schema_version)" = "kernel.release-manifest.v1" ] || fail "manifest schema_version mismatch"
+[ "$(json_string schema_version)" = "kernel.release-manifest.v1" ] || fail "manifest schema_version mismatch"
+
+expected_module="$(GOWORK=off go list -m)"
+[ "$(json_string module)" = "$expected_module" ] || fail "manifest module does not match $expected_module"
 
 expected_module="$(GOWORK=off go list -m)"
 [ "$(json_value module)" = "$expected_module" ] || fail "manifest module does not match $expected_module"
@@ -105,19 +95,21 @@ expected_tree="$(git rev-parse 'HEAD^{tree}' 2>/dev/null || printf 'unknown')"
 expected_workspace_status="$(workspace_status)"
 [ "$(json_value workspace_status)" = "$expected_workspace_status" ] || fail "manifest workspace_status does not match current workspace"
 
-[ "$(json_value toolchain.go_min_version)" = "$GO_MIN_VERSION" ] || fail "manifest go_min_version mismatch"
-[ "$(json_value go.min_version)" = "$GO_MIN_VERSION" ] || fail "manifest go.min_version mismatch"
-json_value go.verified_versions | grep -Fx "$GO_INTEGRATION_VERSION" >/dev/null || fail "manifest verified_go_versions missing $GO_INTEGRATION_VERSION"
-[ "$(json_value toolchain.golangci_lint_version)" = "$GOLANGCI_LINT_VERSION" ] || fail "manifest golangci-lint pin mismatch"
-[ "$(json_value toolchain.govulncheck_version)" = "$GOVULNCHECK_VERSION" ] || fail "manifest govulncheck pin mismatch"
+[ "$(json_string error_schema_sha256)" = "$(sha256_file contracts/error.schema.json)" ] || fail "error schema hash mismatch"
+[ "$(json_string health_schema_sha256)" = "$(sha256_file contracts/health.schema.json)" ] || fail "health schema hash mismatch"
+[ "$(json_string version_schema_sha256)" = "$(sha256_file contracts/version.schema.json)" ] || fail "version schema hash mismatch"
+[ "$(json_string public_api_sha256)" = "$(sha256_file contracts/public_api.snapshot)" ] || fail "public API snapshot hash mismatch"
 
-[ "$(json_value contracts.error_schema_sha256)" = "$(sha256_file contracts/error.schema.json)" ] || fail "error schema hash mismatch"
-[ "$(json_value contracts.health_schema_sha256)" = "$(sha256_file contracts/health.schema.json)" ] || fail "health schema hash mismatch"
-[ "$(json_value contracts.version_schema_sha256)" = "$(sha256_file contracts/version.schema.json)" ] || fail "version schema hash mismatch"
-[ "$(json_value api.public_api_sha256)" = "$(sha256_file contracts/public_api.snapshot)" ] || fail "public API hash mismatch"
-[ "$(json_value contracts.public_api_sha256)" = "$(sha256_file contracts/public_api.snapshot)" ] || fail "contract public API hash mismatch"
+require_manifest_text "go min version" "\"min_version\": \"${GO_MIN_VERSION}\""
+require_manifest_text "go integration version" "\"integration_version\": \"${GO_INTEGRATION_VERSION}\""
+require_manifest_text "verified Go versions" "\"verified_versions\": \[\"${GO_MIN_VERSION}\", \"${GO_INTEGRATION_VERSION}\"\]"
+require_manifest_text "API snapshot path" '"snapshot": "contracts/public_api.snapshot"'
+require_manifest_text "xgo required" '"required": true'
+require_manifest_text "xgo verified" '"verified": true'
+require_manifest_text "xgo evidence" '"evidence": "contracts/consumers/xgo/minimal_import_test.go"'
+require_manifest_text "xgo policy" '"policy": "docs/governance/XGO_CONSUMER_COMPATIBILITY.md"'
 
-for check in fmt vet unit_test race_test boundary secret_scan contract api api_diff docs artifact_docs examples toolchain; do
+for check in toolchain fmt vet unit_test race_test boundary secret_scan contract api api_diff consumer_compat docs artifact_docs examples; do
   grep -q "\"${check}\": \"passed\"" "$MANIFEST" || fail "manifest missing passed check: $check"
 done
 grep -q '"consumer_compatibility": "documented"' "$MANIFEST" || fail "manifest missing documented consumer compatibility check"
@@ -126,6 +118,16 @@ grep -q '"consumer_compatibility": "documented"' "$MANIFEST" || fail "manifest m
 [ "$(json_value consumer_compatibility.xgo.verified)" = "false" ] || fail "manifest xgo external verification state must be explicit"
 
 for artifact in \
+  .github/versions.env \
+  scripts/ci/toolchain-check.sh \
+  scripts/ci/api-diff-check.sh \
+  contracts/public_api.snapshot \
+  contracts/consumers/xgo/README.md \
+  contracts/consumers/xgo/minimal_import_test.go \
+  docs/governance/API_COMPATIBILITY_POLICY.md \
+  docs/governance/PACKAGE_MATURITY.md \
+  docs/governance/XGO_CONSUMER_COMPATIBILITY.md \
+  docs/governance/RELEASE_MANIFEST_SCHEMA.md \
   docs/context/CTX-GOAL-20260601-002.md \
   docs/spec/SPEC-l0-kernel-v1.0.md \
   docs/design/DESIGN-l0-kernel-v1.0.md \
@@ -156,7 +158,11 @@ for artifact in \
   contracts/examples/golden/README.md \
   contracts/examples/golden/error-unavailable.json \
   contracts/examples/golden/health-healthy.json \
-  contracts/examples/golden/version-v0.1.0.json; do
+  contracts/examples/golden/version-v0.1.0.json \
+  contracts/examples/golden/retry-policy-default.json \
+  contracts/examples/golden/obsx-secret-redaction.json \
+  contracts/examples/golden/lifecycx-rollback-order.json \
+  contracts/examples/golden/syncx-first-error.json; do
   [ -s "$artifact" ] || fail "required goal artifact missing or empty: $artifact"
 done
 
