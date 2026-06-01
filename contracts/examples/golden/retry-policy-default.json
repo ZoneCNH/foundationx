@@ -1,0 +1,6 @@
+{
+  "max_attempts": 3,
+  "base_delay": "100ms",
+  "max_delay": "2s",
+  "delays": ["0s", "100ms", "200ms", "400ms", "800ms"]
+}

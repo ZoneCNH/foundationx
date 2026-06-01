@@ -1,16 +1,33 @@
-# API 兼容性政策 API Compatibility Policy
+# API 兼容策略 API compatibility policy
 
-## 稳定范围 Stability Scope
+## 目标 Scope
 
-Kernel L0 的公开 API 包括 `contracttest`、`errx`、`healthx`、`lifecycx`、`obsx`、`retryx`、`syncx`、`timex`、`validx`、`versionx` 中所有导出的类型、函数、常量、变量、方法和 JSON 字段标签。
+`kernel` 是 L0 基础模块。公开 API 包括根模块下每个公共包的 exported 类型、常量、变量、函数、方法、结构体字段、JSON 标签和接口方法。
 
-## 变更规则 Change Rules
+## 兼容规则 Compatibility rules
 
-- PATCH 版本只允许文档、测试、内部实现和兼容性修复。
-- MINOR 版本可以增加新的导出符号，但不得删除或改变现有导出签名、JSON 字段名或错误分类语义。
-- MAJOR 版本才允许破坏性变更，并且必须在发布说明中列出迁移路径。
-- `contracts/public_api.snapshot` 是发布前的签名漂移门禁；任何差异都必须是有意 API 变更。
+- 已发布的 exported API 默认保持源码兼容。
+- 删除、重命名、改变参数或返回值、改变 JSON 字段名都属于破坏性变更。
+- 新增 exported API 必须更新 `contracts/public_api.snapshot`，并在变更说明中解释用途和稳定性。
+- 行为契约变更必须同步更新 golden 行为样例、文档和 release manifest。
+- `internal/`、测试 helper 和未 exported 标识符不属于公开 API。
 
-## 发布门禁 Release Gate
+## 快照流程 Snapshot workflow
 
-`make contracts` 会运行 `scripts/ci/api-diff-check.sh`，比较当前导出 API 与快照。发布人员只能在兼容性评审后运行 `scripts/ci/api-diff-check.sh --write` 更新快照。
+`./scripts/ci/api-diff-check.sh` 在 release gate 中生成当前公开 API 并与 `contracts/public_api.snapshot` 对比。只有有意的兼容性变更可以使用：
+
+```sh
+UPDATE_API_SNAPSHOT=1 ./scripts/ci/api-diff-check.sh
+```
+
+更新快照后必须运行：
+
+```sh
+GOWORK=off go test ./...
+make contracts
+make evidence-check
+```
+
+## 弃用规则 Deprecation rules
+
+弃用 API 必须先保留兼容实现并在文档中标记替代方案。删除只能发生在明确声明的后续主版本，并且 release evidence 必须说明影响面。

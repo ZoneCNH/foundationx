@@ -1,15 +1,17 @@
-# x.go 消费者兼容性政策 x.go Consumer Compatibility Policy
+# XGO 消费方兼容 XGO consumer compatibility
 
-## 目标 Target
+## 边界 Boundary
 
-Kernel L0 必须保持 stdlib-only runtime 依赖，并允许 x.go 一类外部消费者只通过公开包导入使用，不依赖本仓库内部路径或本地 `replace`。
+`kernel` 不导入 `x.go`，也不导入业务、数据库、消息、云厂商或观测 SDK。兼容性通过消费方最小导入测试证明：`contracts/consumers/xgo/minimal_import_test.go`。
 
-## 消费者规则 Consumer Rules
+## 消费方承诺 Consumer promise
 
-- 消费者只能导入 `github.com/ZoneCNH/kernel/<package>` 的公开包。
-- 发布证据必须记录 `GOWORK=off`，并禁止本仓库 `go.mod` 中出现本地 `replace`。
-- 外部消费者 smoke 证据保存在 `docs/evidence/xgo-consumer-smoke.md`；当外部仓库或 tag 不可用时，发布清单必须显式记录未验证原因。
+- 消费方可以导入 `errx`、`retryx`、`obsx`、`lifecycx`、`syncx`、`healthx`、`timex`、`validx`、`versionx` 和 `contracttest`，无需额外第三方 runtime 依赖。
+- `GOWORK=off go test ./...` 必须覆盖最小消费方测试。
+- release manifest 必须记录 `consumers.xgo.required=true`、`consumers.xgo.verified=true` 和 evidence 文件路径。
 
-## 发布承诺 Release Commitment
+## 禁止项 Forbidden items
 
-`release/manifest/*.json` 中的 `consumer_compatibility.xgo` 字段记录外部消费者证据文件、状态和原因。内部发布门禁验证字段存在；真实外部仓库验证需要在发布环境中补齐。
+- 不允许在 kernel 包中引入 `x.go` import。
+- 不允许通过 `replace` 指向本地消费方仓库。
+- 不允许把消费方业务术语写入 kernel runtime 包。

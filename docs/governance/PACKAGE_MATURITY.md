@@ -1,26 +1,26 @@
-# 包成熟度地图 Package Maturity Map
+# 包成熟度 Package maturity
 
-## 等级定义 Maturity Levels
+## 分级 Maturity levels
 
-- `stable`：API 已有文档、契约测试、发布证据和兼容性承诺。
-- `candidate`：API 可被外部试用，但仍可能在 MINOR 版本补充字段或行为约束。
-- `experimental`：仅供内部验证，不承诺兼容性。
+- `stable`：公开 API 受 `contracts/public_api.snapshot` 保护，行为由测试和 golden 样例保护。
+- `candidate`：设计已进入公开包，但仍需要更多消费方验证；变更必须记录风险。
+- `internal`：仅模块内部使用，不承诺公开兼容。
 
-## 当前矩阵 Current Matrix
+## 当前状态 Current status
 
-| Package | Level | Evidence |
+| Package | Maturity | Contract evidence |
 | --- | --- | --- |
-| `errx` | stable | JSON schema, golden example, API docs |
-| `healthx` | stable | JSON schema, golden example, API docs |
-| `versionx` | stable | JSON schema, golden example, API docs |
-| `retryx` | stable | golden delay contract, retry docs |
-| `obsx` | stable | redaction contract, sanitizer docs |
-| `lifecycx` | stable | rollback order contract, lifecycle docs |
-| `syncx` | stable | first-error aggregation contract, sync docs |
-| `timex` | stable | clock docs and examples |
-| `validx` | stable | validation docs and examples |
-| `contracttest` | stable | helper docs and example |
+| `errx` | stable | error schema, API snapshot, docs |
+| `healthx` | stable | health schema, API snapshot, docs |
+| `retryx` | stable | golden retry behavior, API snapshot |
+| `obsx` | stable | redaction behavior, API snapshot |
+| `lifecycx` | stable | rollback order behavior, API snapshot |
+| `syncx` | stable | first-error worker behavior, API snapshot |
+| `timex` | stable | API snapshot, docs |
+| `validx` | stable | API snapshot, docs |
+| `versionx` | stable | version schema, API snapshot |
+| `contracttest` | stable | consumer test helper contract |
 
-## 维护规则 Maintenance Rules
+## 发布要求 Release requirement
 
-所有 `stable` 包的导出 API 必须保留在 `contracts/public_api.snapshot` 中；降级成熟度需要 ADR 或发布说明解释原因。
+Release 只能在所有 stable 包通过 API drift check、contract tests、documentation drift check 和 release evidence check 后发布。
