@@ -1,6 +1,7 @@
 package contracts
 
 import (
+	"encoding/json"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -107,6 +108,7 @@ func TestReleaseEvidenceScriptsPreserveFreshnessChecks(t *testing.T) {
 		"error schema hash mismatch",
 		"health schema hash mismatch",
 		"version schema hash mismatch",
+		"release-${VERSION}.md",
 	} {
 		assertContains(t, check, want)
 	}
@@ -117,6 +119,36 @@ func TestReleaseEvidenceScriptsPreserveFreshnessChecks(t *testing.T) {
 		"release workspace is dirty",
 	} {
 		assertContains(t, clean, want)
+	}
+}
+
+func TestGeneratedReleaseManifestsUseGoModModule(t *testing.T) {
+	module := modulePathFromGoMod(t)
+	manifests, err := filepath.Glob(filepath.Join("..", "release", "manifest", "*.json"))
+	if err != nil {
+		t.Fatalf("glob release manifests: %v", err)
+	}
+	if len(manifests) == 0 {
+		t.Skip("no generated release manifests found")
+	}
+
+	for _, manifest := range manifests {
+		t.Run(filepath.Base(manifest), func(t *testing.T) {
+			data, err := os.ReadFile(manifest)
+			if err != nil {
+				t.Fatalf("read %s: %v", manifest, err)
+			}
+
+			var payload struct {
+				Module string `json:"module"`
+			}
+			if err := json.Unmarshal(data, &payload); err != nil {
+				t.Fatalf("parse %s: %v", manifest, err)
+			}
+			if payload.Module != module {
+				t.Fatalf("%s module = %q, want %q", filepath.ToSlash(manifest), payload.Module, module)
+			}
+		})
 	}
 }
 
@@ -322,7 +354,7 @@ func TestChineseReleaseDocsDescribeGeneratedEvidence(t *testing.T) {
 		for _, want := range []string{
 			"make release-check",
 			"make release-final-check",
-			"release/manifest/v0.1.0.json",
+			"release/manifest/<version>.json",
 			"release/manifest/latest.json",
 			"生成",
 			"证据",
@@ -383,6 +415,19 @@ func readRepoText(t *testing.T, path string) string {
 		t.Fatalf("read %s: %v", path, err)
 	}
 	return string(data)
+}
+
+func modulePathFromGoMod(t *testing.T) string {
+	t.Helper()
+
+	for _, line := range strings.Split(readRepoText(t, "go.mod"), "\n") {
+		fields := strings.Fields(line)
+		if len(fields) == 2 && fields[0] == "module" {
+			return fields[1]
+		}
+	}
+	t.Fatal("go.mod module directive not found")
+	return ""
 }
 
 func makeTargetBody(t *testing.T, makefile string, target string) string {

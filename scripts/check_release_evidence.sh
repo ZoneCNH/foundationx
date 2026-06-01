@@ -101,6 +101,7 @@ for artifact in \
   docs/adr/ADR-20260601-009-contracttest-golden-examples.md \
   docs/adr/ADR-20260601-010-release-evidence-gates.md \
   docs/evidence/release-v0.1.0.md \
+  "docs/evidence/release-${VERSION}.md" \
   docs/review/REV-GOAL-20260601-002-20260601-001.md \
   docs/retro/RETRO-20260601-002.md \
   contracts/examples/golden/README.md \

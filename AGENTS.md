@@ -2,14 +2,13 @@
 
 ## 项目结构与模块组织
 
-本仓库目标是建立独立 Go 模块 `github.com/ZoneCNH/foundationx`，仓库地址统一使用 `https://github.com/ZoneCNH/foundationx`。当前项目目标与边界约束记录在 `docs/goal.md`，重大范围调整必须同步更新该文件。源码包应保持小而稳定，建议使用面向契约的根目录包，例如 `errorx/`、`healthx/`、`lifecycx/`、`retryx/`、`sanitizex/`、`clockx/`、`versionx/`。测试文件放在被测包旁边，遵循 Go 的 `_test.go` 约定。不要提交生成资产、运行时状态或本地工具缓存。
+本仓库是 L0 内核库 `kernel`，Go 模块为 `github.com/ZoneCNH/kernel`，仓库地址统一使用 `https://github.com/ZoneCNH/kernel`。当前项目目标与边界约束记录在 `docs/goal.md`，工程标准与模板事实源沿用 README 与 Goal 中的 `kernel/xlib-standard` 表述。重大范围调整必须同步更新这些事实源。源码包应保持小而稳定，当前包集合为 `errx/`、`timex/`、`lifecycx/`、`retryx/`、`healthx/`、`obsx/`、`validx/`、`syncx/`、`versionx/`、`contracttest/`。测试文件放在被测包旁边，遵循 Go 的 `_test.go` 约定。不要提交生成资产、运行时状态或本地工具缓存。
 
 ## 构建、测试与开发命令
 
-仓库目前尚未包含 `go.mod`。模块初始化后，常用命令如下：
+仓库已包含 `go.mod`，模块路径为 `github.com/ZoneCNH/kernel`。常用命令如下：
 
 ```sh
-go mod init github.com/ZoneCNH/foundationx
 go test ./...
 go test -race ./...
 go test -cover ./...
@@ -21,7 +20,7 @@ go vet ./...
 
 ## 编码风格与命名约定
 
-使用 `gofmt` 处理格式，缩进由格式化工具统一。优先定义小接口和显式构造函数，例如 `NewRealClock()`，避免包级全局默认值。包名应短、小写、基础设施中立。公开标识符必须表达稳定契约，而不是实现细节。foundationx 必须保持 L0 层定位：除非明确论证并获准，否则只能依赖 Go 标准库。
+使用 `gofmt` 处理格式，缩进由格式化工具统一。优先定义小接口和显式构造函数，例如 `timex.NewRealClock()`，避免包级全局默认值。包名应短、小写、基础设施中立。公开标识符必须表达稳定契约，而不是实现细节。kernel 必须保持 L0 层定位：除非明确论证并获准，否则只能依赖 Go 标准库。
 
 ## 测试指南
 

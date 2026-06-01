@@ -2,7 +2,7 @@
 
 ## 范围说明
 
-发布前执行 `make release-preflight VERSION=v0.1.0`，提交后生成 manifest 并检查工作区清洁。
+发布前执行 `make release-preflight VERSION=v0.2.0`，提交后生成 manifest 并检查工作区清洁。后续版本替换 `VERSION` 为目标 tag。
 
 ## 验证说明
 
@@ -14,6 +14,6 @@
 
 - make release-check
 
-- release/manifest/v0.1.0.json
+- release/manifest/<version>.json
 
 - release/manifest/latest.json

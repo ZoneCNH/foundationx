@@ -32,6 +32,7 @@ docs/context/CTX-GOAL-20260601-002.md
 docs/spec/SPEC-l0-kernel-v1.0.md
 docs/design/DESIGN-l0-kernel-v1.0.md
 docs/evidence/release-v0.1.0.md
+docs/evidence/release-v0.2.0.md
 docs/review/REV-GOAL-20260601-002-20260601-001.md
 docs/retro/RETRO-20260601-002.md
 docs/xlib-standard-analysis.md
