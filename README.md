@@ -77,5 +77,5 @@ GOWORK=off go test ./...
 边界检查、仓库安全检查、契约检查、文档检查、示例程序、manifest 生成和 manifest 新鲜度校验。
 `make lint` 是可选辅助门禁：安装 `golangci-lint` 时会运行，否则会显式跳过。
 
-发布证据写入 `release/manifest/v0.1.0.json`，该目录下的 JSON 文件是生成物；CI 会在
-发布门禁中生成并上传 manifest artifact。
+发布证据写入 `release/manifest/v0.1.0.json`，并同步更新 `release/manifest/latest.json`；
+该目录下的 JSON 文件是生成物。CI 会在发布门禁中生成并上传 manifest artifact。
