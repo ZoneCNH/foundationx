@@ -57,15 +57,24 @@ api-diff-check:
 .PHONY: api-check
 api-check:
 	./scripts/ci/api-check.sh
-	$(MAKE) api-diff-check
-
-.PHONY: api-diff-check
-api-diff-check:
 	./scripts/ci/api-diff-check.sh
 
 .PHONY: docs
 docs:
 	./scripts/check_docs.sh
+
+.PHONY: toolchain-check
+toolchain-check:
+	$(GOENV) ./scripts/ci/toolchain-check.sh
+
+.PHONY: lint-strict
+lint-strict:
+	$(GOENV) golangci-lint run ./...
+
+.PHONY: security-strict
+security-strict:
+	$(GOENV) govulncheck ./...
+	./scripts/check_secrets.sh
 
 .PHONY: artifact-check
 artifact-check:
@@ -106,7 +115,7 @@ ci: fmt vet lint test race boundary security contracts api-check docs artifact-c
 
 .PHONY: release-check
 release-check:
-	$(MAKE) release-toolchain-check
+	$(MAKE) toolchain-check
 	$(MAKE) ci
 	$(MAKE) evidence
 	$(MAKE) release-evidence-check
@@ -114,8 +123,10 @@ release-check:
 .PHONY: release-final-check
 release-final-check:
 	$(MAKE) release-clean-check
-	$(MAKE) release-toolchain-check
+	$(MAKE) toolchain-check
 	$(MAKE) release-check
+	$(MAKE) lint-strict
+	$(MAKE) security-strict
 	$(MAKE) release-clean-check
 
 .PHONY: docs-check
