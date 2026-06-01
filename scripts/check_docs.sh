@@ -52,12 +52,16 @@ docs/adr/ADR-20260601-010-release-evidence-gates.md
 docs/governance/API_COMPATIBILITY_POLICY.md
 docs/governance/PACKAGE_MATURITY.md
 docs/governance/XGO_CONSUMER_COMPATIBILITY.md
-contracts/consumers/xgo/README.md
+docs/governance/RELEASE_MANIFEST_SCHEMA.md
 "
 for file in $DOC_FILES; do if [ ! -s "$file" ]; then echo "ERROR: required documentation file missing or empty: $file"; status=1; fi; done
 if [ ! -d contracts/examples/golden ]; then echo "ERROR: required golden example directory missing: contracts/examples/golden"; status=1; fi
-for file in contracts/examples/golden/error-unavailable.json contracts/examples/golden/health-healthy.json contracts/examples/golden/version-v0.1.0.json contracts/examples/golden/README.md contracts/golden/retry-delays.json contracts/golden/obsx-redaction.json contracts/golden/lifecycx-rollback-order.json contracts/golden/syncx-workergroup-first-error.json contracts/public_api.snapshot; do
+for file in contracts/examples/golden/error-unavailable.json contracts/examples/golden/health-healthy.json contracts/examples/golden/version-v0.1.0.json contracts/examples/golden/retry-policy-default.json contracts/examples/golden/obsx-secret-redaction.json contracts/examples/golden/lifecycx-rollback-order.json contracts/examples/golden/syncx-first-error.json contracts/examples/golden/README.md; do
   if [ ! -s "$file" ]; then echo "ERROR: required golden example missing or empty: $file"; status=1; fi
+done
+
+for file in contracts/public_api.snapshot contracts/consumers/xgo/README.md contracts/consumers/xgo/minimal_import_test.go; do
+  if [ ! -s "$file" ]; then echo "ERROR: required release contract artifact missing or empty: $file"; status=1; fi
 done
 check_absent "NewError must not document a cause parameter; use WrapError for causes" 'NewError\([^)]*(cause|Cause)[^)]*\)' $DOC_FILES
 check_absent "RetryPolicy must not document Multiplier as a field" 'RetryPolicy.*Multiplier|-[ 	]*`Multiplier`|Multiplier[ 	]+must|Multiplier[ 	]+(int|int64|float64|time\.Duration)' $DOC_FILES
