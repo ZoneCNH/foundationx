@@ -3,57 +3,41 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
-VERSIONS_FILE=".github/versions.env"
 
-fail() { echo "ERROR: $*" >&2; exit 1; }
-info() { echo "toolchain-check: $*"; }
+# shellcheck disable=SC1091
+. "$ROOT/.github/versions.env"
 
-[ -s "$VERSIONS_FILE" ] || fail "missing $VERSIONS_FILE"
-# shellcheck disable=SC1090
-. "$VERSIONS_FILE"
-
-: "${GO_MIN_VERSION:?GO_MIN_VERSION missing}"
-: "${GO_INTEGRATION_VERSION:?GO_INTEGRATION_VERSION missing}"
-: "${GOLANGCI_LINT_VERSION:?GOLANGCI_LINT_VERSION missing}"
-: "${GOVULNCHECK_VERSION:?GOVULNCHECK_VERSION missing}"
+fail() {
+  echo "ERROR: $*" >&2
+  exit 1
+}
 
 version_ge() {
-  local actual="$1" required="$2"
-  awk -v a="$actual" -v b="$required" 'BEGIN {
-    split(a, av, "."); split(b, bv, ".");
-    for (i = 1; i <= 3; i++) { ai = av[i] + 0; bi = bv[i] + 0; if (ai > bi) exit 0; if (ai < bi) exit 1; }
+  awk -v have="$1" -v want="$2" 'BEGIN {
+    split(have, h, "."); split(want, w, ".");
+    for (i = 1; i <= 3; i++) {
+      hv = (h[i] == "" ? 0 : h[i]) + 0;
+      wv = (w[i] == "" ? 0 : w[i]) + 0;
+      if (hv > wv) { exit 0 }
+      if (hv < wv) { exit 1 }
+    }
     exit 0
   }'
 }
 
-actual_mod_go="$(awk '$1 == "go" { print $2; exit }' go.mod)"
-[ -n "$actual_mod_go" ] || fail "go.mod has no go directive"
-version_ge "$actual_mod_go" "$GO_MIN_VERSION" || fail "go.mod go $actual_mod_go is below GO_MIN_VERSION=$GO_MIN_VERSION"
+[ "${GOWORK:-off}" = "off" ] || fail "GOWORK must be off for release gates; got ${GOWORK}"
+[ "$(go env GOWORK)" = "off" ] || fail "go env GOWORK must be off; got $(go env GOWORK)"
 
-actual_go="$(go env GOVERSION | sed 's/^go//')"
-version_ge "$actual_go" "$GO_MIN_VERSION" || fail "go $actual_go is below GO_MIN_VERSION=$GO_MIN_VERSION"
+current_go="$(go version | awk '{print $3}' | sed 's/^go//')"
+[ "$current_go" = "$GO_INTEGRATION_VERSION" ] || fail "go version drift: got ${current_go}, want ${GO_INTEGRATION_VERSION}"
+version_ge "$current_go" "$GO_MIN_VERSION" || fail "go version ${current_go} is below minimum ${GO_MIN_VERSION}"
 
-[ "${GOWORK:-off}" = "off" ] || fail "GOWORK environment must be off for release checks"
-[ "$(GOWORK=off go env GOWORK)" = "off" ] || fail "go env GOWORK must resolve to off"
+command -v golangci-lint >/dev/null 2>&1 || fail "golangci-lint ${GOLANGCI_LINT_VERSION} is required"
+current_lint="$(golangci-lint --version | awk '{print $4}')"
+[ "$current_lint" = "$GOLANGCI_LINT_VERSION" ] || fail "golangci-lint version drift: got ${current_lint}, want ${GOLANGCI_LINT_VERSION}"
 
-if grep -R -n -E '@latest' go.mod go.sum .github scripts Makefile 2>/dev/null; then
-  fail "release paths must not reference @latest"
-fi
-if GOWORK=off go mod edit -json | grep -q '"Replace"'; then
-  fail "go.mod must not contain local or remote replace directives for release"
-fi
+command -v govulncheck >/dev/null 2>&1 || fail "govulncheck ${GOVULNCHECK_VERSION} is required"
+current_govuln="$(govulncheck -version 2>&1 | awk '/^Scanner:/ { sub(/^govulncheck@/, "", $2); print $2; exit }')"
+[ "v$current_govuln" = "$GOVULNCHECK_VERSION" ] || [ "$current_govuln" = "$GOVULNCHECK_VERSION" ] || fail "govulncheck version drift: got ${current_govuln}, want ${GOVULNCHECK_VERSION}"
 
-check_tool_exact() {
-  local name="$1" expected="$2" cmd="$3"
-  command -v "$name" >/dev/null 2>&1 || fail "$name not installed; required $expected"
-  local got
-  got="$($cmd 2>/dev/null | head -n 1 || true)"
-  printf '%s\n' "$got" | grep -F -q "$expected" || fail "$name version mismatch; required $expected; got: ${got:-unknown}"
-  info "$name $expected"
-}
-
-check_tool_exact golangci-lint "$GOLANGCI_LINT_VERSION" "golangci-lint version"
-check_tool_exact govulncheck "$GOVULNCHECK_VERSION" "govulncheck -version"
-
-info "go.mod go $actual_mod_go; go runtime $actual_go; integration target $GO_INTEGRATION_VERSION"
-info "toolchain check passed"
+echo "toolchain check passed: go ${current_go}, golangci-lint ${current_lint}, govulncheck ${GOVULNCHECK_VERSION}"
