@@ -2188,6 +2188,9 @@ jobs:
       - name: Generate evidence
         run: make evidence
 
+      - name: Check generated evidence
+        run: make release-evidence-check
+
       - name: Upload release manifest
         uses: actions/upload-artifact@v4
         with:
@@ -2201,17 +2204,17 @@ jobs:
 
 | Requirement | Acceptance Criteria | Design | Task | Test | Evidence | Status |
 |---|---|---|---|---|---|---|
-| REQ-FOUNDATIONX-001 | AC-001-* | Module Design | TASK-001 | go test ./... | EVID-001 | TODO |
-| REQ-FOUNDATIONX-002 | AC-002-* | L0 Boundary | TASK-010 | boundary gate | EVID-010 | TODO |
-| REQ-FOUNDATIONX-003 | AC-003-* | Error Model | TASK-002 | errors_test.go | EVID-002 | TODO |
-| REQ-FOUNDATIONX-004 | AC-004-* | Health Model | TASK-003 | health_test.go | EVID-003 | TODO |
-| REQ-FOUNDATIONX-005 | AC-005-* | Lifecycle | TASK-004 | lifecycle_test.go | EVID-004 | TODO |
-| REQ-FOUNDATIONX-006 | AC-006-* | RetryPolicy | TASK-005 | retry_test.go | EVID-005 | TODO |
-| REQ-FOUNDATIONX-007 | AC-007-* | Sanitizer | TASK-006 | sanitizer_test.go | EVID-006 | TODO |
-| REQ-FOUNDATIONX-008 | AC-008-* | Clock | TASK-007 | clock_test.go | EVID-007 | TODO |
-| REQ-FOUNDATIONX-009 | AC-009-* | VersionInfo | TASK-008 | version_test.go | EVID-008 | TODO |
-| REQ-FOUNDATIONX-010 | AC-010-* | Docs | TASK-013 | docs checklist | EVID-013 | TODO |
-| REQ-FOUNDATIONX-011 | AC-011-* | Harness | TASK-010/011/014 | make ci | EVID-011/014 | TODO |
+| REQ-FOUNDATIONX-001 | AC-001-* | Module Design | TASK-001 | go test ./... | EVID-001 | DONE |
+| REQ-FOUNDATIONX-002 | AC-002-* | L0 Boundary | TASK-010 | boundary gate | EVID-010 | DONE |
+| REQ-FOUNDATIONX-003 | AC-003-* | Error Model | TASK-002 | errors_test.go | EVID-002 | DONE |
+| REQ-FOUNDATIONX-004 | AC-004-* | Health Model | TASK-003 | health_test.go | EVID-003 | DONE |
+| REQ-FOUNDATIONX-005 | AC-005-* | Lifecycle | TASK-004 | lifecycle_test.go | EVID-004 | DONE |
+| REQ-FOUNDATIONX-006 | AC-006-* | RetryPolicy | TASK-005 | retry_test.go | EVID-005 | DONE |
+| REQ-FOUNDATIONX-007 | AC-007-* | Sanitizer | TASK-006 | sanitizer_test.go | EVID-006 | DONE |
+| REQ-FOUNDATIONX-008 | AC-008-* | Clock | TASK-007 | clock_test.go | EVID-007 | DONE |
+| REQ-FOUNDATIONX-009 | AC-009-* | VersionInfo | TASK-008 | version_test.go | EVID-008 | DONE |
+| REQ-FOUNDATIONX-010 | AC-010-* | Docs | TASK-013 | docs checklist | EVID-013 | DONE |
+| REQ-FOUNDATIONX-011 | AC-011-* | Harness | TASK-010/011/014 | make ci | EVID-011/014 | DONE |
 
 ---
 
