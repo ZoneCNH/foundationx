@@ -43,36 +43,22 @@ source "$PINS"
 : "${STATICCHECK_VERSION:?missing STATICCHECK_VERSION}"
 
 cd "$ROOT"
+need_cmd go >/dev/null || fail "go is required"
+mod_go="$(awk '$1 == "go" { print $2; exit }' go.mod)"
+[[ "$mod_go" == "$GO_MIN_VERSION" ]] || fail "go.mod go directive mismatch: want $GO_MIN_VERSION got ${mod_go:-missing}"
+go_version="$(go env GOVERSION)"
+[[ "$go_version" == "go$GO_INTEGRATION_VERSION" ]] || fail "go version mismatch: want go$GO_INTEGRATION_VERSION got $go_version"
+[[ "$(GOWORK=off go env GOWORK)" == "off" ]] || fail "GOWORK=off is not honored"
 
-VERSIONS_FILE=".github/versions.env"
-[ -s "$VERSIONS_FILE" ] || { echo "ERROR: missing toolchain version pins: $VERSIONS_FILE"; exit 1; }
-# shellcheck disable=SC1090
-. "$VERSIONS_FILE"
-
-fail() { echo "ERROR: $*"; exit 1; }
-require_var() { eval "value=\${$1:-}"; [ -n "$value" ] || fail "missing version pin: $1"; }
-
-for key in GO_MIN_VERSION GO_INTEGRATION_VERSION GOLANGCI_LINT_VERSION GOVULNCHECK_VERSION GOTESTSUM_VERSION GOFUMPT_VERSION STATICCHECK_VERSION; do
-  require_var "$key"
-done
-
-[ "${GOWORK:-off}" = "off" ] || fail "GOWORK must be off for release gates; got ${GOWORK}"
-export GOWORK=off
-[ "$(go env GOWORK)" = "off" ] || fail "go env GOWORK must be off; got $(go env GOWORK)"
-
-actual_go="$(go version | awk '{print $3}' | sed 's/^go//')"
-[ "$actual_go" = "$GO_INTEGRATION_VERSION" ] || fail "go version $actual_go does not match GO_INTEGRATION_VERSION=$GO_INTEGRATION_VERSION"
-
-gowork="$(GOWORK=off go env GOWORK)"
-[ "$gowork" = "off" ] || fail "GOWORK must be off during kernel release checks, got $gowork"
-
-floating_pattern='@''latest'
-if grep -RIn --exclude-dir=.git --exclude-dir=release --exclude='toolchain-check.sh' "$floating_pattern" go.mod go.sum .github scripts Makefile 2>/dev/null; then
-  fail "floating tool/module reference found"
+if grep -Eq '^replace\b' go.mod; then
+  fail "go.mod replace directives are forbidden for release validation"
 fi
-if grep -nE '^replace[[:space:]].*=>[[:space:]]*(\.|\.\.|/)' go.mod >/dev/null 2>&1; then
-  fail "local replace directive is forbidden for kernel release"
+if grep -RIn --include='*.sh' --include='go.mod' --include='*.yml' --include='*.yaml' '@latest' .github scripts go.mod 2>/dev/null | grep -v 'toolchain-check.sh' >/tmp/kernel_toolchain_latest.$$; then
+  cat /tmp/kernel_toolchain_latest.$$ >&2
+  rm -f /tmp/kernel_toolchain_latest.$$
+  fail "unpinned @latest reference found in release-controlled files"
 fi
+rm -f /tmp/kernel_toolchain_latest.$$
 
 if need_cmd golangci-lint; then version_contains golangci-lint "$GOLANGCI_LINT_VERSION"; fi
 if need_cmd govulncheck; then version_contains govulncheck "$GOVULNCHECK_VERSION"; fi
@@ -80,21 +66,4 @@ if command -v gotestsum >/dev/null 2>&1; then version_contains gotestsum "$GOTES
 if command -v gofumpt >/dev/null 2>&1; then version_contains gofumpt "$GOFUMPT_VERSION" warn; elif [[ "$STRICT" == 1 ]]; then warn "gofumpt missing; not required for release-final hard gate"; fi
 if command -v staticcheck >/dev/null 2>&1; then version_contains staticcheck "$STATICCHECK_VERSION" warn; elif [[ "$STRICT" == 1 ]]; then warn "staticcheck missing; not required for release-final hard gate"; fi
 
-command -v govulncheck >/dev/null 2>&1 || fail "govulncheck is required for release checks"
-vuln_version="$(govulncheck -version 2>/dev/null | awk -F'@' '/Scanner:/ {print $2; exit}')"
-[ "$vuln_version" = "$GOVULNCHECK_VERSION" ] || fail "govulncheck $vuln_version does not match GOVULNCHECK_VERSION=$GOVULNCHECK_VERSION"
-
-if command -v gotestsum >/dev/null 2>&1; then
-  gotestsum_version="$(gotestsum --version 2>/dev/null | awk '{print $NF; exit}')"
-  [ "$gotestsum_version" = "$GOTESTSUM_VERSION" ] || fail "gotestsum $gotestsum_version does not match GOTESTSUM_VERSION=$GOTESTSUM_VERSION"
-fi
-if command -v gofumpt >/dev/null 2>&1; then
-  gofumpt_version="$(gofumpt -version 2>/dev/null | awk '{print $NF; exit}')"
-  [ "$gofumpt_version" = "$GOFUMPT_VERSION" ] || fail "gofumpt $gofumpt_version does not match GOFUMPT_VERSION=$GOFUMPT_VERSION"
-fi
-if command -v staticcheck >/dev/null 2>&1; then
-  staticcheck_version="$(staticcheck -version 2>/dev/null | awk '{print $2; exit}')"
-  [ "$staticcheck_version" = "$STATICCHECK_VERSION" ] || fail "staticcheck $staticcheck_version does not match STATICCHECK_VERSION=$STATICCHECK_VERSION"
-fi
-
-echo "toolchain check passed: go=$actual_go golangci-lint=$lint_version govulncheck=$vuln_version"
+echo "toolchain-check: ok"

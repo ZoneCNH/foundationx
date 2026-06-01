@@ -1,19 +1,15 @@
-# x.go 消费者兼容性
+# x.go 消费者兼容性政策 x.go Consumer Compatibility Policy
 
-## 兼容目标
+## 目标 Target
 
-Kernel L0 必须保持 stdlib-only、`GOWORK=off` 可验证、无 local replace，并为 x.go / xlib 消费者提供稳定的小型公共 API。
+Kernel L0 必须保持 stdlib-only runtime 依赖，并允许 x.go 一类外部消费者只通过公开包导入使用，不依赖本仓库内部路径或本地 `replace`。
 
-## 当前证据
+## 消费者规则 Consumer Rules
 
-本仓库提供 `contracts/consumers/xgo/README.md` 与 `contracts/consumers/xgo/minimal_import_test.go` 作为消费者证明模板。由于当前切片没有 sibling x.go 仓库和固定 tag，release manifest 将该外部消费者证明标记为 `external-evidence-required`，而不是伪造通过结果。
+- 消费者只能导入 `github.com/ZoneCNH/kernel/<package>` 的公开包。
+- 发布证据必须记录 `GOWORK=off`，并禁止本仓库 `go.mod` 中出现本地 `replace`。
+- 外部消费者 smoke 证据保存在 `docs/evidence/xgo-consumer-smoke.md`；当外部仓库或 tag 不可用时，发布清单必须显式记录未验证原因。
 
-## 消费者验证要求
+## 发布承诺 Release Commitment
 
-外部 x.go 证明可用时，必须在独立模块中执行：
-
-```sh
-GOWORK=off go test ./...
-```
-
-该模块不得依赖 local replace；如需临时本地验证，结果只能作为预检，不能作为最终 release evidence。
+`release/manifest/*.json` 中的 `consumer_compatibility.xgo` 字段记录外部消费者证据文件、状态和原因。内部发布门禁验证字段存在；真实外部仓库验证需要在发布环境中补齐。

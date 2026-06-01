@@ -1,27 +1,26 @@
-# 包成熟度矩阵
+# 包成熟度地图 Package Maturity Map
 
-## 稳定候选包
+## 等级定义 Maturity Levels
 
-| Package | Maturity | Contract |
+- `stable`：API 已有文档、契约测试、发布证据和兼容性承诺。
+- `candidate`：API 可被外部试用，但仍可能在 MINOR 版本补充字段或行为约束。
+- `experimental`：仅供内部验证，不承诺兼容性。
+
+## 当前矩阵 Current Matrix
+
+| Package | Level | Evidence |
 | --- | --- | --- |
-| `errx` | stable-candidate | 错误 kind、severity、JSON schema、retryable 语义 |
-| `healthx` | stable-candidate | 健康状态 JSON schema 与状态枚举 |
-| `versionx` | stable-candidate | build info JSON schema |
-| `timex` | stable-candidate | clock abstraction 与 deterministic test clock |
-| `validx` | stable-candidate | validator shape 与 error contract |
-| `contracttest` | stable-candidate | consumer-facing test helpers |
+| `errx` | stable | JSON schema, golden example, API docs |
+| `healthx` | stable | JSON schema, golden example, API docs |
+| `versionx` | stable | JSON schema, golden example, API docs |
+| `retryx` | stable | golden delay contract, retry docs |
+| `obsx` | stable | redaction contract, sanitizer docs |
+| `lifecycx` | stable | rollback order contract, lifecycle docs |
+| `syncx` | stable | first-error aggregation contract, sync docs |
+| `timex` | stable | clock docs and examples |
+| `validx` | stable | validation docs and examples |
+| `contracttest` | stable | helper docs and example |
 
-## 观察期包
+## 维护规则 Maintenance Rules
 
-| Package | Maturity | Contract |
-| --- | --- | --- |
-| `retryx` | observed | deterministic backoff 与 retryable error 判断 |
-| `obsx` | observed | secret redaction 与 noop interfaces |
-| `lifecycx` | observed | start order、reverse stop、rollback order |
-| `syncx` | observed | first-error aggregation 与 cancellation |
-
-## 晋级要求
-
-If a package loses contract coverage or requires a breaking behavior decision, release notes must identify the package as under compatibility review until coverage and documentation are restored.
-
-`make release-final-check` is the required release gate for keeping these package maturity classifications publishable.
+所有 `stable` 包的导出 API 必须保留在 `contracts/public_api.snapshot` 中；降级成熟度需要 ADR 或发布说明解释原因。

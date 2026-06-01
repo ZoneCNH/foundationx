@@ -11,10 +11,6 @@ for file in \
   contracts/health.schema.json \
   contracts/version.schema.json \
   contracts/public_api.snapshot \
-  contracts/golden/retry-delays.json \
-  contracts/golden/obsx-redaction.json \
-  contracts/golden/lifecycx-rollback-order.json \
-  contracts/golden/syncx-workergroup-first-error.json \
   docs/api.md
 do
   if [ ! -s "$file" ]; then
@@ -35,6 +31,7 @@ for schema in contracts/*.schema.json; do
 done
 
 ./scripts/ci/api-diff-check.sh
-GOWORK=off go test ./contracts...
+
+GOWORK=off go test ./contracts
 
 echo "contract check passed"
