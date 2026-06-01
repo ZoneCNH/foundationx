@@ -71,6 +71,10 @@ toolchain-check:
 api-diff-check:
 	./scripts/ci/api-diff-check.sh
 
+.PHONY: api-diff-check
+api-diff-check:
+	./scripts/ci/api-diff-check.sh
+
 .PHONY: docs
 docs:
 	./scripts/check_docs.sh
