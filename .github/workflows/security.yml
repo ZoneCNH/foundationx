@@ -1,0 +1,35 @@
+name: foundationx-security
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+env:
+  GOWORK: "off"
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+
+      - name: Make scripts executable
+        run: chmod +x scripts/*.sh
+
+      - name: Boundary gate
+        run: make boundary
+
+      - name: Secret gate
+        run: make security
+
+      - name: Contract gate
+        run: make contracts
