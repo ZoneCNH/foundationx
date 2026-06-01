@@ -1,6 +1,7 @@
 package foundationx
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"testing"
@@ -40,6 +41,32 @@ func TestSecretStringFmtSprintDoesNotLeak(t *testing.T) {
 	}
 	if got != "***" {
 		t.Fatalf("fmt.Sprint = %q, want ***", got)
+	}
+}
+
+func TestSecretStringJSONMasked(t *testing.T) {
+	raw := "super-secret"
+	secret := NewSecretString(raw)
+
+	data, err := json.Marshal(secret)
+	if err != nil {
+		t.Fatalf("Marshal SecretString: %v", err)
+	}
+	if strings.Contains(string(data), raw) {
+		t.Fatalf("json.Marshal leaked secret: %s", data)
+	}
+	if string(data) != `"***"` {
+		t.Fatalf("json.Marshal = %s, want masked string", data)
+	}
+}
+
+func TestSecretStringJSONEmpty(t *testing.T) {
+	data, err := json.Marshal(NewSecretString(""))
+	if err != nil {
+		t.Fatalf("Marshal empty SecretString: %v", err)
+	}
+	if string(data) != `""` {
+		t.Fatalf("json.Marshal empty = %s, want empty string", data)
 	}
 }
 
