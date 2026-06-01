@@ -2,6 +2,7 @@ package foundationx
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 )
 
@@ -50,11 +51,22 @@ func NewHealthStatus(
 
 // WithMetadata returns a status with one metadata key set.
 func (s HealthStatus) WithMetadata(key string, value string) HealthStatus {
+	metadata := make(map[string]string, len(s.Metadata)+1)
+	for existingKey, existingValue := range s.Metadata {
+		metadata[existingKey] = existingValue
+	}
+	metadata[key] = value
+	s.Metadata = metadata
+	return s
+}
+
+// MarshalJSON returns a stable health JSON object with metadata as an object.
+func (s HealthStatus) MarshalJSON() ([]byte, error) {
+	type healthStatus HealthStatus
 	if s.Metadata == nil {
 		s.Metadata = map[string]string{}
 	}
-	s.Metadata[key] = value
-	return s
+	return json.Marshal(healthStatus(s))
 }
 
 // IsHealthy reports whether the status is healthy.

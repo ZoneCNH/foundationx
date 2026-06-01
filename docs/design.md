@@ -17,6 +17,7 @@
 
 错误使用紧凑的 `ErrorKind` 字符串集合。`Error` 携带 operation 和 message 字段作为人工可读上下文，
 携带被包装的 cause 以支持 Go error chain 行为，并提供可选 retryability 标记供调用方进行策略决策。
+`WithRetryable` 是构造期便利方法，会修改并返回同一个 `*Error`。
 
 ## 健康模型
 
@@ -29,12 +30,13 @@
 
 ## 重试模型
 
-`RetryPolicy` 是带校验和延迟计算的数据契约。它不执行操作。执行循环属于更高层包，因为那里才知道 telemetry、context 和领域行为。
+`RetryPolicy` 是带校验和延迟计算的数据契约。它不执行操作，`Delay` 也不按 `MaxAttempts`
+截断。执行循环属于更高层包，因为那里才知道 telemetry、context 和领域行为。
 
 ## 脱敏模型
 
-`SecretString` 通过 `String` 格式化时会遮蔽非空值。调用方可以通过 `Reveal` 显式取回原值，
-这让控制权留在调用方，并避免隐藏的全局 redaction 行为。
+`SecretString` 通过 `String` 格式化和 JSON 输出时会遮蔽非空值。调用方可以通过 `Reveal`
+显式取回原值，这让控制权留在调用方，并避免隐藏的全局 redaction 行为。
 
 ## 时钟模型
 

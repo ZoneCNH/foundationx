@@ -106,12 +106,25 @@ func TestAsFoundationErrorMiss(t *testing.T) {
 	}
 }
 
-func TestRetryable(t *testing.T) {
-	err := NewError(ErrorKindUnavailable, "Client.Ping", "unavailable").WithRetryable(true)
+func TestErrorWithRetryableMutatesReceiver(t *testing.T) {
+	err := NewError(ErrorKindUnavailable, "Client.Ping", "unavailable")
 
+	got := err.WithRetryable(true)
+	if got != err {
+		t.Fatal("WithRetryable must return the same receiver")
+	}
 	if !err.Retryable {
 		t.Fatal("WithRetryable(true) did not set Retryable")
 	}
+
+	got = err.WithRetryable(false)
+	if got != err {
+		t.Fatal("WithRetryable(false) must return the same receiver")
+	}
+	if err.Retryable {
+		t.Fatal("WithRetryable(false) did not clear Retryable")
+	}
+
 	if got := ((*Error)(nil)).WithRetryable(true); got != nil {
 		t.Fatal("nil WithRetryable must return nil")
 	}

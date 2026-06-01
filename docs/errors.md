@@ -36,3 +36,6 @@ error chain 中提取 `*Error`。
 
 `Retryable` 是 `Error` 上的可选标记，不从 `ErrorKind` 自动推断。最终是否重试由
 上层决定，因为幂等性和副作用取决于具体上下文。
+
+`WithRetryable(retryable bool)` 会修改当前 `*Error` 并返回同一个指针，适合在构造错误
+时链式标记；需要保留原错误不变时，调用方应创建新的 `Error`。

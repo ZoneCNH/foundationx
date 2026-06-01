@@ -83,6 +83,18 @@ func TestRetryPolicyDelayExponential(t *testing.T) {
 	}
 }
 
+func TestRetryPolicyDelayDoesNotEnforceMaxAttempts(t *testing.T) {
+	policy := RetryPolicy{
+		MaxAttempts: 2,
+		BaseDelay:   100 * time.Millisecond,
+		MaxDelay:    0,
+	}
+
+	if got := policy.Delay(3); got != 400*time.Millisecond {
+		t.Fatalf("Delay(3) = %s, want 400ms", got)
+	}
+}
+
 func TestRetryPolicyDelayMaxDelay(t *testing.T) {
 	policy := RetryPolicy{
 		MaxAttempts: 5,

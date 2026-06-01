@@ -1,5 +1,7 @@
 package foundationx
 
+import "encoding/json"
+
 // Sanitizer describes values that can expose a sanitized representation.
 type Sanitizer interface {
 	Sanitize() any
@@ -24,6 +26,11 @@ func (s SecretString) String() string {
 // Sanitize returns the masked representation.
 func (s SecretString) Sanitize() any {
 	return s.String()
+}
+
+// MarshalJSON returns the masked representation for JSON output.
+func (s SecretString) MarshalJSON() ([]byte, error) {
+	return json.Marshal(s.String())
 }
 
 // Reveal returns the original secret value for explicit configuration use.

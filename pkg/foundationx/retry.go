@@ -36,6 +36,7 @@ func (p RetryPolicy) Validate() error {
 }
 
 // Delay returns the exponential backoff delay for the 1-based attempt number.
+// It does not enforce MaxAttempts; callers decide whether an attempt should run.
 func (p RetryPolicy) Delay(attempt int) time.Duration {
 	if attempt <= 0 || p.BaseDelay <= 0 {
 		return 0

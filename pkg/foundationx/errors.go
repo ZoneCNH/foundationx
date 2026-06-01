@@ -71,7 +71,8 @@ func (e *Error) Unwrap() error {
 	return e.Cause
 }
 
-// WithRetryable marks whether the operation may be retried by an upper layer.
+// WithRetryable sets whether the operation may be retried by an upper layer.
+// It mutates the receiver and returns the same pointer for construction-time annotation.
 func (e *Error) WithRetryable(retryable bool) *Error {
 	if e == nil {
 		return nil

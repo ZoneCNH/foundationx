@@ -51,11 +51,11 @@ func main() {
 
 公开 API 刻意集中在 `pkg/foundationx`：
 
-- 错误契约：类型化 `ErrorKind`、`Error`、包装、解包和 kind 检查。
+- 错误契约：类型化 `ErrorKind`、`Error`、包装、解包、kind 检查和构造期 retryable 标记。
 - 健康契约：三态健康状态和 `HealthChecker` 接口；`HealthChecker.Check(ctx)` 返回 `HealthStatus`。
 - 生命周期契约：最小化的 start、close 和组合生命周期接口。
-- 重试契约：`RetryPolicy` 校验和确定性的延迟边界计算。
-- 脱敏契约：`Sanitizer` 和默认遮蔽的 `SecretString`。
+- 重试契约：`RetryPolicy` 校验和确定性的延迟边界计算；是否继续尝试由调用方按 `MaxAttempts` 判断。
+- 脱敏契约：`Sanitizer` 和默认遮蔽字符串、JSON 输出的 `SecretString`。
 - 时钟契约：用于生产和测试的真实时钟与固定时钟。
 - 版本契约：module、version、commit 和 build-time 元数据。
 

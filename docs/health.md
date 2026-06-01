@@ -23,9 +23,13 @@ type HealthChecker interface {
 `Message` 或 `Metadata`，不要暴露业务载荷或凭据。
 
 `NewHealthStatus(name, status, message, checkedAt, latencyMs)` 会初始化
-`Metadata` map。`IsHealthy()` 仅在 `Status == HealthHealthy` 时返回 true。
+`Metadata` map。`MarshalJSON()` 会把 nil `Metadata` 输出为空 JSON 对象。`IsHealthy()`
+仅在 `Status == HealthHealthy` 时返回 true。
 
 ## 元数据（Metadata）
 
 `Metadata` 是可选的 `map[string]string`。它应只包含组件名、依赖别名、版本等中立事实，
 不应包含业务数据或敏感信息。
+
+`WithMetadata(key, value)` 会返回带有更新后 metadata 的新状态，并复制已有 metadata，
+不会修改调用它的原始 `HealthStatus`。

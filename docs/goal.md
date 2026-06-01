@@ -525,6 +525,8 @@ func (e *Error) Unwrap() error {
 	return e.Cause
 }
 
+// WithRetryable sets whether the operation may be retried by an upper layer.
+// It mutates the receiver and returns the same pointer for construction-time annotation.
 func (e *Error) WithRetryable(retryable bool) *Error {
 	if e == nil {
 		return nil
@@ -576,6 +578,7 @@ package foundationx
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 )
 
@@ -619,11 +622,21 @@ func NewHealthStatus(
 }
 
 func (s HealthStatus) WithMetadata(key string, value string) HealthStatus {
+	metadata := make(map[string]string, len(s.Metadata)+1)
+	for existingKey, existingValue := range s.Metadata {
+		metadata[existingKey] = existingValue
+	}
+	metadata[key] = value
+	s.Metadata = metadata
+	return s
+}
+
+func (s HealthStatus) MarshalJSON() ([]byte, error) {
+	type healthStatus HealthStatus
 	if s.Metadata == nil {
 		s.Metadata = map[string]string{}
 	}
-	s.Metadata[key] = value
-	return s
+	return json.Marshal(healthStatus(s))
 }
 
 func (s HealthStatus) IsHealthy() bool {
@@ -635,6 +648,8 @@ func (s HealthStatus) IsHealthy() bool {
 
 ```text
 HealthStatus 是状态表达，不做 HTTP 序列化绑定。
+HealthStatus JSON 中 metadata 必须保持对象形态。
+WithMetadata 不能修改源 HealthStatus 的 Metadata map。
 不能依赖 Gin/Echo/Fiber。
 不能定义 /healthz 路由。
 上层服务自行聚合 HealthChecker。
@@ -726,6 +741,8 @@ func (p RetryPolicy) Validate() error {
 	return nil
 }
 
+// Delay returns the exponential backoff delay for the 1-based attempt number.
+// It does not enforce MaxAttempts; callers decide whether an attempt should run.
 func (p RetryPolicy) Delay(attempt int) time.Duration {
 	if attempt <= 0 || p.BaseDelay <= 0 {
 		return 0
@@ -758,7 +775,7 @@ func (p RetryPolicy) Delay(attempt int) time.Duration {
 ```text
 foundationx 不实现 Retry Executor。
 因为是否重试、如何处理 context、如何处理错误副作用，应由上层库决定。
-foundationx 只提供 RetryPolicy 和 Delay 计算。
+foundationx 只提供 RetryPolicy 和 Delay 计算；MaxAttempts 由上层执行循环负责判断。
 ```
 
 ---
@@ -775,6 +792,8 @@ pkg/foundationx/sanitizer.go
 
 ```go
 package foundationx
+
+import "encoding/json"
 
 type Sanitizer interface {
 	Sanitize() any
@@ -793,6 +812,14 @@ func (s SecretString) String() string {
 	return "***"
 }
 
+func (s SecretString) Sanitize() any {
+	return s.String()
+}
+
+func (s SecretString) MarshalJSON() ([]byte, error) {
+	return json.Marshal(s.String())
+}
+
 func (s SecretString) Reveal() string {
 	return string(s)
 }
@@ -806,6 +833,7 @@ func (s SecretString) IsZero() bool {
 
 ```text
 SecretString 默认打印必须脱敏。
+SecretString JSON 序列化必须脱敏。
 Reveal 只能在构造 driver config 时显式使用。
 测试必须保证 fmt.Sprint(secret) 不泄露。
 ```
@@ -965,6 +993,8 @@ AC-REQ-FOUNDATIONX-004-002: 定义 HealthStatus
 AC-REQ-FOUNDATIONX-004-003: 定义 HealthChecker interface
 AC-REQ-FOUNDATIONX-004-004: HealthStatus 支持 Metadata
 AC-REQ-FOUNDATIONX-004-005: HealthStatus.IsHealthy 正确
+AC-REQ-FOUNDATIONX-004-006: nil Metadata JSON 输出为空对象
+AC-REQ-FOUNDATIONX-004-007: WithMetadata 不修改源 HealthStatus
 ```
 
 ## REQ-FOUNDATIONX-005：生命周期模型（Lifecycle Model）
@@ -993,6 +1023,7 @@ AC-REQ-FOUNDATIONX-006-003: Validate 能识别非法 Delay
 AC-REQ-FOUNDATIONX-006-004: Delay 使用指数退避
 AC-REQ-FOUNDATIONX-006-005: Delay 尊重 MaxDelay
 AC-REQ-FOUNDATIONX-006-006: Delay 溢出时饱和到最大 time.Duration
+AC-REQ-FOUNDATIONX-006-007: Delay 不按 MaxAttempts 截断，调用方负责停止条件
 ```
 
 ## REQ-FOUNDATIONX-007：脱敏与 SecretString（Sanitizer / SecretString）
@@ -1007,6 +1038,8 @@ AC-REQ-FOUNDATIONX-007-002: 空 SecretString.String 返回空字符串
 AC-REQ-FOUNDATIONX-007-003: SecretString.Reveal 返回原值
 AC-REQ-FOUNDATIONX-007-004: fmt.Sprint(secret) 不泄露原文
 AC-REQ-FOUNDATIONX-007-005: SecretString.IsZero 正确
+AC-REQ-FOUNDATIONX-007-006: SecretString.Sanitize 返回脱敏值
+AC-REQ-FOUNDATIONX-007-007: json.Marshal(secret) 不泄露原文
 ```
 
 ## REQ-FOUNDATIONX-008：时钟（Clock）
@@ -1350,7 +1383,7 @@ TestErrorString
 TestErrorUnwrap
 TestIsKind
 TestAsFoundationError
-TestRetryable
+TestErrorWithRetryableMutatesReceiver
 TestNilError
 ```
 
@@ -1388,6 +1421,7 @@ HealthStatus
 HealthChecker
 NewHealthStatus
 WithMetadata
+MarshalJSON
 IsHealthy
 ```
 
@@ -1396,6 +1430,8 @@ IsHealthy
 ```text
 TestNewHealthStatus
 TestHealthStatusWithMetadata
+TestHealthStatusWithMetadataDoesNotMutateSource
+TestHealthStatusJSONNilMetadataMarshalsAsObject
 TestHealthStatusIsHealthy
 TestHealthStatusNilMetadata
 ```
@@ -1471,6 +1507,7 @@ TestDefaultRetryPolicyValid
 TestRetryPolicyValidateInvalidMaxAttempts
 TestRetryPolicyValidateInvalidBaseDelay
 TestRetryPolicyDelayExponential
+TestRetryPolicyDelayDoesNotEnforceMaxAttempts
 TestRetryPolicyDelayMaxDelay
 TestRetryPolicyDelaySaturatesOnOverflow
 ```
@@ -1505,6 +1542,8 @@ Sanitizer
 SecretString
 NewSecretString
 String
+Sanitize
+MarshalJSON
 Reveal
 IsZero
 ```
@@ -1516,7 +1555,10 @@ TestSecretStringStringMasked
 TestSecretStringReveal
 TestSecretStringEmpty
 TestSecretStringFmtSprintDoesNotLeak
+TestSecretStringJSONMasked
+TestSecretStringJSONEmpty
 TestSecretStringIsZero
+TestSecretStringSanitizer
 ```
 
 证据：
@@ -2281,7 +2323,7 @@ Reveal 被用于日志。
 缓解：
 
 ```text
-文档明确 foundationx 只提供策略和 Delay。
+文档明确 foundationx 只提供策略和 Delay，Delay 不按 MaxAttempts 截断执行。
 ```
 
 ---
@@ -2321,7 +2363,7 @@ ErrorKind 只表示基础设施通用错误类型。
 决策：
 
 ```text
-foundationx 不提供 DoWithRetry。
+foundationx 不提供 DoWithRetry，Delay 只做确定性的 attempt 延迟计算。
 ```
 
 原因：
@@ -2431,9 +2473,12 @@ evidence
 
 ### 新增（Added）
 - 新增 ErrorKind 与 Error model。
+- 明确 Error.WithRetryable 修改并返回同一个错误指针。
 - 新增 HealthStatus 与 HealthChecker contract。
+- 新增 HealthStatus JSON metadata object contract。
 - 新增 Lifecycle contract。
 - 新增 RetryPolicy。
+- 明确 RetryPolicy.Delay 不按 MaxAttempts 截断执行循环。
 - 新增 Sanitizer 与 SecretString。
 - 新增 Clock interface，以及 RealClock 和 FixedClock。
 - 新增 VersionInfo。
@@ -2441,6 +2486,7 @@ evidence
 
 ### 安全（Security）
 - SecretString 默认输出 masked string。
+- SecretString JSON 输出默认使用 masked string。
 - 新增 Secret gate，防止意外提交 secret。
 
 ### 破坏性变更（Breaking Changes）
