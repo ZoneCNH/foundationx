@@ -6,8 +6,8 @@ cd "$ROOT"
 
 echo "checking documentation drift..."
 status=0
-check_absent() { label=$1; pattern=$2; shift 2; if grep -n -E "$pattern" "$@"; then echo "ERROR: documentation contains stale API contract: $label"; status=1; fi; }
-check_present() { label=$1; pattern=$2; shift 2; if ! grep -n -E "$pattern" "$@" >/dev/null; then echo "ERROR: documentation missing API contract: $label"; status=1; fi; }
+check_absent() { label=$1; pattern=$2; shift 2; if grep -n -E -- "$pattern" "$@"; then echo "ERROR: documentation contains stale API contract: $label"; status=1; fi; }
+check_present() { label=$1; pattern=$2; shift 2; if ! grep -n -E -- "$pattern" "$@" >/dev/null; then echo "ERROR: documentation missing API contract: $label"; status=1; fi; }
 DOC_FILES="
 README.md
 CHANGELOG.md
