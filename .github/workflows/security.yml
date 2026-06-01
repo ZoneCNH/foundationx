@@ -25,7 +25,7 @@ jobs:
       - name: Install security tools
         run: |
           echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
-          go install golang.org/x/vuln/cmd/govulncheck@latest
+          go install golang.org/x/vuln/cmd/govulncheck@v1.1.4
 
       - name: Make scripts executable
         run: chmod +x scripts/*.sh
