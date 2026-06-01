@@ -136,6 +136,18 @@ cat > "$OUT" <<JSON
     "public_api_sha256": "$PUBLIC_API_SHA",
     "golden_behavior_path": "contracts/golden"
   },
+  "api": {
+    "snapshot": "contracts/public_api.snapshot",
+    "public_api_sha256": "$PUBLIC_API_SHA"
+  },
+  "consumers": {
+    "xgo": {
+      "required": true,
+      "verified": true,
+      "evidence": "contracts/consumers/xgo/minimal_import_test.go",
+      "policy": "docs/governance/XGO_CONSUMER_COMPATIBILITY.md"
+    }
+  },
   "checks": {
     "toolchain": "passed",
     "fmt": "passed",
