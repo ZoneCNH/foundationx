@@ -79,5 +79,5 @@ GOWORK=off go test ./...
 
 发布证据写入 `release/manifest/<version>.json`，并同步更新 `release/manifest/latest.json`。
 tag 触发的 CI 使用 tag 名作为 `<version>`；本地未设置 `VERSION` 且当前 commit 没有版本 tag
-时回退到 `v0.1.0`。该目录下的 JSON 文件是生成物，CI 会在发布门禁中生成并上传
-manifest artifact。
+时回退到 `v0.1.0`，对应路径为 `release/manifest/v0.1.0.json`。该目录下的 JSON 文件是
+生成物，CI 会在发布门禁中生成并上传 manifest artifact。
