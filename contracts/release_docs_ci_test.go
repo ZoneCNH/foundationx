@@ -426,10 +426,14 @@ func readRepoText(t *testing.T, path string) string {
 func makeTargetBody(t *testing.T, makefile string, target string) string {
 	t.Helper()
 
-	marker := target + ":\n"
+	marker := "\n" + target + ":\n"
 	start := strings.Index(makefile, marker)
 	if start == -1 {
-		t.Fatalf("%s target not found", target)
+		if !strings.HasPrefix(makefile, target+":\n") {
+			t.Fatalf("%s target not found", target)
+		}
+		start = 0
+		marker = target + ":\n"
 	}
 
 	bodyStart := start + len(marker)
