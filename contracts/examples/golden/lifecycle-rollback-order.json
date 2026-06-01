@@ -1,0 +1,10 @@
+{
+  "error": "gamma start failed",
+  "order": [
+    "start:alpha",
+    "start:beta",
+    "start:gamma",
+    "stop:beta",
+    "stop:alpha"
+  ]
+}

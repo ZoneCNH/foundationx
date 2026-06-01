@@ -1,17 +1,21 @@
-# 发布清单模式 Release manifest schema
+# 发布清单 Schema
 
-## 必填字段 Required fields
+## 顶层字段
 
-Release manifest 必须包含：
+Release manifest 使用 `schema_version: kernel.release-manifest.v1`。清单必须包含 module、version、commit、tree_sha、workspace_status、generated_at、go、api、contracts、consumer_compatibility 与 checks。
 
-- `schema_version`：当前为 `kernel.release-manifest.v1`。
-- `module`、`version`、`commit`、`tree_sha`、`workspace_status`。
-- `go.min_version`、`go.integration_version`、`go.verified_versions`、`go.actual_version`。
-- `contracts.error_schema_sha256`、`contracts.health_schema_sha256`、`contracts.version_schema_sha256`。
-- `api.public_api_sha256` 和 `api.snapshot`。
-- `consumers.xgo.required`、`consumers.xgo.verified`、`consumers.xgo.evidence`。
-- 每个 release gate 的 `checks.*="passed"`。
+## Go 字段
 
-## 校验 Validation
+`go.min_version` 来自 `.github/versions.env` 的 `GO_MIN_VERSION`，`go.integration_version` 来自 `GO_INTEGRATION_VERSION`，`go.actual_version` 来自当前 `go version`。
 
-`./scripts/check_release_evidence.sh` 会重新计算 schema hash、API snapshot hash、当前 commit、tree 和 workspace 状态，并验证 `release/manifest/latest.json` 与版本 manifest 完全一致。
+## API 字段
+
+`api.public_api_snapshot` 固定为 `contracts/public_api.snapshot`，`api.public_api_sha256` 必须等于该快照文件的 sha256。
+
+## 消费者字段
+
+`consumer_compatibility.xgo.status` 可以是 `verified` 或 `external-evidence-required`。缺失消费者字段必须阻断 evidence check。
+
+## Checks 字段
+
+checks 必须记录 fmt、vet、unit_test、race_test、boundary、secret_scan、contract、api、api_diff、toolchain、docs、artifact_docs、examples、release_evidence。

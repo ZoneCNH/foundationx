@@ -1,24 +1,25 @@
-# Package Maturity（包成熟度）
+# 包成熟度矩阵
 
-## Classification（分级）
+## 稳定候选包
 
 | Package | Maturity | Contract |
 | --- | --- | --- |
-| `errx` | Stable | Error kind, wrapping, retryability, and JSON schema behavior are covered by tests and docs. |
-| `timex` | Stable | Clock abstraction and duration helpers are covered by tests and examples. |
-| `lifecycx` | Stable | Start/stop order and rollback behavior are covered by golden contracts. |
-| `retryx` | Stable | Delay, cap, and jitter behavior are covered by golden contracts. |
-| `healthx` | Stable | Health status JSON schema and metadata behavior are covered by contracts. |
-| `obsx` | Stable | Secret redaction behavior is covered by golden contracts. |
-| `validx` | Stable | Validation aggregation behavior is covered by tests and docs. |
-| `syncx` | Stable | WorkerGroup first-error cancellation behavior is covered by golden contracts. |
-| `versionx` | Stable | Version payload schema is covered by contracts. |
-| `contracttest` | Stable | Golden JSON helper behavior is covered by examples and tests. |
+| `errx` | stable-candidate | 错误 kind、severity、JSON schema、retryable 语义 |
+| `healthx` | stable-candidate | 健康状态 JSON schema 与状态枚举 |
+| `versionx` | stable-candidate | build info JSON schema |
+| `timex` | stable-candidate | clock abstraction 与 deterministic test clock |
+| `validx` | stable-candidate | validator shape 与 error contract |
+| `contracttest` | stable-candidate | consumer-facing test helpers |
 
-## Promotion Rules（晋级规则）
+## 观察期包
 
-A package remains Stable only when exported API drift checks, package documentation, examples, and relevant golden behavior contracts pass in release gates.
+| Package | Maturity | Contract |
+| --- | --- | --- |
+| `retryx` | observed | deterministic backoff 与 retryable error 判断 |
+| `obsx` | observed | secret redaction 与 noop interfaces |
+| `lifecycx` | observed | start order、reverse stop、rollback order |
+| `syncx` | observed | first-error aggregation 与 cancellation |
 
-## Downgrade Rules（降级规则）
+## 晋级要求
 
-If a package loses contract coverage or requires a breaking behavior decision, release notes must identify the package as under compatibility review until coverage and documentation are restored.
+包晋级 stable-candidate 前必须具备文档、公开 API 快照、golden 行为覆盖和 release evidence 校验。

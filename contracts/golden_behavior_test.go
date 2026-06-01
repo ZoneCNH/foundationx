@@ -6,7 +6,10 @@ import (
 	"errors"
 	"os"
 	"reflect"
+	"strings"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/ZoneCNH/kernel/lifecycx"
 	"github.com/ZoneCNH/kernel/obsx"
@@ -14,17 +17,9 @@ import (
 	"github.com/ZoneCNH/kernel/syncx"
 )
 
-func TestGoldenRetryPolicyDefault(t *testing.T) {
-	var want struct {
-		MaxAttempts int      `json:"max_attempts"`
-		BaseDelay   string   `json:"base_delay"`
-		MaxDelay    string   `json:"max_delay"`
-		Delays      []string `json:"delays"`
-	}
-	readGolden(t, "retry-policy-default.json", &want)
-
+func TestRetryPolicyGoldenBehavior(t *testing.T) {
 	policy := retryx.DefaultRetryPolicy()
-	got := struct {
+	actual := struct {
 		MaxAttempts int      `json:"max_attempts"`
 		BaseDelay   string   `json:"base_delay"`
 		MaxDelay    string   `json:"max_delay"`
@@ -34,116 +29,104 @@ func TestGoldenRetryPolicyDefault(t *testing.T) {
 		BaseDelay:   policy.BaseDelay.String(),
 		MaxDelay:    policy.MaxDelay.String(),
 	}
-	for attempt := 0; attempt <= 4; attempt++ {
-		got.Delays = append(got.Delays, policy.Delay(attempt).String())
+	for attempt := 0; attempt <= 5; attempt++ {
+		actual.Delays = append(actual.Delays, policy.Delay(attempt).String())
 	}
-	assertDeepEqual(t, got, want)
+	assertGoldenJSON(t, "examples/golden/retry-policy-default.json", actual)
 }
 
-func TestGoldenSecretRedaction(t *testing.T) {
-	var want struct {
-		Empty        string `json:"empty"`
-		Redacted     string `json:"redacted"`
-		JSON         string `json:"json"`
-		IsZeroEmpty  bool   `json:"is_zero_empty"`
-		IsZeroSecret bool   `json:"is_zero_secret"`
-	}
-	readGolden(t, "obsx-secret-redaction.json", &want)
-
-	encoded, err := obsx.NewSecretString("secret").MarshalJSON()
-	if err != nil {
-		t.Fatalf("marshal secret string: %v", err)
-	}
-	got := struct {
-		Empty        string `json:"empty"`
-		Redacted     string `json:"redacted"`
-		JSON         string `json:"json"`
-		IsZeroEmpty  bool   `json:"is_zero_empty"`
-		IsZeroSecret bool   `json:"is_zero_secret"`
+func TestObsSecretRedactionGoldenBehavior(t *testing.T) {
+	secret := obsx.NewSecretString("super-secret-token")
+	actual := struct {
+		String   string `json:"string"`
+		JSON     string `json:"json"`
+		Sanitize any    `json:"sanitize"`
+		IsZero   bool   `json:"is_zero"`
 	}{
-		Empty:        obsx.NewSecretString("").String(),
-		Redacted:     obsx.NewSecretString("secret").String(),
-		JSON:         string(encoded),
-		IsZeroEmpty:  obsx.NewSecretString("").IsZero(),
-		IsZeroSecret: obsx.NewSecretString("secret").IsZero(),
+		String:   secret.String(),
+		Sanitize: secret.Sanitize(),
+		IsZero:   secret.IsZero(),
 	}
-	assertDeepEqual(t, got, want)
+	encoded, err := json.Marshal(secret)
+	if err != nil {
+		t.Fatalf("marshal secret: %v", err)
+	}
+	if strings.Contains(string(encoded), secret.Reveal()) || strings.Contains(actual.String, secret.Reveal()) {
+		t.Fatalf("secret redaction leaked raw value")
+	}
+	actual.JSON = string(encoded)
+	assertGoldenJSON(t, "examples/golden/obs-secret-redaction.json", actual)
 }
 
-func TestGoldenLifecycleRollbackOrder(t *testing.T) {
-	var want struct {
-		Error  string   `json:"error"`
-		Events []string `json:"events"`
-	}
-	readGolden(t, "lifecycx-rollback-order.json", &want)
-
-	events := []string{}
+func TestLifecycleRollbackOrderGoldenBehavior(t *testing.T) {
+	var order []string
 	manager := lifecycx.NewManager(
-		goldenComponent{name: "a", events: &events},
-		goldenComponent{name: "b", events: &events},
-		goldenComponent{name: "c", events: &events, startErr: errors.New("start c")},
+		&goldenComponent{name: "alpha", order: &order},
+		&goldenComponent{name: "beta", order: &order},
+		&goldenComponent{name: "gamma", order: &order, startErr: errors.New("gamma start failed")},
 	)
 	err := manager.Start(context.Background())
-	if err == nil {
-		t.Fatal("expected start error")
+	if err == nil || err.Error() != "gamma start failed" {
+		t.Fatalf("Start() error = %v, want gamma start failed", err)
 	}
-	got := struct {
-		Error  string   `json:"error"`
-		Events []string `json:"events"`
-	}{Error: err.Error(), Events: events}
-	assertDeepEqual(t, got, want)
+	actual := struct {
+		Error string   `json:"error"`
+		Order []string `json:"order"`
+	}{Error: err.Error(), Order: order}
+	assertGoldenJSON(t, "examples/golden/lifecycle-rollback-order.json", actual)
 }
 
-func TestGoldenWorkerGroupFirstError(t *testing.T) {
-	var want struct {
-		Error string `json:"error"`
-	}
-	readGolden(t, "syncx-first-error.json", &want)
-
+func TestWorkerGroupErrorAggregationGoldenBehavior(t *testing.T) {
 	group := syncx.NewWorkerGroup(context.Background())
-	group.Go(func(context.Context) error { return errors.New("worker failed") })
+	var observedCancellation atomic.Bool
+	group.Go(func(context.Context) error { return errors.New("primary failure") })
+	group.Go(func(ctx context.Context) error {
+		<-ctx.Done()
+		observedCancellation.Store(true)
+		return nil
+	})
 	err := group.Wait()
-	if err == nil {
-		t.Fatal("expected worker error")
+	if err == nil || err.Error() != "primary failure" {
+		t.Fatalf("Wait() error = %v, want primary failure", err)
 	}
-	got := struct {
-		Error string `json:"error"`
-	}{Error: err.Error()}
-	assertDeepEqual(t, got, want)
+	actual := struct {
+		Policy               string `json:"policy"`
+		Error                string `json:"error"`
+		ObservedCancellation bool   `json:"observed_cancellation"`
+	}{Policy: "first-error", Error: err.Error(), ObservedCancellation: observedCancellation.Load()}
+	assertGoldenJSON(t, "examples/golden/sync-workergroup-aggregation.json", actual)
 }
 
 type goldenComponent struct {
 	name     string
-	events   *[]string
+	order    *[]string
 	startErr error
 }
 
-func (c goldenComponent) Name() string { return c.name }
-func (c goldenComponent) Start(context.Context) error {
-	*c.events = append(*c.events, "start "+c.name)
+func (c *goldenComponent) Name() string { return c.name }
+func (c *goldenComponent) Start(context.Context) error {
+	*c.order = append(*c.order, "start:"+c.name)
 	return c.startErr
 }
-func (c goldenComponent) Stop(context.Context) error {
-	*c.events = append(*c.events, "stop "+c.name)
+func (c *goldenComponent) Stop(context.Context) error {
+	*c.order = append(*c.order, "stop:"+c.name)
 	return nil
 }
 
-func readGolden(t *testing.T, name string, out any) {
+func assertGoldenJSON(t *testing.T, path string, value any) {
 	t.Helper()
-	data, err := os.ReadFile("examples/golden/" + name)
+	data, err := json.MarshalIndent(value, "", "  ")
 	if err != nil {
-		t.Fatalf("read golden %s: %v", name, err)
+		t.Fatalf("marshal golden value: %v", err)
 	}
-	if err := json.Unmarshal(data, out); err != nil {
-		t.Fatalf("parse golden %s: %v", name, err)
+	data = append(data, '\n')
+	want, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read golden %s: %v", path, err)
+	}
+	if !reflect.DeepEqual(data, want) {
+		t.Fatalf("golden mismatch for %s\ngot:\n%s\nwant:\n%s", path, data, want)
 	}
 }
 
-func assertDeepEqual(t *testing.T, got any, want any) {
-	t.Helper()
-	if !reflect.DeepEqual(got, want) {
-		gotJSON, _ := json.MarshalIndent(got, "", "  ")
-		wantJSON, _ := json.MarshalIndent(want, "", "  ")
-		t.Fatalf("golden mismatch\ngot:  %s\nwant: %s", gotJSON, wantJSON)
-	}
-}
+var _ = time.Second

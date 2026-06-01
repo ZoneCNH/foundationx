@@ -1,19 +1,19 @@
-# XGO Consumer Compatibility（XGO 消费者兼容性）
+# x.go 消费者兼容性
 
-## Purpose（目的）
+## 兼容目标
 
-This document records the kernel-side compatibility promise for the downstream x.go consumer family without importing or depending on x.go packages.
+Kernel L0 必须保持 stdlib-only、`GOWORK=off` 可验证、无 local replace，并为 x.go / xlib 消费者提供稳定的小型公共 API。
 
-## Boundary（边界）
+## 当前证据
 
-The kernel must remain L0: `GOWORK=off`, standard-library-only runtime dependencies, no x.go imports, no local replace directives, and no business or infrastructure vocabulary in kernel code.
+本仓库提供 `contracts/consumers/xgo/README.md` 与 `contracts/consumers/xgo/minimal_import_test.go` 作为消费者证明模板。由于当前切片没有 sibling x.go 仓库和固定 tag，release manifest 将该外部消费者证明标记为 `external-evidence-required`，而不是伪造通过结果。
 
-## Consumer Contract（消费者契约）
+## 消费者验证要求
 
-- Downstream consumers rely on the exported API snapshot in `contracts/public_api.snapshot`.
-- Downstream consumers rely on golden behavior contracts for retry delays, secret redaction, lifecycle rollback order, and sync worker error aggregation.
-- Release manifests include consumer compatibility metadata pointing to this policy and `contracts/consumers/xgo/README.md`.
+外部 x.go 证明可用时，必须在独立模块中执行：
 
-## Verification（验证）
+```sh
+GOWORK=off go test ./...
+```
 
-Kernel release gates validate compatibility through `make contracts`, `make api-check`, `make evidence-check`, and `make release-final-check` before a release is accepted.
+该模块不得依赖 local replace；如需临时本地验证，结果只能作为预检，不能作为最终 release evidence。

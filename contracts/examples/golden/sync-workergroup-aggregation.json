@@ -1,0 +1,5 @@
+{
+  "policy": "first-error",
+  "error": "primary failure",
+  "observed_cancellation": true
+}
