@@ -80,6 +80,22 @@ func TestCIWorkflowsPreserveReleaseEvidenceGates(t *testing.T) {
 	assertContains(t, release, "path: release/manifest/*.json")
 }
 
+func TestCIToolsAreInstalledWithoutBecomingLocalHardDependencies(t *testing.T) {
+	makefile := readRepoText(t, "Makefile")
+	ci := readRepoText(t, filepath.Join(".github", "workflows", "ci.yml"))
+	release := readRepoText(t, filepath.Join(".github", "workflows", "release.yml"))
+	security := readRepoText(t, filepath.Join(".github", "workflows", "security.yml"))
+
+	for _, workflow := range []string{ci, release} {
+		assertContains(t, workflow, "go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.1.6")
+		assertContains(t, workflow, "go install golang.org/x/vuln/cmd/govulncheck@latest")
+	}
+
+	assertContains(t, security, "go install golang.org/x/vuln/cmd/govulncheck@latest")
+	assertContains(t, makefile, "golangci-lint not installed; skipping lint target")
+	assertContains(t, makefile, "govulncheck not installed; skipping vulnerability scan")
+}
+
 func TestSecurityWorkflowPreservesBoundaryContractGates(t *testing.T) {
 	security := readRepoText(t, filepath.Join(".github", "workflows", "security.yml"))
 

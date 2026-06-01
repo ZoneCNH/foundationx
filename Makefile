@@ -35,6 +35,11 @@ boundary:
 
 .PHONY: security
 security:
+	@if command -v govulncheck >/dev/null 2>&1; then \
+		$(GOENV) govulncheck ./...; \
+	else \
+		echo "govulncheck not installed; skipping vulnerability scan"; \
+	fi
 	./scripts/check_secrets.sh
 
 .PHONY: contracts

@@ -34,7 +34,7 @@
 | 采用 | 边界门禁 | 保持 L0 层只依赖标准库，不滑向基础设施适配器 |
 | 采用 | release manifest 生成与新鲜度校验 | 发布证据必须对应当前 commit、tree、workspace 和 schema |
 | 谨慎采用 | release preflight / final clean tree 思路 | 适合正式 tag 前使用，但本次任务禁止 push、tag、release；不在本次局部文档审阅中新增发布流程 |
-| 不采用 | `golangci-lint` / `govulncheck` 强依赖 | 当前 L0/std-lib-only 线保持零新增工具依赖；缺少外部工具时由本仓 Makefile 以可解释方式跳过 lint |
+| 谨慎采用 | CI 安装 `golangci-lint` / `govulncheck`，本地不设强依赖 | GitHub Actions runner 显式安装并执行质量工具；本地缺少外部工具时由 Makefile 以可解释方式跳过 |
 | 不采用 | `source_digest`、依赖清单、artifact 清单等完整模板 manifest 形态 | `foundationx` 目前没有模板渲染、外部依赖和发布打包物；现有 manifest 先覆盖 commit、tree、workspace 与 contract hash |
 | 不采用 | 整仓模板覆盖、`templatex`/client 样板形态 | 与 `foundationx` 的 L0 契约层定位不一致 |
 
@@ -61,15 +61,16 @@
 | --- | --- | --- | --- |
 | 契约门禁 | schema、contract tests、generated manifest contract hash | 已有 `contracts/*.schema.json`、`contracts/*_test.go`、`make contracts` | 已满足 L0 必需项 |
 | 边界门禁 | 模板渲染后检查 module、package、旧标识和禁止依赖 | 已有 stdlib-only、禁止基础设施依赖、禁止业务术语检查 | 已满足 L0 必需项 |
-| CI 工具安装 | CI 显式安装 `golangci-lint` 与 `govulncheck` 后跑 `release-check` | 本仓 `lint` 本地缺失时跳过，CI 未安装 `golangci-lint`；`security` 目前只跑 secrets scan | 立即可行动缺口：可只在 GitHub Actions 安装工具并执行，保持本地无强制依赖 |
+| CI 工具安装 | CI 显式安装 `golangci-lint` 与 `govulncheck` 后跑 `release-check` | CI、security 与 release workflow 已显式安装对应工具；本地缺失时仍可解释跳过 | 本轮已补齐，保持本地无强制依赖 |
 | 发布证据 | manifest 工具记录 source digest、依赖、工具、artifact 和 checks | shell manifest 记录 commit、tree、workspace、Go version、schema hash 和 checks | 当前可用；若进入正式 tag/release，应再评估 source digest 与 clean-tree final gate |
 | 发布预检 | `release-preflight` 检查 main、origin/main、tag、CHANGELOG、工具 | 当前未提供 tag 前 preflight | 有意保留缺口；本任务禁止 release，暂不新增 |
 | 集成验证 | 渲染下游 `foundationx` / `corekit` 并跑 contracts、boundary、evidence | L0 基础库本身不做模板渲染 | 不适用 |
-| 外部工具强制性 | `golangci-lint`、`govulncheck` 缺失时硬失败 | 本地 `lint` 缺失时跳过，`security` 只做 secrets scan | 本地轻量化可保留；CI runner 应安装工具补齐门禁 |
+| 外部工具强制性 | `golangci-lint`、`govulncheck` 缺失时硬失败 | 本地 `lint` / `security` 缺少对应工具时跳过；CI runner 已安装后执行 | 本地轻量化保留，CI 门禁已补齐 |
 
-## 本轮可行动缺口
+## 本轮已落地补齐
 
-- `foundationx` 的本地 `Makefile` 可以继续保持零新增强依赖，但 GitHub Actions runner 应显式安装 `golangci-lint` 与 `govulncheck`，确保 `make ci` 中的 lint 不再静默跳过，并让 security workflow 覆盖 Go vulnerability scan。该修复不改变 Go module 依赖，不复制 `templatex`、config、metrics、integration 或 template render 语义，属于可安全交给执行 worker 的治理补齐。
+- `foundationx` 的本地 `Makefile` 继续保持零新增强依赖；GitHub Actions runner 已显式安装 `golangci-lint` 与 `govulncheck`，因此 `make ci` 中的 lint 和 `make security` 中的 Go vulnerability scan 会在 CI 环境执行。
+- 该修复不改变 Go module 依赖，不复制 `templatex`、config、metrics、integration 或 template render 语义，只补齐模板治理中的 CI 工具门禁。
 
 以下差异本轮不应作为行动项：
 
