@@ -2,12 +2,14 @@
 
 分析对象：`https://github.com/ZoneCNH/baselib-template`
 目标仓库：`https://github.com/ZoneCNH/foundationx`
-最新确认 commit：`fbe0b47ca771837e50dcfb0d431de6b52c53fc7a`
+最新确认 commit：`041a62f21428111a4b46235a7910edbdf4e07d61`
 确认日期：`2026-06-01`
 
 ## 结论
 
 `baselib-template` 当前已经从旧报告中的弱发布门禁演进为更可用的 Go 基础库模板。它适合作为 `foundationx` 的治理门禁参考，不适合整仓覆盖 `foundationx`。`foundationx` 的定位是 L0、stdlib-only、契约优先的基础层，因此应只吸收契约校验、边界检查、发布证据新鲜度校验等治理能力；不引入模板里的具体业务包形态。
+
+本报告以 `041a62f21428111a4b46235a7910edbdf4e07d61` 作为可复核基线。该基线中的可复用模式包括：`contracts/` schema contract tests、`scripts/check_boundary.sh`、`scripts/generate_manifest.sh`、`scripts/check_release_evidence.sh`、CI artifact upload 和 release workflow gate。
 
 ## 已验证
 
