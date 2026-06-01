@@ -152,7 +152,7 @@ func exprString(fset *token.FileSet, expr ast.Expr) string {
 	if err := printer.Fprint(&b, fset, expr); err != nil {
 		return "<print-error>"
 	}
-	return b.String()
+	return strings.Join(strings.Fields(b.String()), " ")
 }
 
 func fatal(v any) { fmt.Fprintln(os.Stderr, "api snapshot:", v); os.Exit(1) }
