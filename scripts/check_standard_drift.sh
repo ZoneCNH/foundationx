@@ -63,10 +63,22 @@ require_config_key '^last_synced:'
 require_config_key '^drift_check:'
 require_config_key '^[[:space:]]+default_mode:[[:space:]]+local-pinned-baseline$'
 require_config_key '^[[:space:]]+live_network_gate:[[:space:]]+false$'
+require_config_key '^[[:space:]]+live_network_mode:[[:space:]]+optional-fail-on-drift$'
+require_config_key '^live_review:'
 
+source_repo="$(config_section_value standard_source repo)"
+source_branch="$(config_section_value standard_source branch)"
 baseline_commit="$(config_section_value last_synced commit)"
 baseline_date="$(config_section_value last_synced date)"
 baseline_evidence="$(config_section_value last_synced evidence)"
+live_review_checked_at="$(config_section_value live_review checked_at)"
+live_review_commit="$(config_section_value live_review live_commit)"
+live_review_relation="$(config_section_value live_review relation)"
+live_review_decision="$(config_section_value live_review decision)"
+live_review_evidence="$(config_section_value live_review evidence)"
+
+[ -n "$source_repo" ] || fail "$CONFIG standard_source.repo missing"
+[ -n "$source_branch" ] || fail "$CONFIG standard_source.branch missing"
 
 if ! printf '%s\n' "$baseline_commit" | grep -Eq '^[0-9a-f]{40}$'; then
   fail "$CONFIG last_synced.commit must be a 40-character lowercase git commit"
@@ -78,6 +90,19 @@ fi
 
 [ -n "$baseline_evidence" ] || fail "$CONFIG last_synced.evidence missing"
 [ -s "$baseline_evidence" ] || fail "baseline evidence missing or empty: $baseline_evidence"
+
+if ! printf '%s\n' "$live_review_checked_at" | grep -Eq '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'; then
+  fail "$CONFIG live_review.checked_at must use YYYY-MM-DD"
+fi
+
+if ! printf '%s\n' "$live_review_commit" | grep -Eq '^[0-9a-f]{40}$'; then
+  fail "$CONFIG live_review.live_commit must be a 40-character lowercase git commit"
+fi
+
+[ -n "$live_review_relation" ] || fail "$CONFIG live_review.relation missing"
+[ -n "$live_review_decision" ] || fail "$CONFIG live_review.decision missing"
+[ -n "$live_review_evidence" ] || fail "$CONFIG live_review.evidence missing"
+[ -s "$live_review_evidence" ] || fail "live review evidence missing or empty: $live_review_evidence"
 
 mkdir -p "$OUT_DIR"
 
@@ -91,9 +116,15 @@ generated_at="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
   echo "- source_baseline_commit: $baseline_commit"
   echo "- source_baseline_date: $baseline_date"
   echo "- source_baseline_evidence: $baseline_evidence"
+  echo "- live_review_checked_at: $live_review_checked_at"
+  echo "- live_review_commit: $live_review_commit"
+  echo "- live_review_relation: $live_review_relation"
+  echo "- live_review_decision: $live_review_decision"
+  echo "- live_review_evidence: $live_review_evidence"
   echo "- target: ZoneCNH/kernel"
   echo "- default_mode: local-pinned-baseline"
   echo "- live_network_gate: false"
+  echo "- live_network_mode: optional-fail-on-drift"
   echo
   echo "## Local standard evidence"
   echo
@@ -128,6 +159,8 @@ done
   echo "- upstream fetch: not run by default"
   echo "- comparison basis: pinned reviewed baseline plus local governance and contract artifacts"
   echo "- default gate scope: local filesystem only"
+  echo "- optional live check: run STANDARD_DRIFT_LIVE=1 ./scripts/check_standard_drift.sh"
+  echo "- optional live behavior: fail when upstream main differs from the pinned reviewed baseline"
   echo
   echo "## Local forbidden token check"
   echo
@@ -187,6 +220,41 @@ for token in "${tokens[@]}"; do
     fail "forbidden standard/template token found: $token"
   fi
 done
+
+live_mode="${STANDARD_DRIFT_LIVE:-0}"
+case "$live_mode" in
+  0|false|FALSE|no|NO)
+    {
+      echo
+      echo "## Live upstream check"
+      echo
+      echo "- status: not-run"
+      echo "- reason: default local-pinned-baseline mode avoids network access"
+      echo "- last_reviewed_live_commit: $live_review_commit"
+      echo "- last_review_decision: $live_review_decision"
+    } >> "$REPORT"
+    ;;
+  1|true|TRUE|yes|YES)
+    live_commit="$(git ls-remote "https://github.com/$source_repo" "refs/heads/$source_branch" | awk '{print $1}')"
+    [ -n "$live_commit" ] || fail "live upstream lookup returned no commit for $source_repo $source_branch"
+    {
+      echo
+      echo "## Live upstream check"
+      echo
+      echo "- status: run"
+      echo "- source_ref: $source_repo $source_branch"
+      echo "- live_commit: $live_commit"
+      echo "- pinned_baseline_commit: $baseline_commit"
+    } >> "$REPORT"
+    if [ "$live_commit" != "$baseline_commit" ]; then
+      fail "live upstream drift detected: $source_repo $source_branch is $live_commit, pinned baseline is $baseline_commit"
+    fi
+    echo "- live drift: none" >> "$REPORT"
+    ;;
+  *)
+    fail "STANDARD_DRIFT_LIVE must be 0/1, true/false, or yes/no"
+    ;;
+esac
 
 {
   echo

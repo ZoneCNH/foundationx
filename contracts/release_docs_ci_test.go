@@ -40,6 +40,44 @@ func TestReleaseCheckWiresDocumentationAndEvidenceGates(t *testing.T) {
 	assertContains(t, makefile, "security-strict:")
 }
 
+func TestDependencyAutomationEvidenceKeepsRemoteGapExplicit(t *testing.T) {
+	script := readRepoText(t, filepath.Join("scripts", "check_dependency_diff.sh"))
+	evidence := readRepoText(t, filepath.Join("docs", "evidence", "dependency-automation.md"))
+	ci := readRepoText(t, filepath.Join(".github", "workflows", "ci.yml"))
+	dependabot := readRepoText(t, filepath.Join(".github", "dependabot.yml"))
+	renovate := readRepoText(t, "renovate.json")
+
+	for _, want := range []string{
+		`AUTOMATION_EVIDENCE="docs/evidence/dependency-automation.md"`,
+		"Dependabot 托管服务执行：未验证",
+		"Renovate 托管服务执行：未验证",
+		"本地门禁：scripts/check_dependency_diff.sh",
+		"remote Dependabot/Renovate execution remains unverified",
+	} {
+		assertContains(t, script, want)
+	}
+
+	for _, want := range []string{
+		"本地门禁：scripts/check_dependency_diff.sh",
+		"Dependabot 配置：.github/dependabot.yml",
+		"Renovate 配置：renovate.json",
+		"CI 接线：Makefile 的 `dependency-check` 已纳入 `ci`",
+		"Dependabot 托管服务执行：未验证",
+		"Renovate 托管服务执行：未验证",
+		"`gh run list --limit 10`",
+		"`gh pr list --state all --limit 30`",
+		"不使用本地配置冒充远程执行",
+	} {
+		assertContains(t, evidence, want)
+	}
+
+	assertContains(t, ci, "run: make ci")
+	assertContains(t, dependabot, `package-ecosystem: "gomod"`)
+	assertContains(t, dependabot, `package-ecosystem: "github-actions"`)
+	assertContains(t, renovate, `"gomod"`)
+	assertContains(t, renovate, `"github-actions"`)
+}
+
 func TestReleaseCheckRunsEvidenceAfterCIGates(t *testing.T) {
 	makefile := readRepoText(t, "Makefile")
 	targetBody := makeTargetBody(t, makefile, "release-check")
@@ -98,6 +136,9 @@ func TestXlibStandardAnalysisPinsReviewedGovernanceBaseline(t *testing.T) {
 
 	for _, want := range []string{
 		"041a62f21428111a4b46235a7910edbdf4e07d61",
+		"a7c8511b7b400d0f9effed5d50ac46e5faf185c2",
+		"STANDARD_DRIFT_LIVE=1 ./scripts/check_standard_drift.sh",
+		"本次不安全静默更新 baseline",
 		"`contracts/` schema contract tests",
 		"`scripts/check_boundary.sh`",
 		"`scripts/generate_manifest.sh`",
@@ -107,6 +148,37 @@ func TestXlibStandardAnalysisPinsReviewedGovernanceBaseline(t *testing.T) {
 		"不采用 | 整仓模板覆盖",
 	} {
 		assertContains(t, analysis, want)
+	}
+}
+
+func TestStandardDriftConfigAndScriptExposeOptionalLiveGate(t *testing.T) {
+	config := readRepoText(t, ".standard-sync.yaml")
+	check := readRepoText(t, filepath.Join("scripts", "check_standard_drift.sh"))
+	releaseEvidence := readRepoText(t, filepath.Join("docs", "evidence", "release-v0.4.0.md"))
+
+	for _, want := range []string{
+		"live_network_mode: optional-fail-on-drift",
+		"live_commit: \"a7c8511b7b400d0f9effed5d50ac46e5faf185c2\"",
+		"decision: \"do-not-update-baseline-unreviewed\"",
+	} {
+		assertContains(t, config, want)
+	}
+
+	for _, want := range []string{
+		"STANDARD_DRIFT_LIVE",
+		"git ls-remote \"https://github.com/$source_repo\" \"refs/heads/$source_branch\"",
+		"live upstream drift detected",
+		"live_network_mode: optional-fail-on-drift",
+	} {
+		assertContains(t, check, want)
+	}
+
+	for _, want := range []string{
+		"Standard drift optional live gate",
+		"a7c8511b7b400d0f9effed5d50ac46e5faf185c2",
+		"baseline 不做未审更新",
+	} {
+		assertContains(t, releaseEvidence, want)
 	}
 }
 
@@ -132,16 +204,20 @@ func TestReleaseEvidenceScriptsPreserveFreshnessChecks(t *testing.T) {
 		"dependencies",
 		"DEPENDENCY_MODULES",
 		"DEPENDENCY_UPDATES",
+		"DEPENDENCY_AUTOMATION_EVIDENCE",
 		"STANDARD_SYNC_REPORT",
 		"modules_sha256",
 		"updates_sha256",
+		"automation_evidence",
+		"hosted_service_verified",
 		"go_mod_sha256",
 		"go_sum_sha256",
 		"dependency_check",
 		"standard_drift_check",
 		"release_evidence_check",
 		"consumer_compatibility",
-		"external-evidence-required",
+		"local_external_module_passed",
+		"xgo_external_verified",
 		"cp \"$OUT\" \"$LATEST\"",
 	} {
 		assertContains(t, generate, want)
@@ -164,12 +240,17 @@ func TestReleaseEvidenceScriptsPreserveFreshnessChecks(t *testing.T) {
 		"manifest tools golangci-lint pin mismatch",
 		"manifest dependency modules hash mismatch",
 		"manifest dependency updates hash mismatch",
+		"manifest dependency automation evidence hash mismatch",
+		"manifest dependency automation hosted service verification must remain explicit",
 		"manifest go.mod dependency hash mismatch",
 		"dependency_check",
 		"standard_drift_check",
 		"release_evidence_check",
 		"go min version",
 		"xgo evidence",
+		"docs/evidence/dependency-automation.md",
+		"local external module smoke",
+		"true external verification",
 		"release-${VERSION}.md",
 	} {
 		assertContains(t, check, want)

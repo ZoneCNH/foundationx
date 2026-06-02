@@ -34,6 +34,7 @@ MANIFEST="release/manifest/${VERSION}.json"
 LATEST="release/manifest/latest.json"
 DEPENDENCY_MODULES="release/dependency/modules.txt"
 DEPENDENCY_UPDATES="release/dependency/updates.txt"
+DEPENDENCY_AUTOMATION_EVIDENCE="docs/evidence/dependency-automation.md"
 STANDARD_SYNC_REPORT="release/standard-sync/latest.md"
 VERSIONS_ENV=".github/versions.env"
 TOOLCHAIN_CHECK="scripts/ci/toolchain-check.sh"
@@ -204,6 +205,7 @@ require_value tools.pins.staticcheck_version "$STATICCHECK_VERSION" "manifest to
 
 require_artifact "$DEPENDENCY_MODULES"
 require_artifact "$DEPENDENCY_UPDATES"
+require_artifact "$DEPENDENCY_AUTOMATION_EVIDENCE"
 
 tmp_modules="$(mktemp)"
 tmp_updates="$(mktemp)"
@@ -215,6 +217,7 @@ cmp -s "$DEPENDENCY_UPDATES" "$tmp_updates" || fail "dependency updates artifact
 
 DEPENDENCY_MODULES_SHA="$(sha256_file "$DEPENDENCY_MODULES")"
 DEPENDENCY_UPDATES_SHA="$(sha256_file "$DEPENDENCY_UPDATES")"
+DEPENDENCY_AUTOMATION_SHA="$(sha256_file "$DEPENDENCY_AUTOMATION_EVIDENCE")"
 DEPENDENCY_MODULES_COUNT="$(line_count "$DEPENDENCY_MODULES")"
 DEPENDENCY_UPDATES_COUNT="$(line_count "$DEPENDENCY_UPDATES")"
 GO_MOD_SHA="$(sha256_file go.mod)"
@@ -229,14 +232,17 @@ DEPENDENCIES_SHA="$({
   printf 'go.sum:%s\n' "$GO_SUM_SHA"
   printf '%s:%s\n' "$DEPENDENCY_MODULES" "$DEPENDENCY_MODULES_SHA"
   printf '%s:%s\n' "$DEPENDENCY_UPDATES" "$DEPENDENCY_UPDATES_SHA"
+  printf '%s:%s\n' "$DEPENDENCY_AUTOMATION_EVIDENCE" "$DEPENDENCY_AUTOMATION_SHA"
 } | sha256_stream)"
 
 require_value dependencies.sha256 "$DEPENDENCIES_SHA" "manifest dependency aggregate hash mismatch"
 require_value dependencies.modules_artifact "$DEPENDENCY_MODULES" "manifest dependency modules artifact path mismatch"
 require_value dependencies.updates_artifact "$DEPENDENCY_UPDATES" "manifest dependency updates artifact path mismatch"
+require_value dependencies.automation_evidence "$DEPENDENCY_AUTOMATION_EVIDENCE" "manifest dependency automation evidence path mismatch"
 require_value dependencies.standard_sync_report "$STANDARD_SYNC_REPORT" "manifest standard sync report path mismatch"
 require_value dependencies.modules_sha256 "$DEPENDENCY_MODULES_SHA" "manifest dependency modules hash mismatch"
 require_value dependencies.updates_sha256 "$DEPENDENCY_UPDATES_SHA" "manifest dependency updates hash mismatch"
+require_value dependencies.automation_evidence_sha256 "$DEPENDENCY_AUTOMATION_SHA" "manifest dependency automation evidence hash mismatch"
 require_value dependencies.go_mod_sha256 "$GO_MOD_SHA" "manifest go.mod dependency hash mismatch"
 require_value dependencies.go_sum_sha256 "$GO_SUM_SHA" "manifest go.sum dependency hash mismatch"
 require_value dependencies.go_mod_tidy "clean" "manifest go mod tidy status mismatch"
@@ -251,10 +257,18 @@ require_value dependencies.modules.line_count "$DEPENDENCY_MODULES_COUNT" "manif
 require_value dependencies.updates.artifact "$DEPENDENCY_UPDATES" "manifest dependency updates nested artifact path mismatch"
 require_value dependencies.updates.sha256 "$DEPENDENCY_UPDATES_SHA" "manifest dependency updates nested hash mismatch"
 require_value dependencies.updates.line_count "$DEPENDENCY_UPDATES_COUNT" "manifest dependency updates line count mismatch"
+require_value dependencies.automation.evidence "$DEPENDENCY_AUTOMATION_EVIDENCE" "manifest dependency automation nested evidence path mismatch"
+require_value dependencies.automation.evidence_sha256 "$DEPENDENCY_AUTOMATION_SHA" "manifest dependency automation nested evidence hash mismatch"
+require_value dependencies.automation.local_gate "scripts/check_dependency_diff.sh" "manifest dependency automation local gate mismatch"
+require_value dependencies.automation.dependabot_config ".github/dependabot.yml" "manifest dependency automation Dependabot config mismatch"
+require_value dependencies.automation.renovate_config "renovate.json" "manifest dependency automation Renovate config mismatch"
+require_value dependencies.automation.hosted_service_verified "false" "manifest dependency automation hosted service verification must remain explicit"
+require_value dependencies.automation.remote_execution_status "unverified" "manifest dependency automation remote execution status mismatch"
 require_value dependencies.hashes.go_mod "$GO_MOD_SHA" "manifest dependency go.mod hash entry mismatch"
 require_value dependencies.hashes.go_sum "$GO_SUM_SHA" "manifest dependency go.sum hash entry mismatch"
 require_value dependencies.hashes.modules "$DEPENDENCY_MODULES_SHA" "manifest dependency modules hash entry mismatch"
 require_value dependencies.hashes.updates "$DEPENDENCY_UPDATES_SHA" "manifest dependency updates hash entry mismatch"
+require_value dependencies.hashes.automation_evidence "$DEPENDENCY_AUTOMATION_SHA" "manifest dependency automation evidence hash entry mismatch"
 if [ "$GO_SUM_PRESENT" = "true" ]; then
   require_artifact go.sum
 else
@@ -278,12 +292,17 @@ require_value consumer_compatibility.xgo.policy "docs/governance/XGO_CONSUMER_CO
 require_value consumer_compatibility.xgo.evidence "docs/evidence/xgo-consumer-smoke.md" "manifest xgo evidence path mismatch"
 require_value consumer_compatibility.xgo.readme "contracts/consumers/xgo/README.md" "manifest xgo evidence readme path mismatch"
 require_value consumer_compatibility.xgo.fixture "contracts/consumers/xgo/minimal_import_test.go" "manifest xgo evidence fixture path mismatch"
-require_value consumer_compatibility.xgo.status "external-evidence-required" "manifest xgo evidence status must be external-evidence-required"
-require_value consumer_compatibility.xgo.verified "false" "manifest xgo evidence external verification state must be explicit"
+require_value consumer_compatibility.xgo.status "local_external_module_passed" "manifest xgo evidence status must record local external module smoke"
+require_value consumer_compatibility.xgo.verified "false" "manifest xgo evidence true external verification state must be explicit"
+require_value consumer_compatibility.xgo.local_external_module_passed "true" "manifest xgo local external module smoke result missing"
+require_value consumer_compatibility.xgo.xgo_external_verified "false" "manifest xgo true external verification result must remain explicit"
+require_value consumer_compatibility.xgo.verification_scope "local_external_module" "manifest xgo verification scope mismatch"
 require_value consumers.xgo.required "true" "manifest xgo evidence consumer requirement missing"
 require_value consumers.xgo.verified "false" "manifest xgo evidence consumer verification must be explicit"
+require_value consumers.xgo.local_external_module_passed "true" "manifest xgo consumer local smoke result missing"
+require_value consumers.xgo.xgo_external_verified "false" "manifest xgo consumer true external verification result must remain explicit"
 require_value consumers.xgo.evidence "contracts/consumers/xgo/minimal_import_test.go" "manifest xgo evidence fixture mismatch"
-require_value consumers.xgo.status "external-evidence-required" "manifest xgo evidence status mismatch"
+require_value consumers.xgo.status "local_external_module_passed" "manifest xgo evidence status mismatch"
 
 for artifact in \
   go.mod \
@@ -325,6 +344,7 @@ for artifact in \
   docs/governance/KERNEL_FOUNDATION_RULES.md \
   docs/evidence/release-v0.1.0.md \
   "docs/evidence/release-${VERSION}.md" \
+  docs/evidence/dependency-automation.md \
   docs/evidence/xgo-consumer-smoke.md \
   contracts/consumers/xgo/README.md \
   contracts/consumers/xgo/minimal_import_test.go \

@@ -76,6 +76,7 @@ OUT="release/manifest/${VERSION}.json"
 LATEST="release/manifest/latest.json"
 DEPENDENCY_MODULES="release/dependency/modules.txt"
 DEPENDENCY_UPDATES="release/dependency/updates.txt"
+DEPENDENCY_AUTOMATION_EVIDENCE="docs/evidence/dependency-automation.md"
 STANDARD_SYNC_REPORT="release/standard-sync/latest.md"
 VERSIONS_ENV=".github/versions.env"
 TOOLCHAIN_CHECK="scripts/ci/toolchain-check.sh"
@@ -100,6 +101,7 @@ PUBLIC_API_SHA="$(sha256_file contracts/public_api.snapshot)"
 RETRY_POLICY_SHA="$(sha256_file contracts/examples/golden/retry-policy-default.json)"
 DEPENDENCY_MODULES_SHA="$(sha256_file "$DEPENDENCY_MODULES")"
 DEPENDENCY_UPDATES_SHA="$(sha256_file "$DEPENDENCY_UPDATES")"
+DEPENDENCY_AUTOMATION_SHA="$(sha256_file "$DEPENDENCY_AUTOMATION_EVIDENCE")"
 DEPENDENCY_MODULES_COUNT="$(line_count "$DEPENDENCY_MODULES")"
 DEPENDENCY_UPDATES_COUNT="$(line_count "$DEPENDENCY_UPDATES")"
 GO_MOD_SHA="$(sha256_file go.mod)"
@@ -114,6 +116,7 @@ DEPENDENCIES_SHA="$({
   printf 'go.sum:%s\n' "$GO_SUM_SHA"
   printf '%s:%s\n' "$DEPENDENCY_MODULES" "$DEPENDENCY_MODULES_SHA"
   printf '%s:%s\n' "$DEPENDENCY_UPDATES" "$DEPENDENCY_UPDATES_SHA"
+  printf '%s:%s\n' "$DEPENDENCY_AUTOMATION_EVIDENCE" "$DEPENDENCY_AUTOMATION_SHA"
 } | sha256_stream)"
 VERSIONS_ENV_SHA="$(sha256_file "$VERSIONS_ENV")"
 TOOLCHAIN_CHECK_SHA="$(sha256_file "$TOOLCHAIN_CHECK")"
@@ -134,7 +137,7 @@ TOOLS_SHA="$({
   printf 'GOFUMPT_VERSION:%s\n' "$GOFUMPT_VERSION"
   printf 'STATICCHECK_VERSION:%s\n' "$STATICCHECK_VERSION"
 } | sha256_stream)"
-XGO_REASON="external consumer repository/tag validation is recorded in docs/evidence/xgo-consumer-smoke.md"
+XGO_REASON="local external module smoke passed with replace github.com/ZoneCNH/kernel => /home/kernel; true /home/x.go verification remains false because /home/x.go does not reference github.com/ZoneCNH/kernel"
 
 cat > "$OUT" <<JSON
 {
@@ -203,9 +206,11 @@ cat > "$OUT" <<JSON
     "sha256": $(json_string "$DEPENDENCIES_SHA"),
     "modules_artifact": $(json_string "$DEPENDENCY_MODULES"),
     "updates_artifact": $(json_string "$DEPENDENCY_UPDATES"),
+    "automation_evidence": $(json_string "$DEPENDENCY_AUTOMATION_EVIDENCE"),
     "standard_sync_report": $(json_string "$STANDARD_SYNC_REPORT"),
     "modules_sha256": $(json_string "$DEPENDENCY_MODULES_SHA"),
     "updates_sha256": $(json_string "$DEPENDENCY_UPDATES_SHA"),
+    "automation_evidence_sha256": $(json_string "$DEPENDENCY_AUTOMATION_SHA"),
     "go_mod_sha256": $(json_string "$GO_MOD_SHA"),
     "go_sum_sha256": $(json_string "$GO_SUM_SHA"),
     "go_mod_tidy": "clean",
@@ -228,11 +233,21 @@ cat > "$OUT" <<JSON
       "sha256": $(json_string "$DEPENDENCY_UPDATES_SHA"),
       "line_count": $DEPENDENCY_UPDATES_COUNT
     },
+    "automation": {
+      "evidence": $(json_string "$DEPENDENCY_AUTOMATION_EVIDENCE"),
+      "evidence_sha256": $(json_string "$DEPENDENCY_AUTOMATION_SHA"),
+      "local_gate": "scripts/check_dependency_diff.sh",
+      "dependabot_config": ".github/dependabot.yml",
+      "renovate_config": "renovate.json",
+      "hosted_service_verified": false,
+      "remote_execution_status": "unverified"
+    },
     "hashes": {
       "go_mod": $(json_string "$GO_MOD_SHA"),
       "go_sum": $(json_string "$GO_SUM_SHA"),
       "modules": $(json_string "$DEPENDENCY_MODULES_SHA"),
-      "updates": $(json_string "$DEPENDENCY_UPDATES_SHA")
+      "updates": $(json_string "$DEPENDENCY_UPDATES_SHA"),
+      "automation_evidence": $(json_string "$DEPENDENCY_AUTOMATION_SHA")
     }
   },
   "go": {
@@ -256,8 +271,11 @@ cat > "$OUT" <<JSON
       "evidence": "docs/evidence/xgo-consumer-smoke.md",
       "readme": "contracts/consumers/xgo/README.md",
       "fixture": "contracts/consumers/xgo/minimal_import_test.go",
-      "status": "external-evidence-required",
+      "status": "local_external_module_passed",
       "verified": false,
+      "local_external_module_passed": true,
+      "xgo_external_verified": false,
+      "verification_scope": "local_external_module",
       "reason": $(json_string "$XGO_REASON")
     }
   },
@@ -277,9 +295,11 @@ cat > "$OUT" <<JSON
     "xgo": {
       "required": true,
       "verified": false,
+      "local_external_module_passed": true,
+      "xgo_external_verified": false,
       "evidence": "contracts/consumers/xgo/minimal_import_test.go",
       "policy": "docs/governance/XGO_CONSUMER_COMPATIBILITY.md",
-      "status": "external-evidence-required"
+      "status": "local_external_module_passed"
     }
   },
   "checks": {

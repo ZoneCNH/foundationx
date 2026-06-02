@@ -28,4 +28,12 @@ last_synced:
 drift_check:
   default_mode: local-pinned-baseline
   live_network_gate: false
+  live_network_mode: optional-fail-on-drift
   report: release/standard-sync/latest.md
+
+live_review:
+  checked_at: "2026-06-02"
+  live_commit: "a7c8511b7b400d0f9effed5d50ac46e5faf185c2"
+  relation: "live-main-ahead-of-pinned-baseline"
+  decision: "do-not-update-baseline-unreviewed"
+  evidence: docs/evidence/release-v0.4.0.md
