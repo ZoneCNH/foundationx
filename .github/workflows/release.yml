@@ -39,7 +39,7 @@ jobs:
         run: make release-final-check
 
       - name: Upload release manifest
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: kernel-release-manifest
           path: release/manifest/*.json
