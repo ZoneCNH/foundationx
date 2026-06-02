@@ -269,7 +269,7 @@ require_value api.public_api_snapshot "contracts/public_api.snapshot" "public AP
 require_value api.public_api_sha256 "$(sha256_file contracts/public_api.snapshot)" "public API snapshot hash mismatch"
 require_value contracts.public_api_sha256 "$(sha256_file contracts/public_api.snapshot)" "public API snapshot hash mismatch"
 
-for check in toolchain fmt vet unit_test race_test boundary secret_scan contract api api_diff dependency_check docs artifact_docs standard_drift_check examples release_evidence; do
+for check in toolchain fmt vet unit_test race_test boundary secret_scan contract api api_diff dependency_check docs artifact_docs standard_drift_check examples release_evidence release_evidence_check; do
   require_value "checks.${check}" "passed" "manifest missing passed check: $check"
 done
 require_value checks.consumer_compatibility "documented" "manifest missing documented consumer compatibility check"

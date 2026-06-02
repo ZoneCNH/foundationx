@@ -299,6 +299,7 @@ cat > "$OUT" <<JSON
     "standard_drift_check": "passed",
     "examples": "passed",
     "release_evidence": "passed",
+    "release_evidence_check": "passed",
     "consumer_compatibility": "documented"
   }
 }

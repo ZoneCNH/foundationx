@@ -139,6 +139,7 @@ func TestReleaseEvidenceScriptsPreserveFreshnessChecks(t *testing.T) {
 		"go_sum_sha256",
 		"dependency_check",
 		"standard_drift_check",
+		"release_evidence_check",
 		"consumer_compatibility",
 		"external-evidence-required",
 		"cp \"$OUT\" \"$LATEST\"",
@@ -166,6 +167,7 @@ func TestReleaseEvidenceScriptsPreserveFreshnessChecks(t *testing.T) {
 		"manifest go.mod dependency hash mismatch",
 		"dependency_check",
 		"standard_drift_check",
+		"release_evidence_check",
 		"go min version",
 		"xgo evidence",
 		"release-${VERSION}.md",
@@ -180,6 +182,16 @@ func TestReleaseEvidenceScriptsPreserveFreshnessChecks(t *testing.T) {
 	} {
 		assertContains(t, clean, want)
 	}
+}
+
+func TestReleaseEvidenceCheckGateIsExplicitInManifestAndVerifier(t *testing.T) {
+	generate := readRepoText(t, filepath.Join("scripts", "generate_manifest.sh"))
+	check := readRepoText(t, filepath.Join("scripts", "check_release_evidence.sh"))
+
+	assertContains(t, generate, `"release_evidence": "passed"`)
+	assertContains(t, generate, `"release_evidence_check": "passed"`)
+	assertContains(t, check, "release_evidence release_evidence_check")
+	assertContains(t, check, "manifest missing passed check: $check")
 }
 
 func TestGeneratedReleaseManifestsUseGoModModule(t *testing.T) {

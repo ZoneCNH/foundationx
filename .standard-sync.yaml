@@ -21,5 +21,11 @@ target:
     profile_runtime: forbidden
 
 last_synced:
-  commit: ""
-  date: ""
+  commit: "041a62f21428111a4b46235a7910edbdf4e07d61"
+  date: "2026-06-01"
+  evidence: docs/xlib-standard-analysis.md
+
+drift_check:
+  default_mode: local-pinned-baseline
+  live_network_gate: false
+  report: release/standard-sync/latest.md
