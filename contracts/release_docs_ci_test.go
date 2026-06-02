@@ -16,7 +16,7 @@ func TestReleaseCheckWiresDocumentationAndEvidenceGates(t *testing.T) {
 	assertContains(t, makefile, "release-check:")
 	assertContains(t, makefile, "release-clean-check:")
 	assertContains(t, makefile, "release-final-check:")
-	assertContains(t, makefile, "ci: fmt vet lint test race boundary security contracts api-check docs artifact-check examples")
+	assertContains(t, makefile, "ci: fmt vet lint test race boundary security contracts api-check docs artifact-check dependency-check standard-drift-check examples")
 	assertContains(t, makefile, "\t$(MAKE) release-toolchain-check")
 	assertContains(t, makefile, "./scripts/ci/toolchain-check.sh")
 	assertContains(t, makefile, "./scripts/ci/api-diff-check.sh")
@@ -32,6 +32,10 @@ func TestReleaseCheckWiresDocumentationAndEvidenceGates(t *testing.T) {
 	assertContains(t, makefile, "./scripts/generate_manifest.sh")
 	assertContains(t, makefile, "./scripts/check_release_evidence.sh")
 	assertContains(t, makefile, "./scripts/check_release_clean.sh")
+	assertContains(t, makefile, "dependency-check:")
+	assertContains(t, makefile, "./scripts/check_dependency_diff.sh")
+	assertContains(t, makefile, "standard-drift-check:")
+	assertContains(t, makefile, "./scripts/check_standard_drift.sh")
 	assertContains(t, makefile, "lint-strict:")
 	assertContains(t, makefile, "security-strict:")
 }
@@ -124,6 +128,17 @@ func TestReleaseEvidenceScriptsPreserveFreshnessChecks(t *testing.T) {
 		"schema_version",
 		"public_api_sha256",
 		"retry_policy_default_sha256",
+		"tools",
+		"dependencies",
+		"DEPENDENCY_MODULES",
+		"DEPENDENCY_UPDATES",
+		"STANDARD_SYNC_REPORT",
+		"modules_sha256",
+		"updates_sha256",
+		"go_mod_sha256",
+		"go_sum_sha256",
+		"dependency_check",
+		"standard_drift_check",
 		"consumer_compatibility",
 		"external-evidence-required",
 		"cp \"$OUT\" \"$LATEST\"",
@@ -145,6 +160,12 @@ func TestReleaseEvidenceScriptsPreserveFreshnessChecks(t *testing.T) {
 		"manifest schema_version does not match kernel.release-manifest.v1",
 		"public API snapshot hash mismatch",
 		"manifest schema_version mismatch",
+		"manifest tools golangci-lint pin mismatch",
+		"manifest dependency modules hash mismatch",
+		"manifest dependency updates hash mismatch",
+		"manifest go.mod dependency hash mismatch",
+		"dependency_check",
+		"standard_drift_check",
 		"go min version",
 		"xgo evidence",
 		"release-${VERSION}.md",
@@ -154,7 +175,7 @@ func TestReleaseEvidenceScriptsPreserveFreshnessChecks(t *testing.T) {
 
 	for _, want := range []string{
 		"git status --short --untracked-files=all -- .",
-		"grep -vE '^.. release/manifest/[^/]+\\.json$'",
+		"grep -vE '^.. release/(manifest/[^/]+\\.json|dependency/(modules|updates)\\.txt|standard-sync/latest\\.md)$'",
 		"release workspace is dirty",
 	} {
 		assertContains(t, clean, want)
@@ -191,13 +212,13 @@ func TestGeneratedReleaseManifestsUseGoModModule(t *testing.T) {
 	}
 }
 
-func TestReleaseCleanCheckOnlyAllowsTopLevelManifestJSON(t *testing.T) {
+func TestReleaseCleanCheckOnlyAllowsGeneratedReleaseEvidence(t *testing.T) {
 	clean := readRepoText(t, filepath.Join("scripts", "check_release_clean.sh"))
-	const allowedManifestPattern = `^.. release/manifest/[^/]+\.json$`
+	const allowedReleaseEvidencePattern = `^.. release/(manifest/[^/]+\.json|dependency/(modules|updates)\.txt|standard-sync/latest\.md)$`
 
-	assertContains(t, clean, "grep -vE '"+allowedManifestPattern+"'")
+	assertContains(t, clean, "grep -vE '"+allowedReleaseEvidencePattern+"'")
 
-	allowedManifest := regexp.MustCompile(allowedManifestPattern)
+	allowedReleaseEvidence := regexp.MustCompile(allowedReleaseEvidencePattern)
 	for _, tc := range []struct {
 		name    string
 		line    string
@@ -214,6 +235,21 @@ func TestReleaseCleanCheckOnlyAllowsTopLevelManifestJSON(t *testing.T) {
 			allowed: true,
 		},
 		{
+			name:    "dependency modules evidence",
+			line:    "?? release/dependency/modules.txt",
+			allowed: true,
+		},
+		{
+			name:    "dependency updates evidence",
+			line:    " M release/dependency/updates.txt",
+			allowed: true,
+		},
+		{
+			name:    "standard sync report",
+			line:    "?? release/standard-sync/latest.md",
+			allowed: true,
+		},
+		{
 			name: "non-json manifest sidecar",
 			line: "?? release/manifest/not-json.txt",
 		},
@@ -225,10 +261,18 @@ func TestReleaseCleanCheckOnlyAllowsTopLevelManifestJSON(t *testing.T) {
 			name: "ordinary tracked file",
 			line: " M README.md",
 		},
+		{
+			name: "unexpected dependency sidecar",
+			line: "?? release/dependency/other.txt",
+		},
+		{
+			name: "unexpected standard sync sidecar",
+			line: "?? release/standard-sync/old.md",
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			if got := allowedManifest.MatchString(tc.line); got != tc.allowed {
-				t.Fatalf("allowedManifest.MatchString(%q) = %v, want %v", tc.line, got, tc.allowed)
+			if got := allowedReleaseEvidence.MatchString(tc.line); got != tc.allowed {
+				t.Fatalf("allowedReleaseEvidence.MatchString(%q) = %v, want %v", tc.line, got, tc.allowed)
 			}
 		})
 	}
@@ -283,6 +327,27 @@ func TestReleaseCleanCheckScriptBehavior(t *testing.T) {
 			wantOK: true,
 		},
 		{
+			name: "dependency modules evidence passes",
+			mutate: func(t *testing.T, root string) {
+				writeTestFile(t, filepath.Join(root, "release", "dependency", "modules.txt"), "github.com/ZoneCNH/kernel\n")
+			},
+			wantOK: true,
+		},
+		{
+			name: "dependency updates evidence passes",
+			mutate: func(t *testing.T, root string) {
+				writeTestFile(t, filepath.Join(root, "release", "dependency", "updates.txt"), "github.com/ZoneCNH/kernel\n")
+			},
+			wantOK: true,
+		},
+		{
+			name: "standard sync report passes",
+			mutate: func(t *testing.T, root string) {
+				writeTestFile(t, filepath.Join(root, "release", "standard-sync", "latest.md"), "# standard sync\n")
+			},
+			wantOK: true,
+		},
+		{
 			name: "non json manifest sidecar fails",
 			mutate: func(t *testing.T, root string) {
 				writeTestFile(t, filepath.Join(root, "release", "manifest", "v0.1.0.txt"), "dirty")
@@ -293,6 +358,20 @@ func TestReleaseCleanCheckScriptBehavior(t *testing.T) {
 			name: "nested manifest file fails",
 			mutate: func(t *testing.T, root string) {
 				writeTestFile(t, filepath.Join(root, "release", "manifest", "nested", "file.json"), "{}")
+			},
+			wantOut: "release workspace is dirty",
+		},
+		{
+			name: "unexpected dependency sidecar fails",
+			mutate: func(t *testing.T, root string) {
+				writeTestFile(t, filepath.Join(root, "release", "dependency", "extra.txt"), "dirty")
+			},
+			wantOut: "release workspace is dirty",
+		},
+		{
+			name: "unexpected standard sync sidecar fails",
+			mutate: func(t *testing.T, root string) {
+				writeTestFile(t, filepath.Join(root, "release", "standard-sync", "old.md"), "dirty")
 			},
 			wantOut: "release workspace is dirty",
 		},
@@ -362,7 +441,7 @@ func TestCIWorkflowsPreserveReleaseEvidenceGates(t *testing.T) {
 	assertContains(t, release, "path: release/manifest/*.json")
 }
 
-func TestCIToolsArePinnedWithoutBecomingLocalHardDependencies(t *testing.T) {
+func TestCIToolsArePinnedAndRequiredByLocalGates(t *testing.T) {
 	makefile := readRepoText(t, "Makefile")
 	ci := readRepoText(t, filepath.Join(".github", "workflows", "ci.yml"))
 	release := readRepoText(t, filepath.Join(".github", "workflows", "release.yml"))
@@ -379,8 +458,8 @@ func TestCIToolsArePinnedWithoutBecomingLocalHardDependencies(t *testing.T) {
 	assertContains(t, security, "go install golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION}")
 	assertContains(t, versions, "GOLANGCI_LINT_VERSION=v2.1.6")
 	assertContains(t, versions, "GOVULNCHECK_VERSION=v1.3.0")
-	assertContains(t, makefile, "golangci-lint not installed; skipping lint target")
-	assertContains(t, makefile, "govulncheck not installed; skipping vulnerability scan")
+	assertContains(t, makefile, "golangci-lint not installed; install the version pinned in .github/versions.env")
+	assertContains(t, makefile, "govulncheck not installed; install the version pinned in .github/versions.env")
 	assertContains(t, makefile, "lint-strict:")
 	assertContains(t, makefile, "security-strict:")
 }

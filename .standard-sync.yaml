@@ -1,0 +1,25 @@
+standard_source:
+  repo: ZoneCNH/xlib-standard
+  branch: main
+  watched_paths:
+    - docs/standard/
+    - contracts/
+    - .agent/
+    - Makefile
+    - scripts/check_docs.sh
+    - scripts/check_contracts.sh
+    - scripts/generate_manifest.sh
+
+target:
+  repo: ZoneCNH/kernel
+  sync_policy:
+    docs_standard: required
+    contracts: required
+    harness_gates: required
+    generator: forbidden
+    template_profile: forbidden
+    profile_runtime: forbidden
+
+last_synced:
+  commit: ""
+  date: ""

@@ -32,6 +32,14 @@ resolve_version() {
 VERSION="$(resolve_version)"
 MANIFEST="release/manifest/${VERSION}.json"
 LATEST="release/manifest/latest.json"
+DEPENDENCY_MODULES="release/dependency/modules.txt"
+DEPENDENCY_UPDATES="release/dependency/updates.txt"
+STANDARD_SYNC_REPORT="release/standard-sync/latest.md"
+VERSIONS_ENV=".github/versions.env"
+TOOLCHAIN_CHECK="scripts/ci/toolchain-check.sh"
+CI_WORKFLOW=".github/workflows/ci.yml"
+RELEASE_WORKFLOW=".github/workflows/release.yml"
+SECURITY_WORKFLOW=".github/workflows/security.yml"
 
 fail() {
   echo "ERROR: $*"
@@ -69,6 +77,18 @@ sha256_file() {
   shasum -a 256 "$1" | awk '{print $1}'
 }
 
+sha256_stream() {
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum | awk '{print $1}'
+    return
+  fi
+  shasum -a 256 | awk '{print $1}'
+}
+
+line_count() {
+  awk 'NF { count++ } END { print count + 0 }' "$1"
+}
+
 workspace_status() {
   if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     printf 'unknown'
@@ -77,7 +97,7 @@ workspace_status() {
 
   local status
   status="$(git status --short --untracked-files=all -- .)"
-  status="$(printf '%s\n' "$status" | grep -vE '^.. release/manifest/[^/]+\.json$' || true)"
+  status="$(printf '%s\n' "$status" | grep -vE '^.. release/(manifest/[^/]+\.json|dependency/(modules|updates)\.txt|standard-sync/latest\.md)$' || true)"
   if [ -n "$status" ]; then
     printf 'dirty'
     return
@@ -136,6 +156,111 @@ require_value toolchain.gotestsum_version "$GOTESTSUM_VERSION" "manifest gotests
 require_value toolchain.gofumpt_version "$GOFUMPT_VERSION" "manifest gofumpt pin mismatch"
 require_value toolchain.staticcheck_version "$STATICCHECK_VERSION" "manifest staticcheck pin mismatch"
 
+VERSIONS_ENV_SHA="$(sha256_file "$VERSIONS_ENV")"
+TOOLCHAIN_CHECK_SHA="$(sha256_file "$TOOLCHAIN_CHECK")"
+CI_WORKFLOW_SHA="$(sha256_file "$CI_WORKFLOW")"
+RELEASE_WORKFLOW_SHA="$(sha256_file "$RELEASE_WORKFLOW")"
+SECURITY_WORKFLOW_SHA="$(sha256_file "$SECURITY_WORKFLOW")"
+TOOLS_SHA="$({
+  printf '%s:%s\n' "$VERSIONS_ENV" "$VERSIONS_ENV_SHA"
+  printf '%s:%s\n' "$TOOLCHAIN_CHECK" "$TOOLCHAIN_CHECK_SHA"
+  printf '%s:%s\n' "$CI_WORKFLOW" "$CI_WORKFLOW_SHA"
+  printf '%s:%s\n' "$RELEASE_WORKFLOW" "$RELEASE_WORKFLOW_SHA"
+  printf '%s:%s\n' "$SECURITY_WORKFLOW" "$SECURITY_WORKFLOW_SHA"
+  printf 'GO_MIN_VERSION:%s\n' "$GO_MIN_VERSION"
+  printf 'GO_INTEGRATION_VERSION:%s\n' "$GO_INTEGRATION_VERSION"
+  printf 'GOLANGCI_LINT_VERSION:%s\n' "$GOLANGCI_LINT_VERSION"
+  printf 'GOVULNCHECK_VERSION:%s\n' "$GOVULNCHECK_VERSION"
+  printf 'GOTESTSUM_VERSION:%s\n' "$GOTESTSUM_VERSION"
+  printf 'GOFUMPT_VERSION:%s\n' "$GOFUMPT_VERSION"
+  printf 'STATICCHECK_VERSION:%s\n' "$STATICCHECK_VERSION"
+} | sha256_stream)"
+
+require_value tools.sha256 "$TOOLS_SHA" "manifest tools aggregate hash mismatch"
+require_value tools.versions_env "$VERSIONS_ENV" "manifest tools versions env path mismatch"
+require_value tools.versions_env_sha256 "$VERSIONS_ENV_SHA" "manifest tools versions env hash mismatch"
+require_value tools.toolchain_check "$TOOLCHAIN_CHECK" "manifest tools toolchain check path mismatch"
+require_value tools.toolchain_check_sha256 "$TOOLCHAIN_CHECK_SHA" "manifest tools toolchain check hash mismatch"
+require_value tools.workflows.ci.path "$CI_WORKFLOW" "manifest tools CI workflow path mismatch"
+require_value tools.workflows.ci.sha256 "$CI_WORKFLOW_SHA" "manifest tools CI workflow hash mismatch"
+require_value tools.workflows.release.path "$RELEASE_WORKFLOW" "manifest tools release workflow path mismatch"
+require_value tools.workflows.release.sha256 "$RELEASE_WORKFLOW_SHA" "manifest tools release workflow hash mismatch"
+require_value tools.workflows.security.path "$SECURITY_WORKFLOW" "manifest tools security workflow path mismatch"
+require_value tools.workflows.security.sha256 "$SECURITY_WORKFLOW_SHA" "manifest tools security workflow hash mismatch"
+require_value tools.go_version "$(go version)" "manifest tools go version mismatch"
+require_value tools.go_actual_version "$(go env GOVERSION)" "manifest tools go actual version mismatch"
+require_value tools.golangci_lint_version "$GOLANGCI_LINT_VERSION" "manifest tools golangci-lint pin mismatch"
+require_value tools.govulncheck_version "$GOVULNCHECK_VERSION" "manifest tools govulncheck pin mismatch"
+require_value tools.gotestsum_version "$GOTESTSUM_VERSION" "manifest tools gotestsum pin mismatch"
+require_value tools.gofumpt_version "$GOFUMPT_VERSION" "manifest tools gofumpt pin mismatch"
+require_value tools.staticcheck_version "$STATICCHECK_VERSION" "manifest tools staticcheck pin mismatch"
+require_value tools.pins.go_min_version "$GO_MIN_VERSION" "manifest tools Go min pin mismatch"
+require_value tools.pins.go_integration_version "$GO_INTEGRATION_VERSION" "manifest tools Go integration pin mismatch"
+require_value tools.pins.golangci_lint_version "$GOLANGCI_LINT_VERSION" "manifest tools golangci-lint nested pin mismatch"
+require_value tools.pins.govulncheck_version "$GOVULNCHECK_VERSION" "manifest tools govulncheck nested pin mismatch"
+require_value tools.pins.gotestsum_version "$GOTESTSUM_VERSION" "manifest tools gotestsum nested pin mismatch"
+require_value tools.pins.gofumpt_version "$GOFUMPT_VERSION" "manifest tools gofumpt nested pin mismatch"
+require_value tools.pins.staticcheck_version "$STATICCHECK_VERSION" "manifest tools staticcheck nested pin mismatch"
+
+require_artifact "$DEPENDENCY_MODULES"
+require_artifact "$DEPENDENCY_UPDATES"
+
+tmp_modules="$(mktemp)"
+tmp_updates="$(mktemp)"
+trap 'rm -f "$tmp_modules" "$tmp_updates"' EXIT
+GOWORK=off go list -m all > "$tmp_modules"
+cmp -s "$DEPENDENCY_MODULES" "$tmp_modules" || fail "dependency modules artifact does not match GOWORK=off go list -m all"
+GOWORK=off go list -m -u all > "$tmp_updates"
+cmp -s "$DEPENDENCY_UPDATES" "$tmp_updates" || fail "dependency updates artifact does not match GOWORK=off go list -m -u all"
+
+DEPENDENCY_MODULES_SHA="$(sha256_file "$DEPENDENCY_MODULES")"
+DEPENDENCY_UPDATES_SHA="$(sha256_file "$DEPENDENCY_UPDATES")"
+DEPENDENCY_MODULES_COUNT="$(line_count "$DEPENDENCY_MODULES")"
+DEPENDENCY_UPDATES_COUNT="$(line_count "$DEPENDENCY_UPDATES")"
+GO_MOD_SHA="$(sha256_file go.mod)"
+GO_SUM_SHA=""
+GO_SUM_PRESENT="false"
+if [ -f go.sum ]; then
+  GO_SUM_SHA="$(sha256_file go.sum)"
+  GO_SUM_PRESENT="true"
+fi
+DEPENDENCIES_SHA="$({
+  printf 'go.mod:%s\n' "$GO_MOD_SHA"
+  printf 'go.sum:%s\n' "$GO_SUM_SHA"
+  printf '%s:%s\n' "$DEPENDENCY_MODULES" "$DEPENDENCY_MODULES_SHA"
+  printf '%s:%s\n' "$DEPENDENCY_UPDATES" "$DEPENDENCY_UPDATES_SHA"
+} | sha256_stream)"
+
+require_value dependencies.sha256 "$DEPENDENCIES_SHA" "manifest dependency aggregate hash mismatch"
+require_value dependencies.modules_artifact "$DEPENDENCY_MODULES" "manifest dependency modules artifact path mismatch"
+require_value dependencies.updates_artifact "$DEPENDENCY_UPDATES" "manifest dependency updates artifact path mismatch"
+require_value dependencies.standard_sync_report "$STANDARD_SYNC_REPORT" "manifest standard sync report path mismatch"
+require_value dependencies.modules_sha256 "$DEPENDENCY_MODULES_SHA" "manifest dependency modules hash mismatch"
+require_value dependencies.updates_sha256 "$DEPENDENCY_UPDATES_SHA" "manifest dependency updates hash mismatch"
+require_value dependencies.go_mod_sha256 "$GO_MOD_SHA" "manifest go.mod dependency hash mismatch"
+require_value dependencies.go_sum_sha256 "$GO_SUM_SHA" "manifest go.sum dependency hash mismatch"
+require_value dependencies.go_mod_tidy "clean" "manifest go mod tidy status mismatch"
+require_value dependencies.go_mod.path "go.mod" "manifest go.mod dependency path mismatch"
+require_value dependencies.go_mod.sha256 "$GO_MOD_SHA" "manifest go.mod nested dependency hash mismatch"
+require_value dependencies.go_sum.path "go.sum" "manifest go.sum dependency path mismatch"
+require_value dependencies.go_sum.present "$GO_SUM_PRESENT" "manifest go.sum presence mismatch"
+require_value dependencies.go_sum.sha256 "$GO_SUM_SHA" "manifest go.sum nested dependency hash mismatch"
+require_value dependencies.modules.artifact "$DEPENDENCY_MODULES" "manifest dependency modules nested artifact path mismatch"
+require_value dependencies.modules.sha256 "$DEPENDENCY_MODULES_SHA" "manifest dependency modules nested hash mismatch"
+require_value dependencies.modules.line_count "$DEPENDENCY_MODULES_COUNT" "manifest dependency modules line count mismatch"
+require_value dependencies.updates.artifact "$DEPENDENCY_UPDATES" "manifest dependency updates nested artifact path mismatch"
+require_value dependencies.updates.sha256 "$DEPENDENCY_UPDATES_SHA" "manifest dependency updates nested hash mismatch"
+require_value dependencies.updates.line_count "$DEPENDENCY_UPDATES_COUNT" "manifest dependency updates line count mismatch"
+require_value dependencies.hashes.go_mod "$GO_MOD_SHA" "manifest dependency go.mod hash entry mismatch"
+require_value dependencies.hashes.go_sum "$GO_SUM_SHA" "manifest dependency go.sum hash entry mismatch"
+require_value dependencies.hashes.modules "$DEPENDENCY_MODULES_SHA" "manifest dependency modules hash entry mismatch"
+require_value dependencies.hashes.updates "$DEPENDENCY_UPDATES_SHA" "manifest dependency updates hash entry mismatch"
+if [ "$GO_SUM_PRESENT" = "true" ]; then
+  require_artifact go.sum
+else
+  [ ! -e go.sum ] || fail "go.sum exists but was not recorded as dependency evidence"
+fi
+
 require_value contracts.error_schema_sha256 "$(sha256_file contracts/error.schema.json)" "error schema hash mismatch"
 require_value contracts.health_schema_sha256 "$(sha256_file contracts/health.schema.json)" "health schema hash mismatch"
 require_value contracts.version_schema_sha256 "$(sha256_file contracts/version.schema.json)" "version schema hash mismatch"
@@ -144,7 +269,7 @@ require_value api.public_api_snapshot "contracts/public_api.snapshot" "public AP
 require_value api.public_api_sha256 "$(sha256_file contracts/public_api.snapshot)" "public API snapshot hash mismatch"
 require_value contracts.public_api_sha256 "$(sha256_file contracts/public_api.snapshot)" "public API snapshot hash mismatch"
 
-for check in toolchain fmt vet unit_test race_test boundary secret_scan contract api api_diff docs artifact_docs examples release_evidence; do
+for check in toolchain fmt vet unit_test race_test boundary secret_scan contract api api_diff dependency_check docs artifact_docs standard_drift_check examples release_evidence; do
   require_value "checks.${check}" "passed" "manifest missing passed check: $check"
 done
 require_value checks.consumer_compatibility "documented" "manifest missing documented consumer compatibility check"
@@ -161,13 +286,25 @@ require_value consumers.xgo.evidence "contracts/consumers/xgo/minimal_import_tes
 require_value consumers.xgo.status "external-evidence-required" "manifest xgo evidence status mismatch"
 
 for artifact in \
+  go.mod \
   .github/versions.env \
+  .github/workflows/ci.yml \
+  .github/workflows/release.yml \
+  .github/workflows/security.yml \
+  .github/dependabot.yml \
+  renovate.json \
+  .standard-sync.yaml \
   scripts/ci/toolchain-check.sh \
   scripts/ci/api-diff-check.sh \
   scripts/ci/internal/apisnapshot/main.go \
+  scripts/check_dependency_diff.sh \
   scripts/generate_manifest.sh \
   scripts/check_release_evidence.sh \
   scripts/check_release_clean.sh \
+  scripts/check_standard_drift.sh \
+  release/dependency/modules.txt \
+  release/dependency/updates.txt \
+  release/standard-sync/latest.md \
   contracts/public_api.snapshot \
   docs/context/CTX-GOAL-20260601-002.md \
   docs/spec/SPEC-l0-kernel-v1.0.md \

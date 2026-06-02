@@ -19,11 +19,11 @@ release-toolchain-check:
 
 .PHONY: lint
 lint:
-	@if command -v golangci-lint >/dev/null 2>&1; then \
-		$(GOENV) golangci-lint run ./...; \
-	else \
-		echo "golangci-lint not installed; skipping lint target"; \
+	@if ! command -v golangci-lint >/dev/null 2>&1; then \
+		echo "golangci-lint not installed; install the version pinned in .github/versions.env"; \
+		exit 1; \
 	fi
+	$(GOENV) golangci-lint run ./...
 
 .PHONY: lint-strict
 lint-strict:
@@ -47,11 +47,11 @@ boundary:
 
 .PHONY: security
 security:
-	@if command -v govulncheck >/dev/null 2>&1; then \
-		$(GOENV) govulncheck ./...; \
-	else \
-		echo "govulncheck not installed; skipping vulnerability scan"; \
+	@if ! command -v govulncheck >/dev/null 2>&1; then \
+		echo "govulncheck not installed; install the version pinned in .github/versions.env"; \
+		exit 1; \
 	fi
+	$(GOENV) govulncheck ./...
 	./scripts/check_secrets.sh
 
 .PHONY: security-strict
@@ -80,6 +80,14 @@ docs:
 artifact-check:
 	./scripts/ci/artifact-check.sh
 
+.PHONY: dependency-check
+dependency-check:
+	./scripts/check_dependency_diff.sh
+
+.PHONY: standard-drift-check
+standard-drift-check:
+	./scripts/check_standard_drift.sh
+
 .PHONY: examples
 examples:
 	$(GOENV) $(GO) run ./examples/error_kind
@@ -106,7 +114,7 @@ release-clean-check:
 	./scripts/check_release_clean.sh
 
 .PHONY: ci
-ci: fmt vet lint test race boundary security contracts api-check docs artifact-check examples
+ci: fmt vet lint test race boundary security contracts api-check docs artifact-check dependency-check standard-drift-check examples
 
 .PHONY: release-check
 release-check:
@@ -125,7 +133,7 @@ release-final-check:
 	$(MAKE) release-clean-check
 
 .PHONY: docs-check
-docs-check: docs artifact-check
+docs-check: docs artifact-check standard-drift-check
 
 .PHONY: boundary-check
 boundary-check: boundary

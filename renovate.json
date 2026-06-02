@@ -1,0 +1,68 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ],
+  "timezone": "Asia/Tokyo",
+  "dependencyDashboard": true,
+  "enabledManagers": [
+    "gomod",
+    "github-actions"
+  ],
+  "labels": [
+    "dependencies"
+  ],
+  "prHourlyLimit": 2,
+  "prConcurrentLimit": 5,
+  "schedule": [
+    "before 5am on monday"
+  ],
+  "packageRules": [
+    {
+      "description": "Automerge low-risk Go patch updates after CI succeeds.",
+      "matchManagers": [
+        "gomod"
+      ],
+      "matchUpdateTypes": [
+        "patch"
+      ],
+      "automerge": true,
+      "automergeType": "pr"
+    },
+    {
+      "description": "Automerge low-risk GitHub Actions patch and minor updates after CI succeeds.",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchUpdateTypes": [
+        "patch",
+        "minor"
+      ],
+      "groupName": "github-actions minor and patch updates",
+      "automerge": true,
+      "automergeType": "pr"
+    },
+    {
+      "description": "Major updates require manual review.",
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "automerge": false,
+      "addLabels": [
+        "needs-review"
+      ]
+    },
+    {
+      "description": "L0 contract repositories require manual contract review.",
+      "matchPackageNames": [
+        "github.com/ZoneCNH/kernel",
+        "github.com/ZoneCNH/xlib-standard"
+      ],
+      "automerge": false,
+      "addLabels": [
+        "l0",
+        "contract-review-required"
+      ]
+    }
+  ]
+}

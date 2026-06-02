@@ -39,6 +39,18 @@ sha256_file() {
   shasum -a 256 "$1" | awk '{print $1}'
 }
 
+sha256_stream() {
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum | awk '{print $1}'
+    return
+  fi
+  shasum -a 256 | awk '{print $1}'
+}
+
+line_count() {
+  awk 'NF { count++ } END { print count + 0 }' "$1"
+}
+
 workspace_status() {
   if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     printf 'unknown'
@@ -47,7 +59,7 @@ workspace_status() {
 
   local status
   status="$(git status --short --untracked-files=all -- .)"
-  status="$(printf '%s\n' "$status" | grep -vE '^.. release/manifest/[^/]+\.json$' || true)"
+  status="$(printf '%s\n' "$status" | grep -vE '^.. release/(manifest/[^/]+\.json|dependency/(modules|updates)\.txt|standard-sync/latest\.md)$' || true)"
   if [ -n "$status" ]; then
     printf 'dirty'
     return
@@ -62,6 +74,17 @@ json_string() {
 VERSION="$(resolve_version)"
 OUT="release/manifest/${VERSION}.json"
 LATEST="release/manifest/latest.json"
+DEPENDENCY_MODULES="release/dependency/modules.txt"
+DEPENDENCY_UPDATES="release/dependency/updates.txt"
+STANDARD_SYNC_REPORT="release/standard-sync/latest.md"
+VERSIONS_ENV=".github/versions.env"
+TOOLCHAIN_CHECK="scripts/ci/toolchain-check.sh"
+CI_WORKFLOW=".github/workflows/ci.yml"
+RELEASE_WORKFLOW=".github/workflows/release.yml"
+SECURITY_WORKFLOW=".github/workflows/security.yml"
+
+./scripts/check_dependency_diff.sh
+./scripts/check_standard_drift.sh
 
 MODULE="$(GOWORK=off go list -m)"
 COMMIT="$(git rev-parse HEAD 2>/dev/null || printf 'unknown')"
@@ -75,6 +98,42 @@ HEALTH_SCHEMA_SHA="$(sha256_file contracts/health.schema.json)"
 VERSION_SCHEMA_SHA="$(sha256_file contracts/version.schema.json)"
 PUBLIC_API_SHA="$(sha256_file contracts/public_api.snapshot)"
 RETRY_POLICY_SHA="$(sha256_file contracts/examples/golden/retry-policy-default.json)"
+DEPENDENCY_MODULES_SHA="$(sha256_file "$DEPENDENCY_MODULES")"
+DEPENDENCY_UPDATES_SHA="$(sha256_file "$DEPENDENCY_UPDATES")"
+DEPENDENCY_MODULES_COUNT="$(line_count "$DEPENDENCY_MODULES")"
+DEPENDENCY_UPDATES_COUNT="$(line_count "$DEPENDENCY_UPDATES")"
+GO_MOD_SHA="$(sha256_file go.mod)"
+GO_SUM_SHA=""
+GO_SUM_PRESENT="false"
+if [ -f go.sum ]; then
+  GO_SUM_SHA="$(sha256_file go.sum)"
+  GO_SUM_PRESENT="true"
+fi
+DEPENDENCIES_SHA="$({
+  printf 'go.mod:%s\n' "$GO_MOD_SHA"
+  printf 'go.sum:%s\n' "$GO_SUM_SHA"
+  printf '%s:%s\n' "$DEPENDENCY_MODULES" "$DEPENDENCY_MODULES_SHA"
+  printf '%s:%s\n' "$DEPENDENCY_UPDATES" "$DEPENDENCY_UPDATES_SHA"
+} | sha256_stream)"
+VERSIONS_ENV_SHA="$(sha256_file "$VERSIONS_ENV")"
+TOOLCHAIN_CHECK_SHA="$(sha256_file "$TOOLCHAIN_CHECK")"
+CI_WORKFLOW_SHA="$(sha256_file "$CI_WORKFLOW")"
+RELEASE_WORKFLOW_SHA="$(sha256_file "$RELEASE_WORKFLOW")"
+SECURITY_WORKFLOW_SHA="$(sha256_file "$SECURITY_WORKFLOW")"
+TOOLS_SHA="$({
+  printf '%s:%s\n' "$VERSIONS_ENV" "$VERSIONS_ENV_SHA"
+  printf '%s:%s\n' "$TOOLCHAIN_CHECK" "$TOOLCHAIN_CHECK_SHA"
+  printf '%s:%s\n' "$CI_WORKFLOW" "$CI_WORKFLOW_SHA"
+  printf '%s:%s\n' "$RELEASE_WORKFLOW" "$RELEASE_WORKFLOW_SHA"
+  printf '%s:%s\n' "$SECURITY_WORKFLOW" "$SECURITY_WORKFLOW_SHA"
+  printf 'GO_MIN_VERSION:%s\n' "$GO_MIN_VERSION"
+  printf 'GO_INTEGRATION_VERSION:%s\n' "$GO_INTEGRATION_VERSION"
+  printf 'GOLANGCI_LINT_VERSION:%s\n' "$GOLANGCI_LINT_VERSION"
+  printf 'GOVULNCHECK_VERSION:%s\n' "$GOVULNCHECK_VERSION"
+  printf 'GOTESTSUM_VERSION:%s\n' "$GOTESTSUM_VERSION"
+  printf 'GOFUMPT_VERSION:%s\n' "$GOFUMPT_VERSION"
+  printf 'STATICCHECK_VERSION:%s\n' "$STATICCHECK_VERSION"
+} | sha256_stream)"
 XGO_REASON="external consumer repository/tag validation is recorded in docs/evidence/xgo-consumer-smoke.md"
 
 cat > "$OUT" <<JSON
@@ -102,6 +161,79 @@ cat > "$OUT" <<JSON
     "gotestsum_version": $(json_string "$GOTESTSUM_VERSION"),
     "gofumpt_version": $(json_string "$GOFUMPT_VERSION"),
     "staticcheck_version": $(json_string "$STATICCHECK_VERSION")
+  },
+  "tools": {
+    "sha256": $(json_string "$TOOLS_SHA"),
+    "versions_env": ".github/versions.env",
+    "versions_env_sha256": $(json_string "$VERSIONS_ENV_SHA"),
+    "toolchain_check": $(json_string "$TOOLCHAIN_CHECK"),
+    "toolchain_check_sha256": $(json_string "$TOOLCHAIN_CHECK_SHA"),
+    "go_version": $(json_string "$GO_VERSION"),
+    "go_actual_version": $(json_string "$GO_ACTUAL"),
+    "golangci_lint_version": $(json_string "$GOLANGCI_LINT_VERSION"),
+    "govulncheck_version": $(json_string "$GOVULNCHECK_VERSION"),
+    "gotestsum_version": $(json_string "$GOTESTSUM_VERSION"),
+    "gofumpt_version": $(json_string "$GOFUMPT_VERSION"),
+    "staticcheck_version": $(json_string "$STATICCHECK_VERSION"),
+    "pins": {
+      "go_min_version": $(json_string "$GO_MIN_VERSION"),
+      "go_integration_version": $(json_string "$GO_INTEGRATION_VERSION"),
+      "golangci_lint_version": $(json_string "$GOLANGCI_LINT_VERSION"),
+      "govulncheck_version": $(json_string "$GOVULNCHECK_VERSION"),
+      "gotestsum_version": $(json_string "$GOTESTSUM_VERSION"),
+      "gofumpt_version": $(json_string "$GOFUMPT_VERSION"),
+      "staticcheck_version": $(json_string "$STATICCHECK_VERSION")
+    },
+    "workflows": {
+      "ci": {
+        "path": $(json_string "$CI_WORKFLOW"),
+        "sha256": $(json_string "$CI_WORKFLOW_SHA")
+      },
+      "release": {
+        "path": $(json_string "$RELEASE_WORKFLOW"),
+        "sha256": $(json_string "$RELEASE_WORKFLOW_SHA")
+      },
+      "security": {
+        "path": $(json_string "$SECURITY_WORKFLOW"),
+        "sha256": $(json_string "$SECURITY_WORKFLOW_SHA")
+      }
+    }
+  },
+  "dependencies": {
+    "sha256": $(json_string "$DEPENDENCIES_SHA"),
+    "modules_artifact": $(json_string "$DEPENDENCY_MODULES"),
+    "updates_artifact": $(json_string "$DEPENDENCY_UPDATES"),
+    "standard_sync_report": $(json_string "$STANDARD_SYNC_REPORT"),
+    "modules_sha256": $(json_string "$DEPENDENCY_MODULES_SHA"),
+    "updates_sha256": $(json_string "$DEPENDENCY_UPDATES_SHA"),
+    "go_mod_sha256": $(json_string "$GO_MOD_SHA"),
+    "go_sum_sha256": $(json_string "$GO_SUM_SHA"),
+    "go_mod_tidy": "clean",
+    "go_mod": {
+      "path": "go.mod",
+      "sha256": $(json_string "$GO_MOD_SHA")
+    },
+    "go_sum": {
+      "path": "go.sum",
+      "present": $GO_SUM_PRESENT,
+      "sha256": $(json_string "$GO_SUM_SHA")
+    },
+    "modules": {
+      "artifact": $(json_string "$DEPENDENCY_MODULES"),
+      "sha256": $(json_string "$DEPENDENCY_MODULES_SHA"),
+      "line_count": $DEPENDENCY_MODULES_COUNT
+    },
+    "updates": {
+      "artifact": $(json_string "$DEPENDENCY_UPDATES"),
+      "sha256": $(json_string "$DEPENDENCY_UPDATES_SHA"),
+      "line_count": $DEPENDENCY_UPDATES_COUNT
+    },
+    "hashes": {
+      "go_mod": $(json_string "$GO_MOD_SHA"),
+      "go_sum": $(json_string "$GO_SUM_SHA"),
+      "modules": $(json_string "$DEPENDENCY_MODULES_SHA"),
+      "updates": $(json_string "$DEPENDENCY_UPDATES_SHA")
+    }
   },
   "go": {
     "min_version": $(json_string "$GO_MIN_VERSION"),
@@ -161,8 +293,10 @@ cat > "$OUT" <<JSON
     "contract": "passed",
     "api": "passed",
     "api_diff": "passed",
+    "dependency_check": "passed",
     "docs": "passed",
     "artifact_docs": "passed",
+    "standard_drift_check": "passed",
     "examples": "passed",
     "release_evidence": "passed",
     "consumer_compatibility": "documented"

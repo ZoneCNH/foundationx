@@ -14,7 +14,7 @@ if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
 fi
 
 status="$(git status --short --untracked-files=all -- .)"
-status="$(printf '%s\n' "$status" | grep -vE '^.. release/manifest/[^/]+\.json$' || true)"
+status="$(printf '%s\n' "$status" | grep -vE '^.. release/(manifest/[^/]+\.json|dependency/(modules|updates)\.txt|standard-sync/latest\.md)$' || true)"
 
 if [ -n "$status" ]; then
   echo "ERROR: release workspace is dirty"
