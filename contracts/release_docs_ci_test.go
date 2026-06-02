@@ -275,6 +275,38 @@ func TestReleaseEvidenceCheckGateIsExplicitInManifestAndVerifier(t *testing.T) {
 	assertContains(t, check, "manifest missing passed check: $check")
 }
 
+func TestReleaseManifestSchemaDocsDescribeEnforcedSchema(t *testing.T) {
+	schema := readRepoText(t, filepath.Join("docs", "governance", "RELEASE_MANIFEST_SCHEMA.md"))
+
+	for _, want := range []string{
+		"`schema_version`",
+		"`go_version`",
+		"`verified_go_versions`",
+		"`tools`",
+		"`dependencies`",
+		"`governance`",
+		"`tools.pins`",
+		"`tools.workflows`",
+		"`dependencies.sha256`",
+		"`go_mod_tidy: clean`",
+		"`hosted_service_verified: false`",
+		"`remote_execution_status: unverified`",
+		"`api.compatibility_policy`",
+		"`contracts.golden_behavior_path`",
+		"`governance.package_maturity`",
+		"`verification_scope: local_external_module`",
+		"`status: local_external_module_passed`",
+		"`xgo_external_verified: false`",
+		"`dependency_check`",
+		"`standard_drift_check`",
+		"`release_evidence_check`",
+		"`checks.consumer_compatibility`",
+		"`documented`",
+	} {
+		assertContains(t, schema, want)
+	}
+}
+
 func TestGeneratedReleaseManifestsUseGoModModule(t *testing.T) {
 	module := modulePathFromGoMod(t)
 	manifests, err := filepath.Glob(filepath.Join("..", "release", "manifest", "*.json"))
@@ -652,6 +684,42 @@ func TestSection26ReleaseGovernanceArtifactsAreTracked(t *testing.T) {
 		text := readRepoText(t, path)
 		if strings.TrimSpace(text) == "" {
 			t.Fatalf("%s must not be empty", path)
+		}
+	}
+}
+
+func TestAPIDiffCheckAvoidsDestructiveCleanup(t *testing.T) {
+	script := readRepoText(t, filepath.Join("scripts", "ci", "api-diff-check.sh"))
+
+	assertContains(t, script, "cleanup_api_diff_tmp()")
+	assertContains(t, script, `rm -f "$GEN" "$OUT"`)
+	assertContains(t, script, `rmdir "$TMPDIR"`)
+	for _, forbidden := range []string{"rm -rf", "git clean", "reset --hard"} {
+		if strings.Contains(script, forbidden) {
+			t.Fatalf("api-diff-check cleanup must avoid destructive action %q", forbidden)
+		}
+	}
+}
+
+func TestShellScriptsAvoidDestructiveActions(t *testing.T) {
+	for _, pattern := range []string{
+		filepath.Join("scripts", "*.sh"),
+		filepath.Join("scripts", "ci", "*.sh"),
+	} {
+		matches, err := filepath.Glob(filepath.Join("..", pattern))
+		if err != nil {
+			t.Fatalf("glob %s: %v", pattern, err)
+		}
+		for _, path := range matches {
+			text, err := os.ReadFile(path)
+			if err != nil {
+				t.Fatalf("read %s: %v", path, err)
+			}
+			for _, forbidden := range []string{"rm -rf", "git clean", "reset --hard"} {
+				if strings.Contains(string(text), forbidden) {
+					t.Fatalf("%s must avoid destructive action %q", path, forbidden)
+				}
+			}
 		}
 	}
 }

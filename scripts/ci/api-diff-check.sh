@@ -8,9 +8,13 @@ if [[ "${1:-}" == "--write" ]]; then
   MODE="write"
 fi
 TMPDIR="$(mktemp -d)"
-trap 'rm -rf "$TMPDIR"' EXIT
 GEN="$TMPDIR/gen-api-snapshot.go"
 OUT="$TMPDIR/public_api.snapshot"
+cleanup_api_diff_tmp() {
+  rm -f "$GEN" "$OUT"
+  rmdir "$TMPDIR"
+}
+trap cleanup_api_diff_tmp EXIT
 cat > "$GEN" <<'GO'
 package main
 
