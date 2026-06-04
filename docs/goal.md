@@ -5,6 +5,8 @@
 
 > 适用对象：`L0 内核库 / 核心稳定层 / kernel 内核库`  
 > 默认绑定：`github.com/ZoneCNH/kernel` 作为 L0 内核库，`https://github.com/ZoneCNH/xlib-standard` 作为基础库模板标准，`x.go` 作为调用方与集成验证对象。  
+> 模板固定声明：`xlib-standard` 作为工程模板与标准事实源；同步必须固定到已评审 upstream commit/release，不自动跟随 `main`，不得整仓覆盖 `kernel`，也不得改变 `github.com/ZoneCNH/kernel` 的 Go module path。定时检测每 4 小时运行一次，只告警 drift，不自动同步 baseline。
+> `goalcli` 已批准成为运行时依赖要求，但只能通过上游公开 Go package 引入；当前上游仍是 `cmd/goalcli` + `internal/goalruntime`，因此依赖落地前必须先解决可 import API。
 > Goal 协议：Goal Runtime Prompt v3.1  
 > 执行模式：Full Governance / Small Batch Execution  
 > 日期：2026-06-02
@@ -27,7 +29,7 @@
 | L0 内核库仓库 | `github.com/ZoneCNH/kernel` | `github.com/ZoneCNH/kernel` | 已在 v1.1 完成 |
 | Goal 文档版本 | v1.1 | v1.2 | 是 |
 
-同步原则：从 v1.2 开始，`kernel` 是 L0 内核库事实源，`xlib-standard` 是基础库模板标准事实源，x.go 是集成验证调用方。
+同步原则：从 v1.2 开始，`kernel` 是 L0 内核库事实源，`xlib-standard` 是基础库模板标准事实源，x.go 是集成验证调用方。除已批准的 `goalcli` runtime 面外，`xlib-standard` 不作为 `kernel` 的运行时依赖；任何模板同步都必须通过固定基线、人工评审、证据更新和门禁验证完成。`.github/workflows/standard-sync-watch.yml` 以 UTC `17 */4 * * *` 每 4 小时执行 live drift 检测，发现 drift 时失败并产出报告，但不得自动改写同步基线。`goalcli` 的上游代码、运行时文档、映射文档和报告 schema 必须进入 watched paths；本仓库要求将 `goalcli` runtime 面做成运行时依赖，但不得复制 CLI 实现，也不得在上游没有公开可导入包时用空依赖冒充完成。
 
 L0 内核库不是“工具函数集合”，而是整个工程体系中最底层、最稳定、最少依赖、最可复用的运行时内核。它的本质职责是：
 
@@ -1319,4 +1321,3 @@ Day 1：冻结边界 + errx/timex skeleton + docs-check/boundary-check
 Day 7：kernel v0.1.0-rc.1 + x.go smoke
 Day 30：kernel v0.3.0 + 至少 2 个 L1 基础库接入 + L0 Contribution Policy 固化
 ```
-

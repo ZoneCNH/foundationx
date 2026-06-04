@@ -64,6 +64,22 @@ require_config_key '^drift_check:'
 require_config_key '^[[:space:]]+default_mode:[[:space:]]+local-pinned-baseline$'
 require_config_key '^[[:space:]]+live_network_gate:[[:space:]]+false$'
 require_config_key '^[[:space:]]+live_network_mode:[[:space:]]+optional-fail-on-drift$'
+require_config_key '^[[:space:]]+goalcli_sync:'
+require_config_key '^[[:space:]]+mode:[[:space:]]+runtime-dependency-required$'
+require_config_key '^[[:space:]]+adoption:[[:space:]]+required$'
+require_config_key '^[[:space:]]+runtime_dependency:[[:space:]]+required$'
+require_config_key '^[[:space:]]+dependency_module:[[:space:]]+github\.com/ZoneCNH/xlib-standard$'
+require_config_key '^[[:space:]]+dependency_import_policy:[[:space:]]+public-go-package-required$'
+require_config_key '^[[:space:]]+current_upstream_status:[[:space:]]+blocked-cmd-main-and-internal-only$'
+require_config_key '^[[:space:]]+decision_evidence:[[:space:]]+docs/adr/ADR-20260604-001-goalcli-runtime-dependency.md$'
+require_config_key '^[[:space:]]+copy_into_kernel:[[:space:]]+forbidden-without-approved-scope$'
+require_config_key '^[[:space:]]+- cmd/goalcli/$'
+require_config_key '^[[:space:]]+- internal/goalcli/$'
+require_config_key '^[[:space:]]+- internal/goalruntime/$'
+require_config_key '^[[:space:]]+- docs/standard/goalcli-cli-contract.md$'
+require_config_key '^[[:space:]]+- docs/standard/goalcli-runtime.md$'
+require_config_key '^[[:space:]]+- \.agent/standard/goalcli-mapping.md$'
+require_config_key '^[[:space:]]+- contracts/goalcli-report.schema.json$'
 require_config_key '^live_review:'
 
 source_repo="$(config_section_value standard_source repo)"
@@ -126,6 +142,25 @@ generated_at="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
   echo "- live_network_gate: false"
   echo "- live_network_mode: optional-fail-on-drift"
   echo
+  echo "## Goalcli sync surface"
+  echo
+  echo "- mode: runtime-dependency-required"
+  echo "- adoption: required"
+  echo "- runtime_dependency: required"
+  echo "- dependency_module: github.com/ZoneCNH/xlib-standard"
+  echo "- dependency_import_policy: public-go-package-required"
+  echo "- current_upstream_status: blocked-cmd-main-and-internal-only"
+  echo "- decision_evidence: docs/adr/ADR-20260604-001-goalcli-runtime-dependency.md"
+  echo "- copy_into_kernel: forbidden-without-approved-scope"
+  echo "- source_paths:"
+  echo "  - cmd/goalcli/"
+  echo "  - internal/goalcli/"
+  echo "  - internal/goalruntime/"
+  echo "  - docs/standard/goalcli-cli-contract.md"
+  echo "  - docs/standard/goalcli-runtime.md"
+  echo "  - .agent/standard/goalcli-mapping.md"
+  echo "  - contracts/goalcli-report.schema.json"
+  echo
   echo "## Local standard evidence"
   echo
   echo "Required local evidence:"
@@ -133,6 +168,7 @@ generated_at="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
 
 required_evidence=(
   "$CONFIG"
+  "docs/adr/ADR-20260604-001-goalcli-runtime-dependency.md"
   "$baseline_evidence"
   "docs/context/xlib-standard-contract.md"
   "docs/governance/KERNEL_FOUNDATION_RULES.md"
