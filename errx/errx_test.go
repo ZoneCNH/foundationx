@@ -95,3 +95,11 @@ func TestIsKindNoMatch(t *testing.T) {
 		t.Fatal("IsKind should return false for different kind")
 	}
 }
+
+func TestErrorStringCodeWithoutOp(t *testing.T) {
+	e := NewError(ErrorKindInternal, "", "something broke").WithCode("X99")
+	s := e.Error()
+	if !strings.Contains(s, "X99") || !strings.Contains(s, "something broke") {
+		t.Fatalf("unexpected format: %s", s)
+	}
+}

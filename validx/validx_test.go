@@ -17,6 +17,11 @@ func TestInvariant(t *testing.T) {
 	if !errx.IsKind(Invariant(false, "op", "msg"), errx.ErrorKindInternal) {
 		t.Fatal("kind")
 	}
+	// Verify Invariant produces SeverityError
+	err := Invariant(false, "op", "msg")
+	if e := errx.AsError(err); e == nil || e.Severity != errx.SeverityError {
+		t.Fatalf("expected SeverityError, got %v", err)
+	}
 }
 func TestRequireNonEmpty(t *testing.T) {
 	if RequireNonEmpty("op", "name", "x") != nil {
