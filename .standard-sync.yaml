@@ -1,39 +1,81 @@
 standard_source:
   repo: ZoneCNH/xlib-standard
   branch: main
+  role: template-and-standard-source
+  url: https://github.com/ZoneCNH/xlib-standard
   watched_paths:
     - docs/standard/
     - contracts/
     - .agent/
+    - cmd/goalcli/
+    - internal/goalcli/
+    - internal/goalruntime/
+    - docs/standard/goalcli-cli-contract.md
+    - docs/standard/goalcli-runtime.md
+    - .agent/standard/goalcli-mapping.md
+    - contracts/goalcli-report.schema.json
     - Makefile
     - scripts/check_docs.sh
     - scripts/check_contracts.sh
     - scripts/generate_manifest.sh
+  goalcli_sync:
+    mode: runtime-dependency-required
+    adoption: required
+    runtime_dependency: required
+    dependency_module: github.com/ZoneCNH/xlib-standard
+    dependency_import_policy: public-go-package-required
+    current_upstream_status: blocked-cmd-main-and-internal-only
+    decision_evidence: docs/adr/ADR-20260604-001-goalcli-runtime-dependency.md
+    copy_into_kernel: forbidden-without-approved-scope
+    source_paths:
+      - cmd/goalcli/
+      - internal/goalcli/
+      - internal/goalruntime/
+      - docs/standard/goalcli-cli-contract.md
+      - docs/standard/goalcli-runtime.md
+      - .agent/standard/goalcli-mapping.md
+      - contracts/goalcli-report.schema.json
 
 target:
   repo: ZoneCNH/kernel
+  module: github.com/ZoneCNH/kernel
+  role: l0-kernel-library
+  template_runtime_dependency: goalcli-runtime-only-approved
+  overwrite_from_template: forbidden
   sync_policy:
     docs_standard: required
     contracts: required
     harness_gates: required
+    goalcli: runtime-dependency-required
+    goalcli_runtime_dependency: required
+    goalcli_import_policy: public-go-package-required
+    goalcli_current_upstream_status: blocked-cmd-main-and-internal-only
+    goalcli_decision_evidence: docs/adr/ADR-20260604-001-goalcli-runtime-dependency.md
+    goalcli_copy_into_kernel: forbidden-without-approved-scope
     generator: forbidden
     template_profile: forbidden
     profile_runtime: forbidden
 
 last_synced:
-  commit: "041a62f21428111a4b46235a7910edbdf4e07d61"
-  date: "2026-06-01"
+  commit: "ba8880aeb6b70825bd86e2b6294b8fb6f614eeaf"
+  date: "2026-06-04"
+  pin_policy: reviewed-upstream-commit
+  auto_follow_main: false
   evidence: docs/xlib-standard-analysis.md
+  sync_scope: docs/standard/ only; contracts/scripts/kernel-diverged-superset retained
 
 drift_check:
   default_mode: local-pinned-baseline
   live_network_gate: false
   live_network_mode: optional-fail-on-drift
+  scheduled_workflow: .github/workflows/standard-sync-watch.yml
+  scheduled_cron_utc: "17 */4 * * *"
+  scheduled_policy: detect-only-fail-on-unreviewed-drift
   report: release/standard-sync/latest.md
 
 live_review:
-  checked_at: "2026-06-02"
-  live_commit: "a7c8511b7b400d0f9effed5d50ac46e5faf185c2"
-  relation: "live-main-ahead-of-pinned-baseline"
-  decision: "do-not-update-baseline-unreviewed"
-  evidence: docs/evidence/release-v0.4.0.md
+  checked_at: "2026-06-04"
+  live_commit: "ba8880aeb6b70825bd86e2b6294b8fb6f614eeaf"
+  relation: "synced-to-live-main"
+  decision: "baseline-updated-docs-standard-synced"
+  evidence: docs/evidence/release-v0.5.0.md

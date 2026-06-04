@@ -1,25 +1,45 @@
 # kernel standard sync report
 
-- generated_at: 2026-06-04T00:51:41Z
+- generated_at: 2026-06-04T01:22:19Z
 - config: .standard-sync.yaml
 - source: ZoneCNH/xlib-standard
-- source_baseline_commit: 041a62f21428111a4b46235a7910edbdf4e07d61
-- source_baseline_date: 2026-06-01
+- source_baseline_commit: ba8880aeb6b70825bd86e2b6294b8fb6f614eeaf
+- source_baseline_date: 2026-06-04
 - source_baseline_evidence: docs/xlib-standard-analysis.md
-- live_review_checked_at: 2026-06-02
-- live_review_commit: a7c8511b7b400d0f9effed5d50ac46e5faf185c2
-- live_review_relation: live-main-ahead-of-pinned-baseline
-- live_review_decision: do-not-update-baseline-unreviewed
-- live_review_evidence: docs/evidence/release-v0.4.0.md
+- live_review_checked_at: 2026-06-04
+- live_review_commit: ba8880aeb6b70825bd86e2b6294b8fb6f614eeaf
+- live_review_relation: synced-to-live-main
+- live_review_decision: baseline-updated-docs-standard-synced
+- live_review_evidence: docs/evidence/release-v0.5.0.md
 - target: ZoneCNH/kernel
 - default_mode: local-pinned-baseline
 - live_network_gate: false
 - live_network_mode: optional-fail-on-drift
 
+## Goalcli sync surface
+
+- mode: runtime-dependency-required
+- adoption: required
+- runtime_dependency: required
+- dependency_module: github.com/ZoneCNH/xlib-standard
+- dependency_import_policy: public-go-package-required
+- current_upstream_status: blocked-cmd-main-and-internal-only
+- decision_evidence: docs/adr/ADR-20260604-001-goalcli-runtime-dependency.md
+- copy_into_kernel: forbidden-without-approved-scope
+- source_paths:
+  - cmd/goalcli/
+  - internal/goalcli/
+  - internal/goalruntime/
+  - docs/standard/goalcli-cli-contract.md
+  - docs/standard/goalcli-runtime.md
+  - .agent/standard/goalcli-mapping.md
+  - contracts/goalcli-report.schema.json
+
 ## Local standard evidence
 
 Required local evidence:
 - .standard-sync.yaml
+- docs/adr/ADR-20260604-001-goalcli-runtime-dependency.md
 - docs/xlib-standard-analysis.md
 - docs/context/xlib-standard-contract.md
 - docs/governance/KERNEL_FOUNDATION_RULES.md
@@ -65,8 +85,8 @@ Implementation surfaces scanned:
 
 - status: not-run
 - reason: default local-pinned-baseline mode avoids network access
-- last_reviewed_live_commit: a7c8511b7b400d0f9effed5d50ac46e5faf185c2
-- last_review_decision: do-not-update-baseline-unreviewed
+- last_reviewed_live_commit: ba8880aeb6b70825bd86e2b6294b8fb6f614eeaf
+- last_review_decision: baseline-updated-docs-standard-synced
 
 ## Result
 
