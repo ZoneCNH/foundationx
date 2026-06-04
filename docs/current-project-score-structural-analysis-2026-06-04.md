@@ -88,7 +88,7 @@
 
 以下不是缺陷，而是本报告刻意保留的证据边界：
 
-- `make release-final-check` 未在当前 dirty verification branch 上宣称通过，因为该门禁包含 `release-clean-check`，要求生成文件和报告提交后工作区干净。
+- `make release-final-check` 已在 `cb2e1bf` 提交后通过，工作区干净状态下全部门禁通过。
 - 远端 Dependabot/Renovate 真实运行未在本地验证；本地依赖门禁已记录 module 数量与 external module 数量。
 - `/home/x.go` 真实外部消费仍按发布 manifest 标记为未验证；仓库内 external-module smoke 已通过。
 - 本报告不主张扩大 L0 范围，不引入日志框架、指标客户端、驱动、环境变量自动加载或业务领域术语。

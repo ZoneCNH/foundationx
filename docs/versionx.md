@@ -30,15 +30,15 @@ func NewVersionInfo(module, version, commit, buildTime, goVersion string) Versio
 ```go
 info := versionx.NewBuildInfo(
     "github.com/ZoneCNH/kernel",
-    "v0.5.0",
-    "abc1234",
+    "v0.6.0",
+    "cb2e1bf",
     "2026-06-04T12:00:00Z",
-    "go1.24.0",
+    "go1.26.3",
 )
 
 data, _ := json.Marshal(info)
 fmt.Println(string(data))
-// {"module":"github.com/ZoneCNH/kernel","version":"v0.5.0","commit":"abc1234","build_time":"2026-06-04T12:00:00Z","go_version":"go1.24.0"}
+// {"module":"github.com/ZoneCNH/kernel","version":"v0.6.0","commit":"cb2e1bf","build_time":"2026-06-04T12:00:00Z","go_version":"go1.26.3"}
 ```
 
 ### Compatibility — 兼容性判断
