@@ -135,7 +135,7 @@ func TestXlibStandardAnalysisPinsReviewedGovernanceBaseline(t *testing.T) {
 	analysis := readRepoText(t, filepath.Join("docs", "xlib-standard-analysis.md"))
 
 	for _, want := range []string{
-		"ba8880aeb6b70825bd86e2b6294b8fb6f614eeaf",
+		"253e9e7e926e7bb8651a6c12b8fedda54fd071b3",
 		"2026-06-04",
 		"docs/standard/",
 		"`contracts/` schema contract tests",
@@ -157,8 +157,8 @@ func TestStandardDriftConfigAndScriptExposeOptionalLiveGate(t *testing.T) {
 
 	for _, want := range []string{
 		"live_network_mode: optional-fail-on-drift",
-		"live_commit: \"ba8880aeb6b70825bd86e2b6294b8fb6f614eeaf\"",
-		"decision: \"baseline-updated-docs-standard-synced\"",
+		"live_commit: \"253e9e7e926e7bb8651a6c12b8fedda54fd071b3\"",
+		"decision: \"baseline-updated-docs-standard-scripts-synced\"",
 	} {
 		assertContains(t, config, want)
 	}

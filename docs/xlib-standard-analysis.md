@@ -22,6 +22,7 @@ v0.1.0 将旧单包模板收敛为 kernel/xlib-standard 多包内核；保留 L0
 |------|----------------|---------|------|
 | 2026-06-01 | `041a62f` | 初始基线建立 | pinned reviewed baseline |
 | 2026-06-04 | `ba8880a` | `docs/standard/` (23 files) | 仅同步标准文档；contracts/scripts 保留 kernel 超集 |
+| 2026-06-04 | `253e9e7` | `docs/standard/` (24 files) + `contracts_test.go` + `scripts/` (3 files) | 同步标准文档 + 共享脚本；Makefile 保留 kernel 独立定制 |
 
 ## 2026-06-04 同步详情
 
@@ -41,9 +42,27 @@ v0.1.0 将旧单包模板收敛为 kernel/xlib-standard 多包内核；保留 L0
 - `cmd/goalcli/`、`internal/goalcli/`、`internal/goalruntime/` — 按 ADR-20260604-001 作为运行时依赖管理
 - `.agent/` — kernel 有独立治理体系（AGENTS.md）
 
+## 2026-06-04 第二次同步详情
+
+上游 `253e9e7` 相比基线 `ba8880a` 有 1 个 commit（+120 files, +5844 -1953）。经逐路径评审：
+
+**已同步（合入 kernel）：**
+- `docs/standard/` — 24 个标准文档（新增 `layer-governance-rules.md`）
+- `contracts/contracts_test.go` — 共享 contract 测试
+- `scripts/check_docs.sh`、`check_release_evidence.sh`、`check_secrets.sh` — 共享脚本
+
+**保留 kernel 独立定制（不合入）：**
+- `Makefile` — kernel 有独立 GOENV、toolchain-check、coverage-threshold 等目标
+- `contracts/` schema 文件 — kernel 版本是超集
+- `scripts/generate_manifest.sh`、`check_boundary.sh` 等 — kernel 有独立实现
+
+**forbidden to copy：**
+- `cmd/goalcli/`、`internal/goalcli/`、`internal/goalruntime/` — 按 ADR-20260604-001 管理
+- `.agent/` — kernel 有独立治理体系
+
 ## Live main 复核说明
 
-2026-06-04 同步后，baseline 已更新至 `ba8880aeb6b70825bd86e2b6294b8fb6f614eeaf`，与 upstream live main 一致。`.standard-sync.yaml` 的 `live_review` 记录为 `synced-to-live-main`。
+2026-06-04 第二次同步后，baseline 已更新至 `253e9e7e926e7bb8651a6c12b8fedda54fd071b3`，与 upstream live main 一致。`.standard-sync.yaml` 的 `live_review` 记录为 `synced-to-live-main`。
 
 ## 定时检测说明
 

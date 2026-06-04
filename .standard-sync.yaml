@@ -57,12 +57,12 @@ target:
     profile_runtime: forbidden
 
 last_synced:
-  commit: "ba8880aeb6b70825bd86e2b6294b8fb6f614eeaf"
+  commit: "253e9e7e926e7bb8651a6c12b8fedda54fd071b3"
   date: "2026-06-04"
   pin_policy: reviewed-upstream-commit
   auto_follow_main: false
   evidence: docs/xlib-standard-analysis.md
-  sync_scope: docs/standard/ only; contracts/scripts/kernel-diverged-superset retained
+  sync_scope: docs/standard/ + contracts_test.go + scripts (check_docs, check_release_evidence, check_secrets); Makefile kernel-diverged-superset retained
 
 drift_check:
   default_mode: local-pinned-baseline
@@ -75,7 +75,7 @@ drift_check:
 
 live_review:
   checked_at: "2026-06-04"
-  live_commit: "ba8880aeb6b70825bd86e2b6294b8fb6f614eeaf"
+  live_commit: "253e9e7e926e7bb8651a6c12b8fedda54fd071b3"
   relation: "synced-to-live-main"
-  decision: "baseline-updated-docs-standard-synced"
-  evidence: docs/evidence/release-v0.5.0.md
+  decision: "baseline-updated-docs-standard-scripts-synced"
+  evidence: docs/xlib-standard-analysis.md
