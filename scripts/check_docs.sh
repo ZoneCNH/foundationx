@@ -44,6 +44,10 @@ required_files=(
   docs/standard/release-standard.md
   docs/standard/security-and-secret-policy.md
   docs/standard/evidence-protocol.md
+  docs/standard/docker-toolchain-standard.md
+  docs/standard/downstream-compatibility.md
+  docs/standard/goalcli-cli-contract.md
+  docs/standard/template-generation-contract.md
   docs/governance/API_COMPATIBILITY_POLICY.md
   docs/governance/PACKAGE_MATURITY.md
   docs/governance/RELEASE_MANIFEST_SCHEMA.md
@@ -129,6 +133,11 @@ require_text docs/standard/harness-gates.md "docs-check"
 require_text docs/standard/release-standard.md "release/manifest/latest.json"
 require_text docs/standard/security-and-secret-policy.md "check_secrets.sh"
 require_text docs/standard/evidence-protocol.md "release/manifest/latest.json.sha256"
+
+require_text docs/standard/docker-toolchain-standard.md "GOWORK=off"
+require_text docs/standard/downstream-compatibility.md "kernel"
+require_text docs/standard/goalcli-cli-contract.md "goalcli"
+require_text docs/standard/template-generation-contract.md "goalcli"
 
 require_text docs/governance/API_COMPATIBILITY_POLICY.md "public_api.snapshot"
 require_text docs/governance/PACKAGE_MATURITY.md "Package Maturity"

@@ -1,13 +1,13 @@
 # kernel standard sync report
 
-- generated_at: 2026-06-04T07:51:57Z
+- generated_at: 2026-06-04T19:47:38Z
 - config: .standard-sync.yaml
 - source: ZoneCNH/xlib-standard
-- source_baseline_commit: 253e9e7e926e7bb8651a6c12b8fedda54fd071b3
-- source_baseline_date: 2026-06-04
+- source_baseline_commit: aa676a8eba216bca212f5ce6073c7dda9cd7b077
+- source_baseline_date: 2026-06-05
 - source_baseline_evidence: docs/xlib-standard-analysis.md
-- live_review_checked_at: 2026-06-04
-- live_review_commit: 253e9e7e926e7bb8651a6c12b8fedda54fd071b3
+- live_review_checked_at: 2026-06-05
+- live_review_commit: aa676a8eba216bca212f5ce6073c7dda9cd7b077
 - live_review_relation: synced-to-live-main
 - live_review_decision: baseline-updated-docs-standard-scripts-synced
 - live_review_evidence: docs/xlib-standard-analysis.md
@@ -85,7 +85,7 @@ Implementation surfaces scanned:
 
 - status: not-run
 - reason: default local-pinned-baseline mode avoids network access
-- last_reviewed_live_commit: 253e9e7e926e7bb8651a6c12b8fedda54fd071b3
+- last_reviewed_live_commit: aa676a8eba216bca212f5ce6073c7dda9cd7b077
 - last_review_decision: baseline-updated-docs-standard-scripts-synced
 
 ## Result
