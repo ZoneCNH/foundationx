@@ -58,7 +58,7 @@ func snapshotPackage(root, pkg string) []string {
 					switch s := spec.(type) {
 					case *ast.TypeSpec:
 						if !s.Name.IsExported() { continue }
-						lines = append(lines, fmt.Sprintf("type %s.%s %s", pkg, s.Name.Name, expr(fset, s.Type)))
+						lines = append(lines, fmt.Sprintf("type %s.%s %s", pkg, s.Name.Name, typeExpr(fset, s.Type)))
 						if st, ok := s.Type.(*ast.StructType); ok {
 							for _, field := range st.Fields.List {
 								for _, name := range field.Names {
@@ -93,6 +93,68 @@ func snapshotPackage(root, pkg string) []string {
 		}
 	}
 	return lines
+}
+
+func typeExpr(fset *token.FileSet, node ast.Node) string {
+	if st, ok := node.(*ast.StructType); ok {
+		return publicStructExpr(fset, st)
+	}
+	return expr(fset, node)
+}
+
+func publicStructExpr(fset *token.FileSet, st *ast.StructType) string {
+	if st.Fields == nil || len(st.Fields.List) == 0 {
+		return "struct{}"
+	}
+
+	var parts []string
+	for _, field := range st.Fields.List {
+		if len(field.Names) == 0 {
+			if !embeddedFieldExported(field.Type) {
+				continue
+			}
+			text := expr(fset, field.Type)
+			if field.Tag != nil {
+				text += " " + field.Tag.Value
+			}
+			parts = append(parts, text)
+			continue
+		}
+
+		var names []string
+		for _, name := range field.Names {
+			if name.IsExported() {
+				names = append(names, name.Name)
+			}
+		}
+		if len(names) == 0 {
+			continue
+		}
+
+		text := strings.Join(names, ", ") + " " + expr(fset, field.Type)
+		if field.Tag != nil {
+			text += " " + field.Tag.Value
+		}
+		parts = append(parts, text)
+	}
+
+	if len(parts) == 0 {
+		return "struct{}"
+	}
+	return "struct { " + strings.Join(parts, "; ") + " }"
+}
+
+func embeddedFieldExported(node ast.Node) bool {
+	switch t := node.(type) {
+	case *ast.Ident:
+		return t.IsExported()
+	case *ast.StarExpr:
+		return embeddedFieldExported(t.X)
+	case *ast.SelectorExpr:
+		return t.Sel.IsExported()
+	default:
+		return false
+	}
 }
 
 func signature(fset *token.FileSet, t *ast.FuncType) string {

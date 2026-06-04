@@ -10,26 +10,25 @@ import (
 
 // Key is a typed context key that prevents value collisions.
 type Key[T any] struct {
-	name string
+	name     string
+	sentinel *byte // unique per Key instance; prevents name-based collisions
 }
 
 // NewKey creates a new typed context key with the given name.
+// Each call returns a distinct key, even with the same name and type.
 func NewKey[T any](name string) Key[T] {
-	return Key[T]{name: name}
+	return Key[T]{name: name, sentinel: new(byte)}
 }
-
-// contextKey is an unexported type for context.WithValue keys.
-type contextKey string
 
 // WithValue returns a derived context with the typed key-value pair.
 func WithValue[T any](ctx context.Context, key Key[T], value T) context.Context {
-	return context.WithValue(ctx, contextKey(key.name), value)
+	return context.WithValue(ctx, key.sentinel, value)
 }
 
 // Value extracts a typed value from the context.
 // Returns (value, true) if present, (zero, false) otherwise.
 func Value[T any](ctx context.Context, key Key[T]) (T, bool) {
-	v, ok := ctx.Value(contextKey(key.name)).(T)
+	v, ok := ctx.Value(key.sentinel).(T)
 	return v, ok
 }
 

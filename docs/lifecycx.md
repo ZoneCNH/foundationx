@@ -44,9 +44,9 @@ func (m *Manager) Start(ctx context.Context) error
 func (m *Manager) Stop(ctx context.Context) error
 ```
 
-`Start` 按注册顺序依次启动组件；任一组件启动失败时，已启动的组件按逆序自动停止。
+`Start` 按注册顺序依次启动组件；任一组件启动失败时，已启动的组件按逆序自动停止。启动错误和回滚停止错误通过 `errors.Join` 聚合返回。
 
-`Stop` 按注册顺序逆序停止组件。
+`Stop` 按注册顺序逆序停止组件；即使某个组件停止失败，也会继续停止剩余组件，并通过 `errors.Join` 聚合错误。
 
 示例：
 

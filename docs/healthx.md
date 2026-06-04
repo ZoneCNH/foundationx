@@ -75,9 +75,11 @@ func (p DBProbe) Check(ctx context.Context) healthx.HealthStatus {
 
 ```go
 func Aggregate(name string, statuses ...HealthStatus) HealthStatus
+func AggregateWithClock(name string, clock timex.Clock, statuses ...HealthStatus) HealthStatus
 ```
 
 聚合规则：任一 `unhealthy` 则整体 `unhealthy`；无 `unhealthy` 但有 `degraded` 则整体 `degraded`；否则 `healthy`。
+`Aggregate` 使用真实时钟写入聚合状态的 `CheckedAt`；需要确定性测试或回放时使用 `AggregateWithClock` 注入 `timex.Clock`。传入 nil clock 时会回退到真实时钟。
 
 示例：
 

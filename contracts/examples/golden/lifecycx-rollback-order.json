@@ -1,4 +1,4 @@
 {
   "error": "start c",
-  "events": ["start a", "start b", "start c", "stop b", "stop a"]
+  "events": ["start:a", "start:b", "start:c", "stop:b", "stop:a"]
 }

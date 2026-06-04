@@ -12,6 +12,7 @@ env:
 jobs:
   release-check:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
       - name: Checkout
@@ -21,6 +22,14 @@ jobs:
         uses: actions/setup-go@v6
         with:
           go-version: "1.26.3"
+
+      - name: Cache Go tools
+        uses: actions/cache@v4
+        with:
+          path: $(go env GOPATH)/bin
+          key: go-tools-${{ runner.os }}-release-${{ hashFiles('.github/versions.env') }}
+          restore-keys: |
+            go-tools-${{ runner.os }}-release-
 
       - name: Install release gate tools
         run: |
@@ -45,3 +54,11 @@ jobs:
           path: |
             release/manifest/*.json
             release/manifest/*.json.sha256
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release/manifest/*.json
+            release/manifest/*.json.sha256
+          generate_release_notes: true

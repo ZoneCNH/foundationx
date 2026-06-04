@@ -1,6 +1,6 @@
 # 安全和密钥策略
 
-基础库标准、模板和生成库必须默认安全。安全策略覆盖源码、文档、测试、CI、manifest、Issue、PR 和 Evidence。
+基础库标准、模板和 `kernel` 必须默认安全。安全策略覆盖源码、文档、测试、CI、manifest、Issue、PR 和 Evidence。
 
 ## 密钥边界
 
@@ -23,9 +23,11 @@
 
 ## Secret Gate
 
-`GOWORK=off make security` 必须委托 `goalcli security` 执行密钥扫描。默认模式不得访问漏洞库或要求 `govulncheck`；只有显式设置 `XLIB_ENABLE_VULNCHECK=1` 时，才在密钥扫描前执行 `govulncheck ./...` 漏洞扫描。启用漏洞扫描时，缺少 `govulncheck` 或扫描失败必须阻断；secret scan 发现疑似凭据时必须阻断。
+`check_secrets.sh` 是当前仓库的 secret scan 入口。`GOWORK=off make security` 会先运行 `govulncheck ./...`，再运行 `./scripts/check_secrets.sh`；缺少漏洞扫描工具、漏洞扫描失败或 secret scan 命中疑似凭据时必须阻断。
 
-Secret scan 会排除 `.git`、`.omc`、`.omx`、`.worktree` 和 `vendor` 等本地或第三方目录，避免把 Agent 运行态、OMX 兼容状态、OMX/team 临时工作区或 vendored 依赖误判为源码凭据。该排除只用于降低误报，不代表这些目录可以提交真实凭据；任何进入 git 历史、manifest、Issue、PR 或日志的 secret 都必须视为违规。
+`scripts/generate_manifest.sh` 的 release evidence 链路会直接运行 `./scripts/check_secrets.sh`，确保 manifest 生成前已完成密钥扫描。secret scan 会排除 `.git`、`.omc`、`.omx`、`.worktree` 和 `vendor` 等本地或第三方目录，避免把 agent runtime、team worktree 或 vendored 依赖误判为源码凭据。
+
+排除目录只用于降低误报，不代表这些目录可以提交真实凭据；任何进入 git 历史、manifest、Issue、PR 或日志的 secret 都必须视为违规。
 
 ## 日志和 Evidence
 
@@ -37,7 +39,7 @@ Secret scan 会排除 `.git`、`.omc`、`.omx`、`.worktree` 和 `vendor` 等本
 ## 依赖安全
 
 - 新依赖必须有明确用途。
-- 依赖变更后运行 `GOWORK=off make security` 和 `GOWORK=off make boundary`；需要漏洞库证据时使用 `XLIB_ENABLE_VULNCHECK=1 GOWORK=off make security`。
+- 依赖变更后运行 `GOWORK=off make security` 和 `GOWORK=off make boundary`。
 - 发现漏洞时记录影响面、修复版本和验证命令。
 
 ## 例外

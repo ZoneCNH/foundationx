@@ -41,15 +41,15 @@ if err := validx.Invariant(len(items) > 0, "order.Calculate", "items must not be
 ### RequireNonEmpty — 非空字符串检查
 
 ```go
-func RequireNonEmpty(value string, name string) error
+func RequireNonEmpty(op string, name string, value string) error
 ```
 
-检查字符串非空，等价于 `Precondition(value != "", "validx.RequireNonEmpty", name+" must not be empty")`。
+检查字符串非空，等价于 `Precondition(value != "", op, name+" must not be empty")`。
 
 示例：
 
 ```go
-if err := validx.RequireNonEmpty(name, "name"); err != nil {
+if err := validx.RequireNonEmpty("user.Create", "name", name); err != nil {
     return err
 }
 ```

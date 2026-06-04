@@ -36,6 +36,6 @@ FORBIDDEN_TERMS=("BTCUSDT" "ETHUSDT" "Kline" "OrderBook" "MarketData" "MacroData
 SEARCH_DIRS=()
 for dir in errx timex lifecycx retryx healthx obsx validx syncx versionx contracttest internal examples contracts; do [ -d "$dir" ] && SEARCH_DIRS+=("$dir"); done
 for term in "${FORBIDDEN_TERMS[@]}"; do
-  if [ "${#SEARCH_DIRS[@]}" -gt 0 ] && grep -R -n -F "$term" "${SEARCH_DIRS[@]}" --exclude-dir=.git; then echo "ERROR: forbidden business term found: $term"; exit 1; fi
+  if [ "${#SEARCH_DIRS[@]}" -gt 0 ] && grep -R -n -E "\b${term}\b" "${SEARCH_DIRS[@]}" --exclude-dir=.git; then echo "ERROR: forbidden business term found: $term"; exit 1; fi
 done
 echo "kernel/xlib-standard boundary check passed"

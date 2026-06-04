@@ -61,6 +61,7 @@ func errx.IsKind(err error, kind ErrorKind) bool
 func errx.NewError(kind ErrorKind, op string, message string) *Error
 func errx.WrapError(kind ErrorKind, op string, message string, cause error) *Error
 func healthx.Aggregate(name string, statuses ...HealthStatus) HealthStatus
+func healthx.AggregateWithClock(name string, clock timex.Clock, statuses ...HealthStatus) HealthStatus
 func healthx.NewHealthStatus(name string, status HealthStatusValue, message string, checkedAt time.Time, latencyMs int64) HealthStatus
 func lifecycx.NewManager(components ...Component) *Manager
 func obsx.NewSecretString(value string) SecretString
@@ -114,28 +115,30 @@ method shutdownx.Manager.Register(hook Hook)
 method shutdownx.Manager.Shutdown(ctx context.Context) error
 method syncx.SemaphoreLimiter.Acquire(ctx context.Context) error
 method syncx.SemaphoreLimiter.Release()
+method syncx.SemaphoreLimiter.TryRelease() bool
 method syncx.WorkerGroup.Go(fn func(context.Context) error)
+method syncx.WorkerGroup.TryGo(fn func(context.Context) error) bool
 method syncx.WorkerGroup.Wait() error
 method timex.FakeClock.Advance(d time.Duration)
 method timex.FakeClock.Now() time.Time
 method timex.FixedClock.Now() time.Time
 method timex.RealClock.Now() time.Time
 method versionx.Compatibility.CompatibleWith(info BuildInfo) bool
-type contextx.Key struct { name string }
-type errx.Error struct { Kind ErrorKind `json:"kind"` Code string `json:"code,omitempty"` Severity Severity `json:"severity,omitempty"` Op string `json:"op,omitempty"` Message string `json:"message"` Cause error `json:"-"` Retryable bool `json:"retryable"` }
+type contextx.Key struct{}
+type errx.Error struct { Kind ErrorKind `json:"kind"`; Code string `json:"code,omitempty"`; Severity Severity `json:"severity,omitempty"`; Op string `json:"op,omitempty"`; Message string `json:"message"`; Cause error `json:"-"`; Retryable bool `json:"retryable"` }
 type errx.ErrorKind string
 type errx.Severity string
 type healthx.HealthChecker interface { Name() string Check(ctx context.Context) HealthStatus }
-type healthx.HealthStatus struct { Name string `json:"name"` Status HealthStatusValue `json:"status"` Message string `json:"message"` CheckedAt time.Time `json:"checked_at"` LatencyMs int64 `json:"latency_ms"` Metadata map[string]string `json:"metadata"` }
+type healthx.HealthStatus struct { Name string `json:"name"`; Status HealthStatusValue `json:"status"`; Message string `json:"message"`; CheckedAt time.Time `json:"checked_at"`; LatencyMs int64 `json:"latency_ms"`; Metadata map[string]string `json:"metadata"` }
 type healthx.HealthStatusValue string
 type healthx.Probe interface{ HealthChecker }
 type lifecycx.Closer interface { Close(ctx context.Context) error }
 type lifecycx.Component interface { Name() string Starter Stopper }
 type lifecycx.Lifecycle interface { Starter Closer }
-type lifecycx.Manager struct{ components []Component }
+type lifecycx.Manager struct{}
 type lifecycx.Starter interface { Start(ctx context.Context) error }
 type lifecycx.Stopper interface { Stop(ctx context.Context) error }
-type obsx.Field struct { Key string Value any }
+type obsx.Field struct { Key string; Value any }
 type obsx.Logger interface { Debug(context.Context, string, ...Field) Info(context.Context, string, ...Field) Warn(context.Context, string, ...Field) Error(context.Context, string, ...Field) }
 type obsx.Metrics interface { Count(context.Context, string, int64, ...Field) Observe(context.Context, string, float64, ...Field) }
 type obsx.NoopLogger struct{}
@@ -146,17 +149,17 @@ type obsx.Sanitizer interface{ Sanitize() any }
 type obsx.SecretString string
 type obsx.Span interface { End() RecordError(error) SetFields(...Field) }
 type obsx.Tracer interface { Start(context.Context, string, ...Field) (context.Context, Span) }
-type retryx.RetryPolicy struct { MaxAttempts int BaseDelay time.Duration MaxDelay time.Duration }
+type retryx.RetryPolicy struct { MaxAttempts int; BaseDelay time.Duration; MaxDelay time.Duration }
 type shutdownx.Hook interface { Name() string Shutdown(ctx context.Context) error }
-type shutdownx.HookFunc struct { NameValue string Fn func(context.Context) error }
-type shutdownx.Manager struct { mu sync.Mutex hooks []Hook }
+type shutdownx.HookFunc struct { NameValue string; Fn func(context.Context) error }
+type shutdownx.Manager struct{}
 type syncx.Limiter interface { Acquire(context.Context) error Release() }
-type syncx.SemaphoreLimiter struct{ ch chan struct{} }
-type syncx.WorkerGroup struct { ctx context.Context cancel context.CancelFunc wg sync.WaitGroup mu sync.Mutex err error }
+type syncx.SemaphoreLimiter struct{}
+type syncx.WorkerGroup struct{}
 type timex.Clock interface{ Now() time.Time }
-type timex.FakeClock struct{ now time.Time }
-type timex.FixedClock struct{ now time.Time }
+type timex.FakeClock struct{}
+type timex.FixedClock struct{}
 type timex.RealClock struct{}
-type versionx.BuildInfo struct { Module string `json:"module"` Version string `json:"version"` Commit string `json:"commit"` BuildTime string `json:"build_time"` GoVersion string `json:"go_version"` }
-type versionx.Compatibility struct { Module string Major string }
+type versionx.BuildInfo struct { Module string `json:"module"`; Version string `json:"version"`; Commit string `json:"commit"`; BuildTime string `json:"build_time"`; GoVersion string `json:"go_version"` }
+type versionx.Compatibility struct { Module string; Major string }
 type versionx.VersionInfo BuildInfo

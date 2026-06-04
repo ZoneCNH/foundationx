@@ -12,6 +12,11 @@ env:
 jobs:
   ci:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    strategy:
+      matrix:
+        go-version: ["1.26.3", "1.23"]
 
     steps:
       - name: Checkout
@@ -20,7 +25,15 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v6
         with:
-          go-version: "1.26.3"
+          go-version: ${{ matrix.go-version }}
+
+      - name: Cache Go tools
+        uses: actions/cache@v4
+        with:
+          path: $(go env GOPATH)/bin
+          key: go-tools-${{ runner.os }}-${{ matrix.go-version }}-${{ hashFiles('.github/versions.env') }}
+          restore-keys: |
+            go-tools-${{ runner.os }}-${{ matrix.go-version }}-
 
       - name: Install quality tools
         run: |

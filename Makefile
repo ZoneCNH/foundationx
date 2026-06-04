@@ -36,7 +36,7 @@ test:
 .PHONY: coverage-threshold
 coverage-threshold:
 	@set -o pipefail; $(GOENV) $(GO) test -count=1 -coverprofile=coverage.out \
-		./contextx ./errx ./timex ./lifecycx ./retryx ./healthx ./obsx ./validx ./syncx ./versionx ./contracttest ./shutdownx 2>&1 | \
+		$$($(GOENV) $(GO) list ./... | grep -v /examples | grep -v /scripts | grep -v /internal/testutil) 2>&1 | \
 		tee /dev/stderr | \
 		awk '/coverage:/{ split($$2, a, "/"); pkg=a[length(a)]; sub(/.*coverage: /, ""); sub(/% of.*/, ""); if ($$1+0 < 80) { printf "FAIL: %s coverage %s%% < 80%%\n", pkg, $$1; fail=1 } } END { if (fail) exit 1 }'
 	@echo "All packages meet 80% coverage threshold."
@@ -122,6 +122,9 @@ release-evidence-check:
 .PHONY: release-clean-check
 release-clean-check:
 	./scripts/check_release_clean.sh
+
+.PHONY: all
+all: ci
 
 .PHONY: ci
 ci: fmt vet lint test race boundary security contracts api-check docs artifact-check dependency-check standard-drift-check examples

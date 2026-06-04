@@ -13,9 +13,9 @@ type mockTB struct {
 	failed bool
 }
 
-func (m *mockTB) Helper()                  {}
+func (m *mockTB) Helper()                   {}
 func (m *mockTB) Fatalf(_ string, _ ...any) { m.failed = true }
-func (m *mockTB) Failed() bool             { return m.failed }
+func (m *mockTB) Failed() bool              { return m.failed }
 
 func TestAssertHelpers(t *testing.T) {
 	e := errx.NewError(errx.ErrorKindValidation, "op", "msg")

@@ -2,4 +2,4 @@
 
 `versionx` 定义构建版本元数据和基础兼容性判断。
 
-Use `BuildInfo` or the `VersionInfo` alias to expose release metadata in L1 packages.
+Use `BuildInfo` or the `VersionInfo` alias to expose release metadata in L1 packages; `Compatibility` can match module and major version.

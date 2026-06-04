@@ -32,6 +32,9 @@ release/manifest/*.json
 release/manifest/*.json.sha256
 !release/manifest/template.json
 
+# Generated local scan reports
+reports/
+
 # env file
 .env
 

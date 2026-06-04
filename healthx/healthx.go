@@ -5,6 +5,8 @@ import (
 	"context"
 	"encoding/json"
 	"time"
+
+	"github.com/ZoneCNH/kernel/timex"
 )
 
 type HealthStatusValue string
@@ -27,6 +29,10 @@ type HealthChecker interface {
 	Name() string
 	Check(ctx context.Context) HealthStatus
 }
+
+// Probe is an alias for HealthChecker.
+//
+// Deprecated: Use HealthChecker directly.
 type Probe interface{ HealthChecker }
 
 func NewHealthStatus(name string, status HealthStatusValue, message string, checkedAt time.Time, latencyMs int64) HealthStatus {
@@ -49,8 +55,16 @@ func (s HealthStatus) MarshalJSON() ([]byte, error) {
 	return json.Marshal(alias(s))
 }
 func (s HealthStatus) IsHealthy() bool { return s.Status == HealthHealthy }
+
 func Aggregate(name string, statuses ...HealthStatus) HealthStatus {
-	now := time.Now().UTC()
+	return AggregateWithClock(name, timex.NewRealClock(), statuses...)
+}
+
+func AggregateWithClock(name string, clock timex.Clock, statuses ...HealthStatus) HealthStatus {
+	if clock == nil {
+		clock = timex.NewRealClock()
+	}
+	now := clock.Now().UTC()
 	out := NewHealthStatus(name, HealthHealthy, "ok", now, 0)
 	for _, s := range statuses {
 		if s.Status == HealthUnhealthy {

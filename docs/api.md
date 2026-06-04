@@ -14,7 +14,7 @@
 
 ## lifecycx 生命周期 API 说明
 
-`Starter`、`Closer`、`Lifecycle`、`Stopper` 描述组件边界；`Component` 和 `NamedComponent` 绑定名称；`Manager`、`NewManager`、`Manager.Components`、`Manager.Start`、`Manager.Stop` 管理顺序启动、逆序停止和启动失败回滚。
+`Starter`、`Closer`、`Lifecycle`、`Stopper` 描述组件边界；`Component` 绑定名称、启动和停止能力；`Manager`、`NewManager`、`Manager.Components`、`Manager.Start`、`Manager.Stop` 管理顺序启动、逆序停止和启动失败回滚。`Start` 失败时会回滚已启动组件并通过 `errors.Join` 返回启动错误与回滚停止错误；`Stop` 会尝试停止全部组件并聚合停止错误。
 
 ## retryx 重试 API 说明
 
@@ -25,22 +25,22 @@
 
 ## healthx 健康 API 说明
 
-`HealthStatusValue`、`HealthHealthy`、`HealthDegraded`、`HealthUnhealthy` 定义状态值；`HealthStatus` 是 JSON 契约；`HealthChecker` 是检查接口；`Probe` 是函数适配器。
-`NewHealthStatus` 创建状态；`HealthStatus.WithMetadata` 会复制已有 metadata 并返回更新后的状态，不会修改调用它的原始 `HealthStatus`；`HealthStatus.MarshalJSON` 保证 `metadata` 在 Go 值为 nil 时仍输出为空 JSON 对象；`HealthStatus.IsHealthy` 判断健康；`Aggregate` 合并多个状态。
+`HealthStatusValue`、`HealthHealthy`、`HealthDegraded`、`HealthUnhealthy` 定义状态值；`HealthStatus` 是 JSON 契约；`HealthChecker` 是检查接口；`Probe` 是 `HealthChecker` 的兼容别名接口。
+`NewHealthStatus` 创建状态；`HealthStatus.WithMetadata` 会复制已有 metadata 并返回更新后的状态，不会修改调用它的原始 `HealthStatus`；`HealthStatus.MarshalJSON` 保证 `metadata` 在 Go 值为 nil 时仍输出为空 JSON 对象；`HealthStatus.IsHealthy` 判断健康；`Aggregate` 使用真实时钟合并多个状态；`AggregateWithClock` 使用注入时钟合并状态，适合确定性测试。
 
 ## obsx 观测 API 说明
 
 `Field` 描述结构化字段；`Logger`、`Metrics`、`Tracer`、`Span` 是无供应商接口；`NoopLogger`、`NoopMetrics`、`NoopTracer`、`NoopSpan` 提供空实现。
-`NoopLogger.Debug`、`NoopLogger.Info`、`NoopLogger.Warn`、`NoopLogger.Error`、`NoopMetrics.Inc`、`NoopMetrics.Observe`、`NoopMetrics.Count`、`NoopTracer.Start`、`NoopSpan.End`、`NoopSpan.SetFields`、`NoopSpan.RecordError` 都不产生外部副作用。
+`NoopLogger.Debug`、`NoopLogger.Info`、`NoopLogger.Warn`、`NoopLogger.Error`、`NoopMetrics.Observe`、`NoopMetrics.Count`、`NoopTracer.Start`、`NoopSpan.End`、`NoopSpan.SetFields`、`NoopSpan.RecordError` 都不产生外部副作用。
 `Sanitizer` 描述脱敏行为；`NewSecretString` 创建敏感字符串；`SecretString`、`SecretString.String`、`SecretString.Sanitize`、`SecretString.MarshalJSON`、`SecretString.IsZero`、`SecretString.Reveal` 保护敏感值；非空 `SecretString` 在字符串格式化、`Sanitize` 和 JSON 输出中默认返回 `***`。
 
 ## validx 校验 API 说明
 
-`Precondition`、`Invariant`、`RequireNonEmpty` 用于表达入参和状态约束，失败时返回 `errx.ErrorKindValidation` 或 `errx.ErrorKindInternal`。
+`Precondition`、`Invariant`、`RequireNonEmpty` 用于表达入参和状态约束；`RequireNonEmpty` 由调用方传入 `op` 以保留操作上下文，失败时返回 `errx.ErrorKindValidation` 或 `errx.ErrorKindInternal`。
 
 ## syncx 并发 API 说明
 
-`Limiter` 抽象并发许可；`SemaphoreLimiter`、`NewSemaphoreLimiter`、`SemaphoreLimiter.Acquire`、`SemaphoreLimiter.Release` 提供标准库 semaphore；`WorkerGroup`、`NewWorkerGroup`、`WorkerGroup.Go`、`WorkerGroup.Wait` 汇总 worker 错误。
+`Limiter` 抽象并发许可；`SemaphoreLimiter`、`NewSemaphoreLimiter`、`SemaphoreLimiter.Acquire`、`SemaphoreLimiter.Release` 提供标准库 semaphore；`SemaphoreLimiter.TryRelease` 返回是否实际释放了许可，便于检测误用。`WorkerGroup`、`NewWorkerGroup`、`WorkerGroup.Go`、`WorkerGroup.TryGo`、`WorkerGroup.Wait` 管理 worker：首个错误取消兄弟 worker，`Wait` 后拒绝新增 worker，并通过 `errors.Join` 汇总所有返回错误。
 
 ## versionx 版本 API 说明
 

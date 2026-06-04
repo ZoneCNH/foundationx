@@ -52,12 +52,12 @@ type Compatibility struct {
 func (c Compatibility) CompatibleWith(info BuildInfo) bool
 ```
 
-`CompatibleWith` 检查 `BuildInfo` 的 `Module` 是否匹配；`Module` 为空时视为通配。
+`CompatibleWith` 检查 `BuildInfo` 的 `Module` 和主版本是否匹配；`Module` 为空时视为通配，`Major` 为空时不限制主版本。`Major` 接受 `"1"` 或 `"v1"`，会与 `BuildInfo.Version` 的主版本比较。
 
 示例：
 
 ```go
-compat := versionx.Compatibility{Module: "github.com/ZoneCNH/kernel"}
+compat := versionx.Compatibility{Module: "github.com/ZoneCNH/kernel", Major: "0"}
 
 if compat.CompatibleWith(info) {
     fmt.Println("compatible")

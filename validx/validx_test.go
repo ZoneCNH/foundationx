@@ -19,10 +19,10 @@ func TestInvariant(t *testing.T) {
 	}
 }
 func TestRequireNonEmpty(t *testing.T) {
-	if RequireNonEmpty("x", "name") != nil {
+	if RequireNonEmpty("op", "name", "x") != nil {
 		t.Fatal("nil")
 	}
-	if !errx.IsKind(RequireNonEmpty("", "name"), errx.ErrorKindValidation) {
+	if !errx.IsKind(RequireNonEmpty("op", "name", ""), errx.ErrorKindValidation) {
 		t.Fatal("kind")
 	}
 }

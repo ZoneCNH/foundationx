@@ -48,11 +48,11 @@ func (NoopTracer) Start(ctx context.Context, _ string, _ ...Field) (context.Cont
 
 type NoopSpan struct{}
 
-func (NoopSpan) End()               {}
-func (NoopSpan) RecordError(error)  {}
-func (NoopSpan) SetFields(...Field) {}
+func (NoopSpan) End()                {}
+func (NoopSpan) RecordError(_ error) {}
+func (NoopSpan) SetFields(...Field)  {}
 
-type Sanitizer interface{ Sanitize() any }
+type Sanitizer interface{ Sanitize() string }
 type SecretString string
 
 func NewSecretString(value string) SecretString { return SecretString(value) }
@@ -62,7 +62,7 @@ func (s SecretString) String() string {
 	}
 	return "***"
 }
-func (s SecretString) Sanitize() any                { return s.String() }
+func (s SecretString) Sanitize() string             { return s.String() }
 func (s SecretString) MarshalJSON() ([]byte, error) { return json.Marshal(s.String()) }
 func (s SecretString) Reveal() string               { return string(s) }
 func (s SecretString) IsZero() bool                 { return s == "" }

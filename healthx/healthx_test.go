@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"testing"
 	"time"
+
+	"github.com/ZoneCNH/kernel/timex"
 )
 
 type checker struct{ name string }
@@ -41,5 +43,21 @@ func TestAggregate(t *testing.T) {
 	got := Aggregate("all", a, b)
 	if got.Status != HealthDegraded || got.Metadata["b"] != "degraded" {
 		t.Fatal(got)
+	}
+}
+
+func TestAggregateWithClockUsesInjectedClock(t *testing.T) {
+	now := time.Date(2026, 6, 4, 10, 11, 12, 0, time.FixedZone("offset", 8*60*60))
+	got := AggregateWithClock("all", timex.NewFixedClock(now))
+	want := now.UTC()
+	if !got.CheckedAt.Equal(want) {
+		t.Fatalf("CheckedAt = %s, want %s", got.CheckedAt, want)
+	}
+}
+
+func TestAggregateWithClockUsesRealClockWhenNil(t *testing.T) {
+	got := AggregateWithClock("all", nil)
+	if got.CheckedAt.IsZero() {
+		t.Fatal("nil clock produced zero CheckedAt")
 	}
 }

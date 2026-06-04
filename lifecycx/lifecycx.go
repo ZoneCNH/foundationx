@@ -1,14 +1,25 @@
 // Package lifecycx 定义组件生命周期和顺序启动/逆序停止管理器。
 package lifecycx
 
-import "context"
+import (
+	"context"
+	"errors"
+)
 
 type Starter interface {
 	Start(ctx context.Context) error
 }
+
+// Closer implements ordered shutdown.
+//
+// Deprecated: Use Stopper with Component instead.
 type Closer interface {
 	Close(ctx context.Context) error
 }
+
+// Lifecycle combines Starter and Closer for components that need both.
+//
+// Deprecated: Use Component instead.
 type Lifecycle interface {
 	Starter
 	Closer
@@ -22,7 +33,10 @@ type Component interface {
 	Stopper
 }
 
-type Manager struct{ components []Component }
+type Manager struct {
+	components []Component
+	started    bool
+}
 
 func NewManager(components ...Component) *Manager {
 	return &Manager{components: append([]Component(nil), components...)}
@@ -32,20 +46,29 @@ func (m *Manager) Start(ctx context.Context) error {
 	started := make([]Component, 0, len(m.components))
 	for _, c := range m.components {
 		if err := c.Start(ctx); err != nil {
+			errs := []error{err}
 			for i := len(started) - 1; i >= 0; i-- {
-				_ = started[i].Stop(ctx)
+				if stopErr := started[i].Stop(ctx); stopErr != nil {
+					errs = append(errs, stopErr)
+				}
 			}
-			return err
+			return errors.Join(errs...)
 		}
 		started = append(started, c)
 	}
+	m.started = true
 	return nil
 }
 func (m *Manager) Stop(ctx context.Context) error {
+	if !m.started {
+		return nil
+	}
+	m.started = false
+	var errs []error
 	for i := len(m.components) - 1; i >= 0; i-- {
 		if err := m.components[i].Stop(ctx); err != nil {
-			return err
+			errs = append(errs, err)
 		}
 	}
-	return nil
+	return errors.Join(errs...)
 }

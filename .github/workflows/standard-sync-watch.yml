@@ -2,7 +2,7 @@ name: kernel-standard-sync-watch
 
 on:
   schedule:
-    - cron: "17 */4 * * *"
+    - cron: "17 3,15 * * *"
   workflow_dispatch:
 
 permissions:

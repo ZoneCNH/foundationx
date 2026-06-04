@@ -75,7 +75,7 @@ type SecretString string
 
 func NewSecretString(value string) SecretString
 func (s SecretString) String() string          // 返回 "***"
-func (s SecretString) Sanitize() any           // 返回 "***"
+func (s SecretString) Sanitize() string        // 返回 "***"
 func (s SecretString) MarshalJSON() ([]byte, error) // 序列化为 "***"
 func (s SecretString) Reveal() string           // 返回原始值
 func (s SecretString) IsZero() bool
@@ -92,7 +92,7 @@ fmt.Println(secret.Reveal())   // my-api-key
 ### Sanitizer — 脱敏接口
 
 ```go
-type Sanitizer interface{ Sanitize() any }
+type Sanitizer interface{ Sanitize() string }
 ```
 
 ## 非目标

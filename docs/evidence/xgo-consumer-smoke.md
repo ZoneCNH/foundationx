@@ -71,7 +71,7 @@ func TestKernelStablePackagesAreUsableByExternalModule(t *testing.T) {
 	}
 	limiter.Release()
 
-	if validx.RequireNonEmpty("xgo", "name") != nil {
+	if validx.RequireNonEmpty("xgo.smoke", "name", "xgo") != nil {
 		t.Fatal("validx non-empty validation not usable")
 	}
 

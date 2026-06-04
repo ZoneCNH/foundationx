@@ -10,7 +10,7 @@ kernel 是 Go L0 标准库扩展，面向跨项目复用的基础契约。本项
 
 标准文档参考 `docs/standard/` 目录，包含 x.go 基础库体系的权威标准（分层、模块边界、发布标准、harness gates 等 23 份文档），从 `xlib-standard` 同步而来。kernel 的 contracts 和 scripts 已在上游基础上进化为超集，保留 kernel 版本。
 
-`goalcli` 已纳入模板同步检测面，覆盖上游 `cmd/goalcli/`、`internal/goalcli/`、`internal/goalruntime/`、`docs/standard/goalcli-*`、`.agent/standard/goalcli-mapping.md` 和 `contracts/goalcli-report.schema.json`。当前策略是 runtime-dependency-required：`kernel` 需要通过 `github.com/ZoneCNH/xlib-standard` 的公开 Go package 使用 `goalcli` runtime 面；上游当前只有 `cmd/goalcli` 和 `internal/goalruntime`，尚不能被本模块直接 import，因此不得用未使用的 `go.mod require` 或复制 CLI 代码冒充完成。
+`goalcli` 属于上游 `xlib-standard` 的模板同步观察面，不是当前 `kernel` 的本地运行时依赖或发布 gate。只有当上游提供可被 `github.com/ZoneCNH/kernel` 合法导入的公开 Go package，并经过本仓库 L0 边界评审后，才可以把它纳入本地门禁；在此之前不得用未使用的 `go.mod require`、复制 `cmd/internal` 代码或文档声明冒充完成。
 
 ## 包清单说明
 

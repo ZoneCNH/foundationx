@@ -104,7 +104,7 @@ workspace_status() {
 
   local status
   status="$(git status --short --untracked-files=all -- .)"
-  status="$(printf '%s\n' "$status" | grep -vE '^.. release/(manifest/[^/]+\.json(\.sha256)?|dependency/(modules|updates)\.txt|standard-sync/latest\.md)$' || true)"
+  status="$(printf '%s\n' "$status" | grep -vE '^.. (release/(manifest/[^/]+\.json(\.sha256)?|dependency/(modules|updates)\.txt|standard-sync/latest\.md)|reports/secret-check\.(json|txt))$' || true)"
   if [ -n "$status" ]; then
     printf 'dirty'
     return

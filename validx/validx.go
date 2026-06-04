@@ -15,6 +15,6 @@ func Invariant(ok bool, op string, message string) error {
 	}
 	return errx.NewError(errx.ErrorKindInternal, op, message).WithSeverity(errx.SeverityError)
 }
-func RequireNonEmpty(value string, name string) error {
-	return Precondition(value != "", "validx.RequireNonEmpty", name+" must not be empty")
+func RequireNonEmpty(op string, name string, value string) error {
+	return Precondition(value != "", op, name+" must not be empty")
 }

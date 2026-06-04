@@ -64,7 +64,7 @@ workspace_status() {
 
   local status
   status="$(git status --short --untracked-files=all -- .)"
-  status="$(printf '%s\n' "$status" | grep -vE '^.. release/(manifest/[^/]+\.json(\.sha256)?|dependency/(modules|updates)\.txt|standard-sync/latest\.md)$' || true)"
+  status="$(printf '%s\n' "$status" | grep -vE '^.. (release/(manifest/[^/]+\.json(\.sha256)?|dependency/(modules|updates)\.txt|standard-sync/latest\.md)|reports/secret-check\.(json|txt))$' || true)"
   if [ -n "$status" ]; then
     printf 'dirty'
     return
@@ -74,6 +74,45 @@ workspace_status() {
 
 json_string() {
   python3 -c 'import json,sys; print(json.dumps(sys.argv[1]))' "$1"
+}
+
+run_gate() {
+  echo "release manifest gate: $*"
+  "$@"
+}
+
+require_go_format_clean() {
+  mapfile -t files < <(git ls-files '*.go')
+  if [ "${#files[@]}" -eq 0 ]; then
+    return 0
+  fi
+
+  local unformatted
+  unformatted="$(gofmt -l "${files[@]}")"
+  if [ -n "$unformatted" ]; then
+    echo "ERROR: gofmt required for:" >&2
+    printf '%s\n' "$unformatted" >&2
+    exit 1
+  fi
+}
+
+run_release_gates() {
+  run_gate ./scripts/ci/toolchain-check.sh
+  run_gate require_go_format_clean
+  run_gate env GOWORK=off go vet ./...
+  run_gate env GOWORK=off go test -count=1 ./...
+  run_gate env GOWORK=off go test -race -count=1 ./...
+  run_gate ./scripts/check_boundary.sh
+  run_gate ./scripts/check_secrets.sh
+  run_gate ./scripts/check_contracts.sh
+  run_gate ./scripts/ci/api-check.sh
+  run_gate ./scripts/ci/api-diff-check.sh
+  run_gate ./scripts/check_dependency_diff.sh
+  run_gate ./scripts/check_docs.sh
+  run_gate ./scripts/ci/artifact-check.sh
+  run_gate ./scripts/check_standard_drift.sh
+  run_gate ./scripts/ci/kernel-admission-check.sh
+  run_gate ./scripts/ci/primitive-check.sh
 }
 
 VERSION="$(resolve_version)"
@@ -95,8 +134,7 @@ if [ -n "${GITHUB_RUN_ID:-}" ] && [ -n "${GITHUB_SERVER_URL:-}" ] && [ -n "${GIT
   WORKFLOW_ARTIFACT_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
 fi
 
-./scripts/check_dependency_diff.sh
-./scripts/check_standard_drift.sh
+run_release_gates
 
 MODULE="$(GOWORK=off go list -m)"
 COMMIT="$(git rev-parse HEAD 2>/dev/null || printf 'unknown')"

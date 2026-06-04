@@ -79,6 +79,8 @@ func (e *Error) Unwrap() error {
 
 // WithRetryable sets whether the operation may be retried by an upper layer.
 // It mutates the receiver and returns the same pointer for construction-time annotation.
+//
+// Use only during Error construction; do not call on errors already shared or returned.
 func (e *Error) WithRetryable(retryable bool) *Error {
 	if e == nil {
 		return nil
@@ -88,6 +90,8 @@ func (e *Error) WithRetryable(retryable bool) *Error {
 }
 
 // WithCode sets a stable machine-readable code and returns the same pointer.
+//
+// Use only during Error construction; do not call on errors already shared or returned.
 func (e *Error) WithCode(code string) *Error {
 	if e == nil {
 		return nil
@@ -97,6 +101,8 @@ func (e *Error) WithCode(code string) *Error {
 }
 
 // WithSeverity sets operator-facing impact and returns the same pointer.
+//
+// Use only during Error construction; do not call on errors already shared or returned.
 func (e *Error) WithSeverity(severity Severity) *Error {
 	if e == nil {
 		return nil

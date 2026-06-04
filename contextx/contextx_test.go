@@ -35,13 +35,18 @@ func TestWithValueAndValue(t *testing.T) {
 
 func TestKeyIsolation(t *testing.T) {
 	k1 := NewKey[string]("a")
-	k2 := NewKey[string]("a") // same name, same type → same key (by design)
+	k2 := NewKey[string]("a") // same name, same type → different keys (sentinel-based)
 
 	ctx := context.Background()
 	ctx = WithValue(ctx, k1, "v1")
-	got, ok := Value(ctx, k2)
+	if _, ok := Value(ctx, k2); ok {
+		t.Fatal("same name+type should NOT collide (distinct sentinels)")
+	}
+
+	// verify k1 still accessible
+	got, ok := Value(ctx, k1)
 	if !ok || got != "v1" {
-		t.Fatal("same name+type should collide")
+		t.Fatalf("k1 value lost: got %q, %v", got, ok)
 	}
 
 	// different types don't collide

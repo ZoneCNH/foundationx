@@ -6,10 +6,18 @@ run:
 
 linters:
   enable:
+    - errcheck
     - govet
     - ineffassign
     - staticcheck
     - unused
+
+linters-settings:
+  staticcheck:
+    checks:
+      - all
+      - -ST1000
+      - -ST1003
 
 issues:
   max-issues-per-linter: 0
