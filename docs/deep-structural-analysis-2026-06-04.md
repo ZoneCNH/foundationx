@@ -17,10 +17,10 @@
 | 代码质量 | 8.5 | 9.8 | 25% | 2.450 | 6 MEDIUM + 15 LOW 全修复，26 项测试补充，平均覆盖率 93% |
 | 架构设计 | 9.0 | 9.5 | 20% | 1.900 | DAG 干净，L0 边界严密，Golden 文件按契约独立 |
 | 测试体系 | 8.0 | 9.5 | 20% | 1.900 | 27 包 race 全通过，testutil 失败路径+Severity+JSON 等测试补充 |
-| CI/CD 工程 | 7.0 | 9.7 | 15% | 1.455 | 缓存/矩阵/timeout/errcheck/SARIF/Release/artifact 命名全就位 |
+| CI/CD 工程 | 7.0 | 9.8 | 15% | 1.470 | 缓存/矩阵/timeout/errcheck/SARIF/Release/gosec/artifact 命名全就位 |
 | 文档完备度 | 9.5 | 9.8 | 10% | 0.980 | 60+ 文档，CHANGELOG 补全，并发语义/API 契约文档补充 |
-| 安全合规 | 8.0 | 9.0 | 10% | 0.900 | 词边界正则+errcheck+SARIF；allowlist 缺失为架构决策 |
-| **综合加权** | **8.3** | | **100%** | **9.6/10** | |
+| 安全合规 | 8.0 | 9.5 | 10% | 0.950 | 词边界正则+errcheck+SARIF+gosec+allowlist 机制 |
+| **综合加权** | **8.3** | | **100%** | **9.7/10** | |
 
 ---
 
@@ -140,7 +140,7 @@ testutil     █████████████████▉   ~90%
 
 ---
 
-## 六、CI/CD 工程分析（9.5/10）
+## 六、CI/CD 工程分析（9.8/10）
 
 ### 6.1 修复验证矩阵
 
@@ -150,9 +150,9 @@ testutil     █████████████████▉   ~90%
 | 工具缓存 | `actions/cache@v4` ✅ | ✅ | ✅ | — |
 | Go 版本矩阵 | `["1.26.3","1.23"]` ✅ | 单版本 | — | — |
 | errcheck | `.golangci.yml` ✅ | ✅ | ✅ | — |
+| gosec | — | — | `gosec@v2.21.4` ✅ | — |
 | SARIF 上传 | — | — | `codeql-action@v3` ✅ | — |
 | GitHub Release | — | `softprops/action-gh-release@v2` ✅ | — | — |
-| 工具精简 | — | — | 仅 3 工具 ✅ | — |
 | cron 频率 | — | — | — | 每日 2 次 ✅ |
 
 ### 6.2 剩余可改进点（非扣分项）
@@ -179,20 +179,21 @@ testutil     █████████████████▉   ~90%
 
 ---
 
-## 八、安全合规分析（9.0/10）
+## 八、安全合规分析（9.5/10）
 
 | 措施 | 状态 |
 |------|------|
 | `check_secrets.sh` 综合密钥扫描 | ✅ |
-| `check_boundary.sh` 词边界正则 (`\b`) | ✅ 修复 |
+| `check_boundary.sh` 词边界正则 (`\b`) + allowlist | ✅ |
 | `govulncheck` 依赖漏洞扫描 | ✅ |
-| SARIF 上传至 GitHub Security | ✅ 修复 |
-| errcheck linter | ✅ 修复 |
-| `secret-allowlist.yaml` | ⚠️ 文件不存在（LOW） |
+| `gosec` 静态安全分析 | ✅ 新增 |
+| SARIF 上传至 GitHub Security | ✅ |
+| errcheck linter | ✅ |
+| `check_boundary_allowlist.txt` | ✅ 已创建并集成 |
 
 ---
 
-## 九、修复清单（28 项全部完成）
+## 九、修复清单（31 项全部完成）
 
 ### 第一轮修复（21 项 — MEDIUM + 部分 LOW）
 
@@ -232,6 +233,14 @@ testutil     █████████████████▉   ~90%
 | 27 | 并发语义 + API 契约文档 | lifecycx/syncx/healthx/obsx doc comments |
 | 28 | CI artifact name 矩阵冲突 | `kernel-release-manifest-${{ matrix.go-version }}` |
 
+### 第三轮修复（3 项 — 原非扣分项）
+
+| # | 修复项 | 验证证据 |
+|---|--------|----------|
+| 29 | gosec 集成 | Makefile `security`/`security-strict` targets + `security.yml` 安装步骤 |
+| 30 | allowlist 文件 + 边界脚本集成 | `check_boundary_allowlist.txt` 创建 + `check_boundary.sh` 读取逻辑 |
+| 31 | fuzzing 测试 | `FuzzErrorRoundtrip` + `FuzzKeyValueRoundtrip` 各 5s PASS |
+
 ---
 
 ## 十、结论
@@ -239,20 +248,16 @@ testutil     █████████████████▉   ~90%
 kernel 是一个**工程成熟度极高的 Go L0 基础库**。
 
 **核心优势**：
-- 零外部依赖，L0 边界三层防御严密
+- 零外部依赖，L0 边界三层防御严密 + allowlist 机制
 - 依赖图干净无环，8/12 包零内部依赖
 - 平均测试覆盖率 93%，27 包全部通过 race 检测
-- CI 现代化完备（缓存、矩阵、timeout、errcheck、SARIF、GitHub Release）
+- CI 现代化完备（缓存、矩阵、timeout、errcheck、SARIF、Release、gosec）
 - 文档体系罕见完整（ADR + 治理 + 标准同步 + 包级文档 + 示例 + 并发语义）
+- 安全扫描三层：govulncheck + gosec + check_secrets
 
-**已修复问题**：6 个 MEDIUM + 22 个 LOW，共 28 项全部完成
+**已修复问题**：6 个 MEDIUM + 25 个 LOW，共 31 项全部完成
 
-**剩余可选优化**（非扣分项，需后续决策）：
-- 启用 `gosec` linter（安全扫描增强）
-- `check_boundary_allowlist.txt` 添加包白名单
-- 添加 fuzzing 测试
+**总评：9.7/10 — 已达到生产级 Go 基础库工程标准。**
 
-**总评：9.6/10 — 已达到生产级 Go 基础库工程标准。**
-
-> 本报告基于 `go test -race ./...`（27 包 PASS）、`go vet`（零告警）、逐包覆盖率实测和 CI 配置逐项审查。
+> 本报告基于 `go test -race ./...`（27 包 PASS）、`go vet`（零告警）、fuzz 测试（errx + contextx PASS）、逐包覆盖率实测和 CI 配置逐项审查。
 > 评分不含不可本地验证的外部事实（下游采用、上游同步落地状态）。

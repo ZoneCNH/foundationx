@@ -111,3 +111,48 @@ func TestErrorStringCodeWithoutOp(t *testing.T) {
 		t.Fatalf("unexpected format: %s", s2)
 	}
 }
+
+func FuzzErrorRoundtrip(f *testing.F) {
+	f.Add("timeout", "op", "msg", "code", true)
+	f.Add("", "", "", "", false)
+	f.Add("config", "Svc.Call", "bad config", "C1", true)
+	f.Add("validation", "", "invalid input", "", false)
+
+	f.Fuzz(func(t *testing.T, kind, op, msg, code string, retryable bool) {
+		e := NewError(ErrorKind(kind), op, msg).WithCode(code).WithRetryable(retryable)
+
+		// Error() must never panic
+		_ = e.Error()
+
+		// JSON roundtrip (only valid for UTF-8 clean strings — JSON escapes non-UTF8)
+		if !isASCII(kind) || !isASCII(op) || !isASCII(msg) {
+			return
+		}
+		data, err := json.Marshal(e)
+		if err != nil {
+			t.Fatalf("marshal: %v", err)
+		}
+		var roundtrip Error
+		if err := json.Unmarshal(data, &roundtrip); err != nil {
+			t.Fatalf("unmarshal: %v", err)
+		}
+		if roundtrip.Kind != e.Kind {
+			t.Fatalf("kind mismatch: %q vs %q", roundtrip.Kind, e.Kind)
+		}
+		if roundtrip.Op != e.Op {
+			t.Fatalf("op mismatch: %q vs %q", roundtrip.Op, e.Op)
+		}
+		if roundtrip.Message != e.Message {
+			t.Fatalf("message mismatch: %q vs %q", roundtrip.Message, e.Message)
+		}
+	})
+}
+
+func isASCII(s string) bool {
+	for _, r := range s {
+		if r > 127 {
+			return false
+		}
+	}
+	return true
+}

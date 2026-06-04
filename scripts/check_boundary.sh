@@ -9,9 +9,32 @@ echo "checking kernel/xlib-standard boundary..."
 MODULE_PATH="$(GOWORK=off go list -m)"
 NON_STANDARD_DEPS="$(GOWORK=off go list -deps -f '{{if not .Standard}}{{.ImportPath}}{{end}}' ./... | sort -u)"
 
+# Load allowlist (skip comments and empty lines)
+ALLOWLIST_FILE="$ROOT/scripts/check_boundary_allowlist.txt"
+ALLOWLIST=()
+if [ -f "$ALLOWLIST_FILE" ]; then
+  while IFS= read -r line; do
+    line="${line%%#*}"        # strip inline comments
+    line="${line// /}"        # strip spaces
+    [ -n "$line" ] && ALLOWLIST+=("$line")
+  done < "$ALLOWLIST_FILE"
+fi
+
+is_allowed() {
+  local dep="$1"
+  for allowed in "${ALLOWLIST[@]+"${ALLOWLIST[@]}"}"; do
+    [ "$dep" = "$allowed" ] || [[ "$dep" == "$allowed/"* ]] && return 0
+  done
+  return 1
+}
+
 while IFS= read -r dep; do
   [ -n "$dep" ] || continue
   if [[ "$dep" != "$MODULE_PATH" && "$dep" != "$MODULE_PATH/"* ]]; then
+    if is_allowed "$dep"; then
+      echo "WARN: allowing listed dependency: $dep"
+      continue
+    fi
     echo "ERROR: non-standard dependency found: $dep"
     exit 1
   fi

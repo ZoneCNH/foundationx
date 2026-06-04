@@ -1,0 +1,12 @@
+# Boundary check allowlist
+#
+# Packages listed here are exempt from the L0 external dependency check.
+# Format: one Go import path per line. Lines starting with # are comments.
+# Empty lines are ignored.
+#
+# Usage: scripts/check_boundary.sh reads this file and skips listed packages.
+#
+# IMPORTANT: Only add packages here after architectural review.
+# This file should remain empty for a pure L0 module. Exceptions require
+# documented justification in docs/adr/ explaining why the dependency is
+# acceptable despite being external.

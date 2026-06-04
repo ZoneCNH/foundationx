@@ -128,3 +128,27 @@ func TestCancelCause(t *testing.T) {
 		t.Fatalf("got %v, want %v", got, want)
 	}
 }
+
+func FuzzKeyValueRoundtrip(f *testing.F) {
+	f.Add("request-id", "abc-123")
+	f.Add("", "")
+	f.Add("user-name", "alice")
+
+	f.Fuzz(func(t *testing.T, name, value string) {
+		k := NewKey[string](name)
+		ctx := WithValue(context.Background(), k, value)
+		got, ok := Value(ctx, k)
+		if !ok {
+			t.Fatal("key not found after set")
+		}
+		if got != value {
+			t.Fatalf("got %q, want %q", got, value)
+		}
+
+		// Different key with same name must not collide
+		k2 := NewKey[string](name)
+		if _, ok := Value(ctx, k2); ok {
+			t.Fatal("distinct key with same name should not match")
+		}
+	})
+}

@@ -61,11 +61,22 @@ security:
 	fi
 	$(GOENV) govulncheck ./...
 	./scripts/check_secrets.sh
+	@if command -v gosec >/dev/null 2>&1; then \
+		echo "running gosec..."; \
+		$(GOENV) gosec -quiet ./...; \
+	else \
+		echo "gosec not installed; skipping (install: go install github.com/securego/gosec/v2/cmd/gosec@latest)"; \
+	fi
 
 .PHONY: security-strict
 security-strict:
 	$(GOENV) govulncheck ./...
 	./scripts/check_secrets.sh
+	@if ! command -v gosec >/dev/null 2>&1; then \
+		echo "gosec not installed; install the version pinned in .github/versions.env"; \
+		exit 1; \
+	fi
+	$(GOENV) gosec -quiet ./...
 
 .PHONY: contracts
 contracts:
