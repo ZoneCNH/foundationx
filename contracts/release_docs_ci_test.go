@@ -259,7 +259,7 @@ func TestReleaseEvidenceScriptsPreserveFreshnessChecks(t *testing.T) {
 
 	for _, want := range []string{
 		"git status --short --untracked-files=all -- .",
-		"grep -vE '^.. release/(manifest/[^/]+\\.json|dependency/(modules|updates)\\.txt|standard-sync/latest\\.md)$'",
+		"grep -vE '^.. release/(manifest/[^/]+\\.json(\\.sha256)?|dependency/(modules|updates)\\.txt|standard-sync/latest\\.md)$'",
 		"release workspace is dirty",
 	} {
 		assertContains(t, clean, want)
