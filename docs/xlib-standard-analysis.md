@@ -62,7 +62,7 @@ v0.1.0 将旧单包模板收敛为 kernel/xlib-standard 多包内核；保留 L0
 
 ## Live main 复核说明
 
-2026-06-04 第二次同步后，baseline 已更新至 `253e9e7e926e7bb8651a6c12b8fedda54fd071b3`，与 upstream live main 一致。`.standard-sync.yaml` 的 `live_review` 记录为 `synced-to-live-main`。
+2026-06-05 第三次同步后，baseline 已更新至 `aa676a8eba216bca212f5ce6073c7dda9cd7b077`，与 upstream live main 一致。`.standard-sync.yaml` 的 `live_review` 记录为 `synced-to-live-main`。
 
 ## 定时检测说明
 
