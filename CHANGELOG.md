@@ -1,5 +1,23 @@
 # 更新日志
 
+## v0.7.0 说明
+
+- 深度结构分析修复闭环（31 项），评分从 8.3 提升至 9.7/10。
+- 新增 `gosec` 静态安全分析集成（Makefile + security.yml + versions.env）。
+- 新增 `check_boundary_allowlist.txt` 边界白名单机制，`check_boundary.sh` 支持读取白名单。
+- 新增 Go 原生 fuzzing 测试：`FuzzErrorRoundtrip`（errx）、`FuzzKeyValueRoundtrip`（contextx）。
+- 代码质量：syncx `errors.Join` 聚合、lifecycx 幂等 Stop、healthx 时钟注入、contextx `*byte` sentinel 隔离。
+- 测试补充：testutil 失败路径、validx Severity 断言、errx code-without-op、healthx JSON metadata、obsx Reveal 空值。
+- 文档：并发语义注释、API 契约文档、分析报告更新至 9.7/10。
+
+## v0.6.0 说明
+
+- 结构收敛与发布门禁完整性（structural convergence）。
+- CI/CD 增强：actions/cache@v4 缓存、Go 版本矩阵、timeout-minutes、errcheck linter、SARIF 上传、GitHub Release。
+- Makefile 动态包发现（`coverage-threshold` 使用 `go list ./...`）。
+- CHANGELOG 补全至 v0.5.0。
+- contracttest 四位一体验证（schema + golden + API snapshot + 消费者兼容性）。
+
 ## v0.5.0 说明
 
 - 新增 `contextx` L0 原语：类型安全上下文键、deadline 查询、cancel cause 封装。
