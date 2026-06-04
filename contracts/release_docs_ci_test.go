@@ -223,7 +223,9 @@ func TestReleaseEvidenceScriptsPreserveFreshnessChecks(t *testing.T) {
 	}
 
 	for _, want := range []string{
-		"cmp -s \"$MANIFEST\" \"$LATEST\"",
+		"latest release manifest missing or empty",
+		"schema_version",
+		"kernel.release-manifest.v1",
 		"manifest commit does not match current HEAD",
 		"manifest tree_sha does not match current HEAD tree",
 		"manifest workspace_status does not match current workspace",
