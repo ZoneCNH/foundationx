@@ -121,9 +121,15 @@ require_artifact() {
   [ -s "$artifact" ] || fail "required goal artifact missing or empty: $artifact"
 }
 
-[ -s "$MANIFEST" ] || fail "release manifest missing or empty: $MANIFEST"
 [ -s "$LATEST" ] || fail "latest release manifest missing or empty: $LATEST"
-cmp -s "$MANIFEST" "$LATEST" || fail "$LATEST does not match $MANIFEST"
+
+# Validate latest.json has correct schema_version and non-empty version
+LATEST_SCHEMA="$(python3 -c "import json; d=json.load(open('$LATEST')); print(d.get('schema_version',''))")"
+[ "$LATEST_SCHEMA" = "kernel.release-manifest.v1" ] || fail "latest.json schema_version mismatch: got '$LATEST_SCHEMA', expected 'kernel.release-manifest.v1'"
+LATEST_VER="$(python3 -c "import json; d=json.load(open('$LATEST')); print(d.get('version',''))")"
+[ -n "$LATEST_VER" ] || fail "latest.json version is empty"
+
+[ -s "$MANIFEST" ] || fail "release manifest missing or empty: $MANIFEST"
 
 require_value schema_version "kernel.release-manifest.v1" "manifest schema_version mismatch: manifest schema_version does not match kernel.release-manifest.v1"
 

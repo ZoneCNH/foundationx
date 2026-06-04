@@ -33,6 +33,14 @@ lint-strict:
 test:
 	$(GOENV) $(GO) test -count=1 ./...
 
+.PHONY: coverage-threshold
+coverage-threshold:
+	@set -o pipefail; $(GOENV) $(GO) test -count=1 -coverprofile=coverage.out \
+		./contextx ./errx ./timex ./lifecycx ./retryx ./healthx ./obsx ./validx ./syncx ./versionx ./contracttest ./shutdownx 2>&1 | \
+		tee /dev/stderr | \
+		awk '/coverage:/{ split($$2, a, "/"); pkg=a[length(a)]; sub(/.*coverage: /, ""); sub(/% of.*/, ""); if ($$1+0 < 80) { printf "FAIL: %s coverage %s%% < 80%%\n", pkg, $$1; fail=1 } } END { if (fail) exit 1 }'
+	@echo "All packages meet 80% coverage threshold."
+
 .PHONY: race
 race:
 	$(GOENV) $(GO) test -race -count=1 ./...
