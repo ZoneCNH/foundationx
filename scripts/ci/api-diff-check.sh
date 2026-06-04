@@ -27,7 +27,7 @@ import (
 	"strings"
 )
 
-var packages = []string{"contracttest", "errx", "healthx", "lifecycx", "obsx", "retryx", "syncx", "timex", "validx", "versionx"}
+var packages = []string{"contextx", "contracttest", "errx", "healthx", "lifecycx", "obsx", "retryx", "shutdownx", "syncx", "timex", "validx", "versionx"}
 
 func main() {
 	root := os.Getenv("KERNEL_ROOT")
