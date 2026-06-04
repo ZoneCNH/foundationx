@@ -529,7 +529,8 @@ func TestCIWorkflowsPreserveReleaseEvidenceGates(t *testing.T) {
 		"run: make ci",
 		"run: make evidence",
 		"run: make release-evidence-check",
-		"path: release/manifest/*.json",
+		"release/manifest/*.json",
+		"release/manifest/*.json.sha256",
 	} {
 		assertContains(t, ci, want)
 	}
@@ -537,7 +538,8 @@ func TestCIWorkflowsPreserveReleaseEvidenceGates(t *testing.T) {
 	assertContains(t, release, "run: make release-final-check")
 	assertContains(t, ci, "source .github/versions.env")
 	assertContains(t, release, "source .github/versions.env")
-	assertContains(t, release, "path: release/manifest/*.json")
+	assertContains(t, release, "release/manifest/*.json")
+	assertContains(t, release, "release/manifest/*.json.sha256")
 }
 
 func TestCIToolsArePinnedAndRequiredByLocalGates(t *testing.T) {
