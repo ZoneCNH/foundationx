@@ -1,5 +1,13 @@
 # 更新日志
 
+## v0.7.2 说明
+
+- 全部 13 个包测试覆盖率达 100%，补齐 healthx、retryx、syncx、lifecycx、timex、validx、versionx、contracttest、internal/testutil 测试。
+- retryx 代码质量：魔法数字替换为 `maxDuration` 命名常量，`ShouldRetry` 补文档注释并展开为多行。
+- 同步 xlib-standard 上游至 `aa676a8e`（7 个标准文档更新 + 新增 `docker-toolchain-standard.md`）。
+- `check_docs.sh` 新增 4 个标准文档检查项。
+- 新增项目深度分析报告 `docs/review/PROJECT_DEEP_ANALYSIS_20260605.md`。
+
 ## v0.7.1 说明
 
 - README 版本引用对齐至 v0.7.0。
