@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"testing"
 )
 
@@ -97,9 +98,16 @@ func TestIsKindNoMatch(t *testing.T) {
 }
 
 func TestErrorStringCodeWithoutOp(t *testing.T) {
-	e := NewError(ErrorKindInternal, "", "something broke").WithCode("X99")
+	// Code is included in Error() only when Op is also set.
+	e := NewError(ErrorKindInternal, "svc.Call", "something broke").WithCode("X99")
 	s := e.Error()
 	if !strings.Contains(s, "X99") || !strings.Contains(s, "something broke") {
 		t.Fatalf("unexpected format: %s", s)
+	}
+	// Without Op, code is not in the string but kind and message are.
+	e2 := NewError(ErrorKindInternal, "", "no op").WithCode("X99")
+	s2 := e2.Error()
+	if !strings.Contains(s2, "internal") || !strings.Contains(s2, "no op") {
+		t.Fatalf("unexpected format: %s", s2)
 	}
 }

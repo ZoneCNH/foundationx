@@ -12,6 +12,11 @@ func TestPrecondition(t *testing.T) {
 	if !errx.IsKind(Precondition(false, "op", "msg"), errx.ErrorKindValidation) {
 		t.Fatal("kind")
 	}
+	// Verify Precondition produces SeverityWarning
+	err := Precondition(false, "op", "msg")
+	if e, ok := errx.AsError(err); !ok || e.Severity != errx.SeverityWarning {
+		t.Fatalf("expected SeverityWarning, got %v", err)
+	}
 }
 func TestInvariant(t *testing.T) {
 	if !errx.IsKind(Invariant(false, "op", "msg"), errx.ErrorKindInternal) {
@@ -19,7 +24,7 @@ func TestInvariant(t *testing.T) {
 	}
 	// Verify Invariant produces SeverityError
 	err := Invariant(false, "op", "msg")
-	if e := errx.AsError(err); e == nil || e.Severity != errx.SeverityError {
+	if e, ok := errx.AsError(err); !ok || e.Severity != errx.SeverityError {
 		t.Fatalf("expected SeverityError, got %v", err)
 	}
 }

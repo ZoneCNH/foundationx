@@ -57,6 +57,7 @@ func NewWorkerGroup(ctx context.Context) *WorkerGroup {
 	cctx, cancel := context.WithCancel(ctx)
 	return &WorkerGroup{ctx: cctx, cancel: cancel}
 }
+
 // Go 启动一个 worker goroutine。如果 WorkerGroup 已被 Wait 关闭，调用被静默忽略。
 // 如需检测关闭状态，使用 TryGo。
 func (g *WorkerGroup) Go(fn func(context.Context) error) {
