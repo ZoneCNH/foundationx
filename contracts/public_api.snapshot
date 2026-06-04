@@ -76,7 +76,7 @@ func timex.NewFixedClock(now time.Time) FixedClock
 func timex.NewRealClock() RealClock
 func validx.Invariant(ok bool, op string, message string) error
 func validx.Precondition(ok bool, op string, message string) error
-func validx.RequireNonEmpty(value string, name string) error
+func validx.RequireNonEmpty(op string, name string, value string) error
 func versionx.NewBuildInfo(module string, version string, commit string, buildTime string, goVersion string) BuildInfo
 func versionx.NewVersionInfo(module string, version string, commit string, buildTime string, goVersion string) VersionInfo
 method errx.Error.Error() string
@@ -97,13 +97,13 @@ method obsx.NoopLogger.Warn(context.Context, string, ...Field)
 method obsx.NoopMetrics.Count(context.Context, string, int64, ...Field)
 method obsx.NoopMetrics.Observe(context.Context, string, float64, ...Field)
 method obsx.NoopSpan.End()
-method obsx.NoopSpan.RecordError(error)
+method obsx.NoopSpan.RecordError(_ error)
 method obsx.NoopSpan.SetFields(...Field)
 method obsx.NoopTracer.Start(ctx context.Context, _ string, _ ...Field) (context.Context, Span)
 method obsx.SecretString.IsZero() bool
 method obsx.SecretString.MarshalJSON() ([]byte, error)
 method obsx.SecretString.Reveal() string
-method obsx.SecretString.Sanitize() any
+method obsx.SecretString.Sanitize() string
 method obsx.SecretString.String() string
 method retryx.RetryPolicy.Delay(attempt int) time.Duration
 method retryx.RetryPolicy.DelayWithJitter(attempt int, ratio float64, fraction float64) time.Duration
@@ -145,7 +145,7 @@ type obsx.NoopLogger struct{}
 type obsx.NoopMetrics struct{}
 type obsx.NoopSpan struct{}
 type obsx.NoopTracer struct{}
-type obsx.Sanitizer interface{ Sanitize() any }
+type obsx.Sanitizer interface{ Sanitize() string }
 type obsx.SecretString string
 type obsx.Span interface { End() RecordError(error) SetFields(...Field) }
 type obsx.Tracer interface { Start(context.Context, string, ...Field) (context.Context, Span) }
