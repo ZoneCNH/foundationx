@@ -135,10 +135,9 @@ func TestXlibStandardAnalysisPinsReviewedGovernanceBaseline(t *testing.T) {
 	analysis := readRepoText(t, filepath.Join("docs", "xlib-standard-analysis.md"))
 
 	for _, want := range []string{
-		"041a62f21428111a4b46235a7910edbdf4e07d61",
-		"a7c8511b7b400d0f9effed5d50ac46e5faf185c2",
-		"STANDARD_DRIFT_LIVE=1 ./scripts/check_standard_drift.sh",
-		"本次不安全静默更新 baseline",
+		"ba8880aeb6b70825bd86e2b6294b8fb6f614eeaf",
+		"2026-06-04",
+		"docs/standard/",
 		"`contracts/` schema contract tests",
 		"`scripts/check_boundary.sh`",
 		"`scripts/generate_manifest.sh`",
@@ -154,12 +153,12 @@ func TestXlibStandardAnalysisPinsReviewedGovernanceBaseline(t *testing.T) {
 func TestStandardDriftConfigAndScriptExposeOptionalLiveGate(t *testing.T) {
 	config := readRepoText(t, ".standard-sync.yaml")
 	check := readRepoText(t, filepath.Join("scripts", "check_standard_drift.sh"))
-	releaseEvidence := readRepoText(t, filepath.Join("docs", "evidence", "release-v0.4.0.md"))
+	releaseEvidence := readRepoText(t, filepath.Join("docs", "evidence", "release-v0.5.0.md"))
 
 	for _, want := range []string{
 		"live_network_mode: optional-fail-on-drift",
-		"live_commit: \"a7c8511b7b400d0f9effed5d50ac46e5faf185c2\"",
-		"decision: \"do-not-update-baseline-unreviewed\"",
+		"live_commit: \"ba8880aeb6b70825bd86e2b6294b8fb6f614eeaf\"",
+		"decision: \"baseline-updated-docs-standard-synced\"",
 	} {
 		assertContains(t, config, want)
 	}
@@ -174,9 +173,9 @@ func TestStandardDriftConfigAndScriptExposeOptionalLiveGate(t *testing.T) {
 	}
 
 	for _, want := range []string{
-		"Standard drift optional live gate",
-		"a7c8511b7b400d0f9effed5d50ac46e5faf185c2",
-		"baseline 不做未审更新",
+		"v0.5.0",
+		"Standard drift local gate",
+		"primitive-check",
 	} {
 		assertContains(t, releaseEvidence, want)
 	}
