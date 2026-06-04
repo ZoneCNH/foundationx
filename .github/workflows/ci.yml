@@ -63,7 +63,7 @@ jobs:
       - name: Upload release manifest
         uses: actions/upload-artifact@v7
         with:
-          name: kernel-release-manifest
+          name: kernel-release-manifest-${{ matrix.go-version }}
           path: |
             release/manifest/*.json
             release/manifest/*.json.sha256
