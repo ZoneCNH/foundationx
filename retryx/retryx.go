@@ -2,9 +2,12 @@
 package retryx
 
 import (
-	"github.com/ZoneCNH/kernel/errx"
 	"time"
+
+	"github.com/ZoneCNH/kernel/errx"
 )
+
+const maxDuration = time.Duration(1<<63 - 1)
 
 type RetryPolicy struct {
 	MaxAttempts int
@@ -36,8 +39,8 @@ func (p RetryPolicy) Delay(attempt int) time.Duration {
 	}
 	delay := p.BaseDelay
 	for i := 1; i < attempt; i++ {
-		if delay > time.Duration(1<<63-1)/2 {
-			delay = time.Duration(1<<63 - 1)
+		if delay > maxDuration/2 {
+			delay = maxDuration
 			break
 		}
 		delay *= 2
@@ -68,4 +71,9 @@ func (p RetryPolicy) DelayWithJitter(attempt int, ratio float64, fraction float6
 	}
 	return got
 }
-func ShouldRetry(err error) bool { e, ok := errx.AsError(err); return ok && e.Retryable }
+
+// ShouldRetry reports whether err is a kernel error marked retryable.
+func ShouldRetry(err error) bool {
+	e, ok := errx.AsError(err)
+	return ok && e.Retryable
+}

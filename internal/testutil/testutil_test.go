@@ -2,10 +2,26 @@ package testutil
 
 import "testing"
 
+type fakeTB struct {
+	testing.TB
+
+	failed bool
+}
+
+func (f *fakeTB) Helper() {}
+
+func (f *fakeTB) Fatalf(string, ...any) {
+	f.failed = true
+}
+
 func TestRequireEqualFailsOnMismatch(t *testing.T) {
-	// Verify that RequireEqual works on happy path; mismatch behavior is
-	// covered by the type signature (requires *testing.T which calls Fatal).
-	RequireEqual(t, 42, 42)
+	tb := &fakeTB{}
+
+	RequireEqual(tb, 42, 7)
+
+	if !tb.failed {
+		t.Fatal("RequireEqual did not fail on mismatch")
+	}
 }
 
 func TestRequireEqualPass(t *testing.T) {

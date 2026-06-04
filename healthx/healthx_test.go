@@ -22,6 +22,19 @@ func TestNewHealthStatusAndMetadata(t *testing.T) {
 		t.Fatal(s, s2)
 	}
 }
+
+func TestHealthStatusWithMetadataCopiesExistingEntries(t *testing.T) {
+	s := NewHealthStatus("api", HealthHealthy, "ok", time.Unix(0, 0).UTC(), 7).
+		WithMetadata("region", "us-east-1")
+	s2 := s.WithMetadata("zone", "a")
+	if s2.Metadata["region"] != "us-east-1" || s2.Metadata["zone"] != "a" {
+		t.Fatal(s2.Metadata)
+	}
+	if _, ok := s.Metadata["zone"]; ok {
+		t.Fatal("metadata update mutated original status")
+	}
+}
+
 func TestHealthStatusJSONNilMetadata(t *testing.T) {
 	data, err := json.Marshal(HealthStatus{Name: "api", Status: HealthHealthy})
 	if err != nil {
@@ -42,6 +55,16 @@ func TestAggregate(t *testing.T) {
 	b := NewHealthStatus("b", HealthDegraded, "", time.Now(), 0)
 	got := Aggregate("all", a, b)
 	if got.Status != HealthDegraded || got.Metadata["b"] != "degraded" {
+		t.Fatal(got)
+	}
+}
+
+func TestAggregateWithClockUnhealthyDominates(t *testing.T) {
+	now := time.Unix(10, 0).UTC()
+	a := NewHealthStatus("a", HealthHealthy, "", now, 0)
+	b := NewHealthStatus("b", HealthUnhealthy, "down", now, 0)
+	got := AggregateWithClock("all", timex.NewFixedClock(now), a, b)
+	if got.Status != HealthUnhealthy || got.Metadata["a"] != "healthy" || got.Metadata["b"] != "unhealthy" {
 		t.Fatal(got)
 	}
 }

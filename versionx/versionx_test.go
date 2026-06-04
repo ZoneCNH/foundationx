@@ -41,3 +41,16 @@ func TestCompatibilityModulePathMajor(t *testing.T) {
 		t.Fatal("want version-derived major 2 compatible")
 	}
 }
+
+func TestMajorFromModulePathRejectsInvalidSuffix(t *testing.T) {
+	cases := map[string]string{
+		"github.com/foo/bar/v":      "",
+		"github.com/foo/bar/v2beta": "",
+		"github.com/foo/bar/v0":     "0",
+	}
+	for module, want := range cases {
+		if got := majorFromModulePath(module); got != want {
+			t.Fatalf("%s got %q want %q", module, got, want)
+		}
+	}
+}

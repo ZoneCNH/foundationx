@@ -19,6 +19,9 @@ func TestPrecondition(t *testing.T) {
 	}
 }
 func TestInvariant(t *testing.T) {
+	if Invariant(true, "op", "msg") != nil {
+		t.Fatal("want nil")
+	}
 	if !errx.IsKind(Invariant(false, "op", "msg"), errx.ErrorKindInternal) {
 		t.Fatal("kind")
 	}

@@ -33,6 +33,22 @@ func TestAssertJSONFieldsMissing(t *testing.T) {
 	}
 }
 
+func TestAssertJSONFieldsMarshalFailure(t *testing.T) {
+	m := &mockTB{}
+	AssertJSONFields(m, func() {}, "x")
+	if !m.failed {
+		t.Fatal("expected failure for marshal error")
+	}
+}
+
+func TestAssertJSONFieldsNonObjectFailure(t *testing.T) {
+	m := &mockTB{}
+	AssertJSONFields(m, []int{1}, "x")
+	if !m.failed {
+		t.Fatal("expected failure for non-object JSON")
+	}
+}
+
 func TestAssertErrorKindMismatch(t *testing.T) {
 	m := &mockTB{}
 	e := errx.NewError(errx.ErrorKindConfig, "op", "msg")

@@ -33,6 +33,20 @@ func TestSemaphoreLimiter(t *testing.T) {
 	}
 	l.Release()
 }
+
+func TestSemaphoreLimiterDefaultsToOnePermit(t *testing.T) {
+	l := NewSemaphoreLimiter(0)
+	if err := l.Acquire(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond)
+	defer cancel()
+	if err := l.Acquire(ctx); err == nil {
+		t.Fatal("want timeout after default single permit is held")
+	}
+	l.Release()
+}
+
 func TestWorkerGroupErrorCancels(t *testing.T) {
 	want := errors.New("boom")
 	g := NewWorkerGroup(context.Background())

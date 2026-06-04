@@ -1,5 +1,6 @@
 GO ?= go
 GOENV := GOWORK=off
+COVERAGE_THRESHOLD ?= 100
 
 .PHONY: fmt
 fmt:
@@ -36,10 +37,10 @@ test:
 .PHONY: coverage-threshold
 coverage-threshold:
 	@set -o pipefail; $(GOENV) $(GO) test -count=1 -coverprofile=coverage.out \
-		$$($(GOENV) $(GO) list ./... | grep -v /examples | grep -v /scripts | grep -v /internal/testutil) 2>&1 | \
+		$$($(GOENV) $(GO) list ./... | grep -v /examples | grep -v /scripts) 2>&1 | \
 		tee /dev/stderr | \
-		awk '/coverage:/{ split($$2, a, "/"); pkg=a[length(a)]; sub(/.*coverage: /, ""); sub(/% of.*/, ""); if ($$1+0 < 80) { printf "FAIL: %s coverage %s%% < 80%%\n", pkg, $$1; fail=1 } } END { if (fail) exit 1 }'
-	@echo "All packages meet 80% coverage threshold."
+		awk -v threshold="$(COVERAGE_THRESHOLD)" '/coverage: \[no statements\]/{ next } /coverage:/{ split($$2, a, "/"); pkg=a[length(a)]; sub(/.*coverage: /, ""); sub(/% of.*/, ""); if ($$1+0 < threshold) { printf "FAIL: %s coverage %s%% < %s%%\n", pkg, $$1, threshold; fail=1 } } END { if (fail) exit 1 }'
+	@echo "All packages meet $(COVERAGE_THRESHOLD)% coverage threshold."
 
 .PHONY: race
 race:

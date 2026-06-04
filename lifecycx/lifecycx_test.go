@@ -53,6 +53,21 @@ func TestManagerStopsStartedOnFailure(t *testing.T) {
 	}
 }
 
+func TestManagerComponentsReturnsCopy(t *testing.T) {
+	calls := []string{}
+	a := comp{"a", &calls, false}
+	b := comp{"b", &calls, false}
+	m := NewManager(a, b)
+	components := m.Components()
+	if len(components) != 2 || components[0].Name() != "a" || components[1].Name() != "b" {
+		t.Fatalf("unexpected components: %v", components)
+	}
+	components[0] = b
+	if got := m.Components()[0].Name(); got != "a" {
+		t.Fatalf("components slice aliases manager state: %s", got)
+	}
+}
+
 type stopFailComp struct {
 	name    string
 	calls   *[]string

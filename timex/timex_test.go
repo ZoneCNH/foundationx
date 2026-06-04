@@ -28,6 +28,15 @@ func TestFakeClockAdvance(t *testing.T) {
 		t.Fatal(c.Now())
 	}
 }
+
+func TestFakeClockNilNow(t *testing.T) {
+	var c *FakeClock
+	if got := c.Now(); !got.IsZero() {
+		t.Fatal(got)
+	}
+	c.Advance(time.Second)
+}
+
 func TestClockInterface(t *testing.T) {
 	var _ Clock = RealClock{}
 	var _ Clock = FixedClock{}

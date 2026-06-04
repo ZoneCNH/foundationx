@@ -43,12 +43,62 @@ func TestRetryPolicyDelayMaxAndOverflow(t *testing.T) {
 	}
 }
 func TestDelayWithJitterBounds(t *testing.T) {
-	p := RetryPolicy{MaxAttempts: 2, BaseDelay: 100 * time.Millisecond, MaxDelay: 150 * time.Millisecond}
-	if got := p.DelayWithJitter(1, .5, 1); got != 150*time.Millisecond {
-		t.Fatal(got)
+	cases := []struct {
+		name     string
+		policy   RetryPolicy
+		ratio    float64
+		fraction float64
+		want     time.Duration
+	}{
+		{
+			name:     "zero base",
+			policy:   RetryPolicy{MaxAttempts: 2},
+			ratio:    .5,
+			fraction: 1,
+			want:     0,
+		},
+		{
+			name:     "zero ratio",
+			policy:   RetryPolicy{MaxAttempts: 2, BaseDelay: 100 * time.Millisecond},
+			ratio:    0,
+			fraction: 1,
+			want:     100 * time.Millisecond,
+		},
+		{
+			name:     "fraction lower bound",
+			policy:   RetryPolicy{MaxAttempts: 2, BaseDelay: 100 * time.Millisecond},
+			ratio:    .5,
+			fraction: -2,
+			want:     50 * time.Millisecond,
+		},
+		{
+			name:     "fraction upper bound",
+			policy:   RetryPolicy{MaxAttempts: 2, BaseDelay: 100 * time.Millisecond},
+			ratio:    .5,
+			fraction: 2,
+			want:     150 * time.Millisecond,
+		},
+		{
+			name:     "negative delay floor",
+			policy:   RetryPolicy{MaxAttempts: 2, BaseDelay: 100 * time.Millisecond},
+			ratio:    2,
+			fraction: -1,
+			want:     0,
+		},
+		{
+			name:     "max delay cap",
+			policy:   RetryPolicy{MaxAttempts: 2, BaseDelay: 100 * time.Millisecond, MaxDelay: 150 * time.Millisecond},
+			ratio:    1,
+			fraction: 1,
+			want:     150 * time.Millisecond,
+		},
 	}
-	if got := p.DelayWithJitter(1, .5, -1); got != 50*time.Millisecond {
-		t.Fatal(got)
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := tc.policy.DelayWithJitter(1, tc.ratio, tc.fraction); got != tc.want {
+				t.Fatalf("got %s want %s", got, tc.want)
+			}
+		})
 	}
 }
 func TestShouldRetry(t *testing.T) {
