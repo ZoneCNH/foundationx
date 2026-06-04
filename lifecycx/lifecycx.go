@@ -33,6 +33,8 @@ type Component interface {
 	Stopper
 }
 
+// Manager 管理一组 Component 的有序启动和逆序停止。
+// Manager 非并发安全：Start 和 Stop 应由单个所有者调用。
 type Manager struct {
 	components []Component
 	started    bool

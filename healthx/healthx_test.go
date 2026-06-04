@@ -61,3 +61,22 @@ func TestAggregateWithClockUsesRealClockWhenNil(t *testing.T) {
 		t.Fatal("nil clock produced zero CheckedAt")
 	}
 }
+
+func TestHealthStatusJSONWithMetadata(t *testing.T) {
+	s := NewHealthStatus("api", HealthHealthy, "ok", time.Unix(0, 0).UTC(), 1).WithMetadata("region", "us-east-1")
+	b, err := json.Marshal(s)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var m map[string]interface{}
+	if err := json.Unmarshal(b, &m); err != nil {
+		t.Fatal(err)
+	}
+	meta, ok := m["metadata"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("metadata not an object: %v", m["metadata"])
+	}
+	if meta["region"] != "us-east-1" {
+		t.Fatalf("unexpected region: %v", meta["region"])
+	}
+}

@@ -43,3 +43,10 @@ func TestSecretStringEmpty(t *testing.T) {
 		t.Fatal(string(data))
 	}
 }
+
+func TestSecretStringRevealEmpty(t *testing.T) {
+	var s SecretString
+	if s.Reveal() != "" {
+		t.Fatalf("expected empty, got %q", s.Reveal())
+	}
+}

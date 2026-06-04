@@ -52,6 +52,8 @@ func (NoopSpan) End()                {}
 func (NoopSpan) RecordError(_ error) {}
 func (NoopSpan) SetFields(...Field)  {}
 
+// Sanitizer 定义敏感数据脱敏接口。
+// 实现应确保 Sanitize() 返回脱敏后的安全表示，不泄露原始值。
 type Sanitizer interface{ Sanitize() string }
 type SecretString string
 
