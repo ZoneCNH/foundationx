@@ -100,6 +100,8 @@ examples:
 	$(GOENV) $(GO) run ./examples/sync_group
 	$(GOENV) $(GO) run ./examples/version_info
 	$(GOENV) $(GO) run ./examples/contract_helper
+	$(GOENV) $(GO) run ./examples/context
+	$(GOENV) $(GO) run ./examples/shutdown
 
 .PHONY: evidence
 evidence:
@@ -143,3 +145,11 @@ evidence-check: evidence release-evidence-check
 
 .PHONY: release-preflight
 release-preflight: release-final-check
+
+.PHONY: primitive-check
+primitive-check:
+	./scripts/ci/primitive-check.sh
+
+.PHONY: kernel-admission-check
+kernel-admission-check:
+	./scripts/ci/kernel-admission-check.sh

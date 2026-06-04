@@ -2,7 +2,7 @@
 
 ## 项目结构与模块组织
 
-本仓库是 L0 内核库 `kernel`，Go 模块为 `github.com/ZoneCNH/kernel`，仓库地址统一使用 `https://github.com/ZoneCNH/kernel`。当前项目目标与边界约束记录在 `docs/goal.md`，工程标准与模板事实源沿用 README 与 Goal 中的 `kernel/xlib-standard` 表述。重大范围调整必须同步更新这些事实源。源码包应保持小而稳定，当前包集合为 `errx/`、`timex/`、`lifecycx/`、`retryx/`、`healthx/`、`obsx/`、`validx/`、`syncx/`、`versionx/`、`contracttest/`。测试文件放在被测包旁边，遵循 Go 的 `_test.go` 约定。不要提交生成资产、运行时状态或本地工具缓存。
+本仓库是 L0 内核库 `kernel`，Go 模块为 `github.com/ZoneCNH/kernel`，仓库地址统一使用 `https://github.com/ZoneCNH/kernel`。当前项目目标与边界约束记录在 `docs/goal.md`，工程标准与模板事实源沿用 README 与 Goal 中的 `kernel/xlib-standard` 表述。重大范围调整必须同步更新这些事实源。源码包应保持小而稳定，当前包集合为 `errx/`、`timex/`、`lifecycx/`、`retryx/`、`healthx/`、`obsx/`、`validx/`、`syncx/`、`versionx/`、`contracttest/`、`contextx/`、`shutdownx/`。测试文件放在被测包旁边，遵循 Go 的 `_test.go` 约定。不要提交生成资产、运行时状态或本地工具缓存。
 
 ## 构建、测试与开发命令
 

@@ -46,6 +46,18 @@
 
 `BuildInfo` 和兼容别名 `VersionInfo` 暴露模块、版本、提交、构建时间和 Go 版本；`NewBuildInfo` 与 `NewVersionInfo` 创建信息；`Compatibility` 和 `Compatibility.CompatibleWith` 判断主版本兼容。
 
+## contextx 上下文 API 说明
+
+`Key` 是泛型类型安全 context key；`NewKey` 创建 key；`WithValue` 写入 context；`Value` 读取，缺失返回 `(zero, false)`。
+`HasDeadline` 判断 context 是否有 deadline；`DeadlineRemaining` 使用注入的 `timex.Clock` 返回剩余时间，适合确定性测试。
+`IsDone` 判断 context 是否已完成；`CancelCause` 返回取消原因。
+
+## shutdownx 退出 API 说明
+
+`Hook` 是命名退出动作接口；`HookFunc` 适配函数为 Hook；`Manager` 管理 hook 列表。
+`NewManager` 创建 manager；`Register` 注册 hook；`Shutdown(ctx)` 按 LIFO 顺序执行所有 hook，尊重 context deadline/cancellation，错误通过 `errors.Join` 聚合。
+`Hooks()` 返回防御性副本；`NotifyContext` 绑定 OS 信号到 context 取消，调用方必须调用返回的 cancel 释放资源。
+
 ## contracttest 契约 API 说明
 
 `AssertJSONFields`、`AssertErrorKind`、`AssertHealthStatus` 帮助下游测试 JSON 字段、错误种类和健康状态契约。

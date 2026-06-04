@@ -37,6 +37,8 @@ field obsx.Field.Value any
 field retryx.RetryPolicy.BaseDelay time.Duration
 field retryx.RetryPolicy.MaxAttempts int
 field retryx.RetryPolicy.MaxDelay time.Duration
+field shutdownx.HookFunc.Fn func(context.Context) error
+field shutdownx.HookFunc.NameValue string
 field versionx.BuildInfo.BuildTime string `json:"build_time"`
 field versionx.BuildInfo.Commit string `json:"commit"`
 field versionx.BuildInfo.GoVersion string `json:"go_version"`
@@ -44,6 +46,13 @@ field versionx.BuildInfo.Module string `json:"module"`
 field versionx.BuildInfo.Version string `json:"version"`
 field versionx.Compatibility.Major string
 field versionx.Compatibility.Module string
+func contextx.CancelCause(ctx context.Context) error
+func contextx.DeadlineRemaining(ctx context.Context, clock timex.Clock) time.Duration, bool
+func contextx.HasDeadline(ctx context.Context) bool
+func contextx.IsDone(ctx context.Context) bool
+func contextx.NewKey(name string) Key[T]
+func contextx.Value(ctx context.Context, key Key[T]) T, bool
+func contextx.WithValue(ctx context.Context, key Key[T], value T) context.Context
 func contracttest.AssertErrorKind(t testing.TB, got error, want errx.ErrorKind)
 func contracttest.AssertHealthStatus(t testing.TB, got healthx.HealthStatus, want healthx.HealthStatusValue)
 func contracttest.AssertJSONFields(t testing.TB, value any, fields ...string)
@@ -57,6 +66,8 @@ func lifecycx.NewManager(components ...Component) *Manager
 func obsx.NewSecretString(value string) SecretString
 func retryx.DefaultRetryPolicy() RetryPolicy
 func retryx.ShouldRetry(err error) bool
+func shutdownx.NewManager(hooks ...Hook) *Manager
+func shutdownx.NotifyContext(parent context.Context, signals ...os.Signal) context.Context, context.CancelFunc
 func syncx.NewSemaphoreLimiter(n int) *SemaphoreLimiter
 func syncx.NewWorkerGroup(ctx context.Context) *WorkerGroup
 func timex.NewFakeClock(now time.Time) *FakeClock
@@ -96,6 +107,11 @@ method obsx.SecretString.String() string
 method retryx.RetryPolicy.Delay(attempt int) time.Duration
 method retryx.RetryPolicy.DelayWithJitter(attempt int, ratio float64, fraction float64) time.Duration
 method retryx.RetryPolicy.Validate() error
+method shutdownx.*Manager.Hooks() []Hook
+method shutdownx.*Manager.Register(hook Hook)
+method shutdownx.*Manager.Shutdown(ctx context.Context) error
+method shutdownx.HookFunc.Name() string
+method shutdownx.HookFunc.Shutdown(ctx context.Context) error
 method syncx.*SemaphoreLimiter.Acquire(ctx context.Context) error
 method syncx.*SemaphoreLimiter.Release()
 method syncx.*WorkerGroup.Go(fn func(context.Context) error)
@@ -105,6 +121,7 @@ method timex.*FakeClock.Now() time.Time
 method timex.FixedClock.Now() time.Time
 method timex.RealClock.Now() time.Time
 method versionx.Compatibility.CompatibleWith(info BuildInfo) bool
+type contextx.Key struct { name string }
 type errx.Error struct { Kind ErrorKind `json:"kind"` Code string `json:"code,omitempty"` Severity Severity `json:"severity,omitempty"` Op string `json:"op,omitempty"` Message string `json:"message"` Cause error `json:"-"` Retryable bool `json:"retryable"` }
 type errx.ErrorKind string
 type errx.Severity string
@@ -130,6 +147,9 @@ type obsx.SecretString string
 type obsx.Span interface { End() RecordError(error) SetFields(...Field) }
 type obsx.Tracer interface { Start(context.Context, string, ...Field) (context.Context, Span) }
 type retryx.RetryPolicy struct { MaxAttempts int BaseDelay time.Duration MaxDelay time.Duration }
+type shutdownx.Hook interface { Name() string Shutdown(ctx context.Context) error }
+type shutdownx.HookFunc struct { NameValue string Fn func(context.Context) error }
+type shutdownx.Manager struct { mu sync.Mutex hooks []Hook }
 type syncx.Limiter interface { Acquire(context.Context) error Release() }
 type syncx.SemaphoreLimiter struct{ ch chan struct{} }
 type syncx.WorkerGroup struct { ctx context.Context cancel context.CancelFunc wg sync.WaitGroup mu sync.Mutex err error }

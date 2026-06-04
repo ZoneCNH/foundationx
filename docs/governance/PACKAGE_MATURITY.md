@@ -20,6 +20,8 @@
 | `timex` | stable | clock docs and examples |
 | `validx` | stable | validation docs and examples |
 | `contracttest` | stable | helper docs and example |
+| `contextx` | candidate | typed key contract, context docs |
+| `shutdownx` | candidate | hook interface contract, shutdown docs |
 
 ## 维护规则 Maintenance Rules
 
