@@ -51,6 +51,47 @@ func TestErrorWrappingAndAs(t *testing.T) {
 
 func TestNilErrorHelpers(t *testing.T) {
 	if ((*Error)(nil)).WithRetryable(true) != nil {
-		t.Fatal("nil receiver")
+		t.Fatal("nil receiver WithRetryable")
+	}
+	if ((*Error)(nil)).WithCode("x") != nil {
+		t.Fatal("nil receiver WithCode")
+	}
+	if ((*Error)(nil)).WithSeverity(SeverityError) != nil {
+		t.Fatal("nil receiver WithSeverity")
+	}
+	if ((*Error)(nil)).Unwrap() != nil {
+		t.Fatal("nil receiver Unwrap")
+	}
+	if ((*Error)(nil)).Error() != "" {
+		t.Fatal("nil receiver Error")
+	}
+}
+
+func TestErrorStringVariants(t *testing.T) {
+	// kind only, no op, no code
+	e := NewError(ErrorKindConfig, "", "bad config")
+	got := e.Error()
+	want := "config: bad config"
+	if got != want {
+		t.Fatalf("Error() = %q, want %q", got, want)
+	}
+}
+
+func TestAsErrorNoMatch(t *testing.T) {
+	plain := errors.New("plain")
+	_, ok := AsError(plain)
+	if ok {
+		t.Fatal("AsError should return false for non-Error")
+	}
+}
+
+func TestIsKindNoMatch(t *testing.T) {
+	plain := errors.New("plain")
+	if IsKind(plain, ErrorKindTimeout) {
+		t.Fatal("IsKind should return false for non-Error")
+	}
+	err := NewError(ErrorKindConfig, "op", "msg")
+	if IsKind(err, ErrorKindTimeout) {
+		t.Fatal("IsKind should return false for different kind")
 	}
 }
