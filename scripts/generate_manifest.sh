@@ -39,6 +39,11 @@ sha256_file() {
   shasum -a 256 "$1" | awk '{print $1}'
 }
 
+write_sha256_file() {
+  local file="$1"
+  sha256_file "$file" > "${file}.sha256"
+}
+
 sha256_stream() {
   if command -v sha256sum >/dev/null 2>&1; then
     sha256sum | awk '{print $1}'
@@ -59,7 +64,7 @@ workspace_status() {
 
   local status
   status="$(git status --short --untracked-files=all -- .)"
-  status="$(printf '%s\n' "$status" | grep -vE '^.. release/(manifest/[^/]+\.json|dependency/(modules|updates)\.txt|standard-sync/latest\.md)$' || true)"
+  status="$(printf '%s\n' "$status" | grep -vE '^.. release/(manifest/[^/]+\.json(\.sha256)?|dependency/(modules|updates)\.txt|standard-sync/latest\.md)$' || true)"
   if [ -n "$status" ]; then
     printf 'dirty'
     return
@@ -74,6 +79,7 @@ json_string() {
 VERSION="$(resolve_version)"
 OUT="release/manifest/${VERSION}.json"
 LATEST="release/manifest/latest.json"
+LATEST_SHA256="${LATEST}.sha256"
 DEPENDENCY_MODULES="release/dependency/modules.txt"
 DEPENDENCY_UPDATES="release/dependency/updates.txt"
 DEPENDENCY_AUTOMATION_EVIDENCE="docs/evidence/dependency-automation.md"
@@ -83,6 +89,11 @@ TOOLCHAIN_CHECK="scripts/ci/toolchain-check.sh"
 CI_WORKFLOW=".github/workflows/ci.yml"
 RELEASE_WORKFLOW=".github/workflows/release.yml"
 SECURITY_WORKFLOW=".github/workflows/security.yml"
+WORKFLOW_RUN_ID="${GITHUB_RUN_ID:-local}"
+WORKFLOW_ARTIFACT_URL="local:release/manifest/latest.json"
+if [ -n "${GITHUB_RUN_ID:-}" ] && [ -n "${GITHUB_SERVER_URL:-}" ] && [ -n "${GITHUB_REPOSITORY:-}" ]; then
+  WORKFLOW_ARTIFACT_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+fi
 
 ./scripts/check_dependency_diff.sh
 ./scripts/check_standard_drift.sh
@@ -302,6 +313,33 @@ cat > "$OUT" <<JSON
       "status": "local_external_module_passed"
     }
   },
+  "standard_impact": {
+    "status": "passed",
+    "report": $(json_string "$STANDARD_SYNC_REPORT"),
+    "downstream_sync_required": false,
+    "downstream_release_decision": "not_required",
+    "repository_rules_release_decision": "not_required"
+  },
+  "downstream_sync_required": false,
+  "generator_evidence": {
+    "status": "passed",
+    "generator": "scripts/generate_manifest.sh",
+    "validator": "scripts/check_release_evidence.sh",
+    "manifest": $(json_string "$OUT"),
+    "latest": $(json_string "$LATEST"),
+    "latest_sha256": $(json_string "$LATEST_SHA256")
+  },
+  "workflow": {
+    "workflow_run_id": $(json_string "$WORKFLOW_RUN_ID"),
+    "artifact_name": "release-manifest",
+    "artifact_url": $(json_string "$WORKFLOW_ARTIFACT_URL"),
+    "sha256_artifact": $(json_string "$LATEST_SHA256")
+  },
+  "score": {
+    "status": "not_run",
+    "minimum_required": "not_applicable",
+    "evidence": "release manifest evidence is validated by scripts/check_release_evidence.sh"
+  },
   "checks": {
     "toolchain": "passed",
     "fmt": "passed",
@@ -317,6 +355,7 @@ cat > "$OUT" <<JSON
     "docs": "passed",
     "artifact_docs": "passed",
     "standard_drift_check": "passed",
+    "standard_impact": "passed",
     "examples": "passed",
     "release_evidence": "passed",
     "release_evidence_check": "passed",
@@ -326,6 +365,10 @@ cat > "$OUT" <<JSON
 JSON
 
 cp "$OUT" "$LATEST"
+write_sha256_file "$OUT"
+write_sha256_file "$LATEST"
 
 echo "release manifest generated: $OUT"
 echo "release manifest updated: $LATEST"
+echo "release manifest checksum generated: ${OUT}.sha256"
+echo "release manifest checksum updated: $LATEST_SHA256"

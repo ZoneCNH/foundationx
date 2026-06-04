@@ -32,6 +32,8 @@ resolve_version() {
 VERSION="$(resolve_version)"
 MANIFEST="release/manifest/${VERSION}.json"
 LATEST="release/manifest/latest.json"
+MANIFEST_SHA256="${MANIFEST}.sha256"
+LATEST_SHA256="${LATEST}.sha256"
 DEPENDENCY_MODULES="release/dependency/modules.txt"
 DEPENDENCY_UPDATES="release/dependency/updates.txt"
 DEPENDENCY_AUTOMATION_EVIDENCE="docs/evidence/dependency-automation.md"
@@ -90,6 +92,10 @@ line_count() {
   awk 'NF { count++ } END { print count + 0 }' "$1"
 }
 
+checksum_value() {
+  awk 'NF { print $1; exit }' "$1"
+}
+
 workspace_status() {
   if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     printf 'unknown'
@@ -98,7 +104,7 @@ workspace_status() {
 
   local status
   status="$(git status --short --untracked-files=all -- .)"
-  status="$(printf '%s\n' "$status" | grep -vE '^.. release/(manifest/[^/]+\.json|dependency/(modules|updates)\.txt|standard-sync/latest\.md)$' || true)"
+  status="$(printf '%s\n' "$status" | grep -vE '^.. release/(manifest/[^/]+\.json(\.sha256)?|dependency/(modules|updates)\.txt|standard-sync/latest\.md)$' || true)"
   if [ -n "$status" ]; then
     printf 'dirty'
     return
@@ -121,6 +127,13 @@ require_artifact() {
   [ -s "$artifact" ] || fail "required goal artifact missing or empty: $artifact"
 }
 
+require_checksum() {
+  local artifact="$1" sidecar="$2"
+  require_artifact "$artifact"
+  require_artifact "$sidecar"
+  [ "$(checksum_value "$sidecar")" = "$(sha256_file "$artifact")" ] || fail "checksum sidecar mismatch: $sidecar"
+}
+
 [ -s "$LATEST" ] || fail "latest release manifest missing or empty: $LATEST"
 
 # Validate latest.json has correct schema_version and non-empty version
@@ -130,6 +143,9 @@ LATEST_VER="$(python3 -c "import json; d=json.load(open('$LATEST')); print(d.get
 [ -n "$LATEST_VER" ] || fail "latest.json version is empty"
 
 [ -s "$MANIFEST" ] || fail "release manifest missing or empty: $MANIFEST"
+cmp -s "$MANIFEST" "$LATEST" || fail "latest manifest does not match versioned manifest"
+require_checksum "$MANIFEST" "$MANIFEST_SHA256"
+require_checksum "$LATEST" "$LATEST_SHA256"
 
 require_value schema_version "kernel.release-manifest.v1" "manifest schema_version mismatch: manifest schema_version does not match kernel.release-manifest.v1"
 
@@ -289,7 +305,23 @@ require_value api.public_api_snapshot "contracts/public_api.snapshot" "public AP
 require_value api.public_api_sha256 "$(sha256_file contracts/public_api.snapshot)" "public API snapshot hash mismatch"
 require_value contracts.public_api_sha256 "$(sha256_file contracts/public_api.snapshot)" "public API snapshot hash mismatch"
 
-for check in toolchain fmt vet unit_test race_test boundary secret_scan contract api api_diff dependency_check docs artifact_docs standard_drift_check examples release_evidence release_evidence_check; do
+require_value standard_impact.status "passed" "manifest standard impact status mismatch"
+require_value standard_impact.report "$STANDARD_SYNC_REPORT" "manifest standard impact report path mismatch"
+require_value standard_impact.downstream_sync_required "false" "manifest standard impact downstream sync flag mismatch"
+require_value standard_impact.downstream_release_decision "not_required" "manifest standard impact downstream release decision mismatch"
+require_value standard_impact.repository_rules_release_decision "not_required" "manifest standard impact repository rules release decision mismatch"
+require_value downstream_sync_required "false" "manifest downstream sync flag mismatch"
+require_value generator_evidence.status "passed" "manifest generator evidence status mismatch"
+require_value generator_evidence.generator "scripts/generate_manifest.sh" "manifest generator evidence generator path mismatch"
+require_value generator_evidence.validator "scripts/check_release_evidence.sh" "manifest generator evidence validator path mismatch"
+require_value generator_evidence.manifest "$MANIFEST" "manifest generator evidence versioned manifest path mismatch"
+require_value generator_evidence.latest "$LATEST" "manifest generator evidence latest path mismatch"
+require_value generator_evidence.latest_sha256 "$LATEST_SHA256" "manifest generator evidence latest checksum path mismatch"
+require_value workflow.artifact_name "release-manifest" "manifest workflow artifact name mismatch"
+require_value workflow.sha256_artifact "$LATEST_SHA256" "manifest workflow checksum artifact path mismatch"
+require_value score.status "not_run" "manifest score status mismatch"
+
+for check in toolchain fmt vet unit_test race_test boundary secret_scan contract api api_diff dependency_check docs artifact_docs standard_drift_check standard_impact examples release_evidence release_evidence_check; do
   require_value "checks.${check}" "passed" "manifest missing passed check: $check"
 done
 require_value checks.consumer_compatibility "documented" "manifest missing documented consumer compatibility check"

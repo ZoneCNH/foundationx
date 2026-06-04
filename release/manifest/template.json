@@ -1,0 +1,43 @@
+{
+  "schema_version": "kernel.release-manifest.v1",
+  "module": "github.com/ZoneCNH/kernel",
+  "version": "template",
+  "commit": "<git-commit>",
+  "tree_sha": "<git-tree-sha>",
+  "workspace_status": "clean",
+  "dependencies": {
+    "dependency_check": "passed",
+    "modules_artifact": "release/dependency/modules.txt",
+    "updates_artifact": "release/dependency/updates.txt"
+  },
+  "standard_impact": {
+    "status": "passed",
+    "report": "release/standard-sync/latest.md",
+    "downstream_sync_required": false,
+    "downstream_release_decision": "not_required",
+    "repository_rules_release_decision": "not_required"
+  },
+  "downstream_sync_required": false,
+  "generator_evidence": {
+    "status": "passed",
+    "generator": "scripts/generate_manifest.sh",
+    "validator": "scripts/check_release_evidence.sh",
+    "latest": "release/manifest/latest.json",
+    "latest_sha256": "release/manifest/latest.json.sha256"
+  },
+  "workflow": {
+    "workflow_run_id": "<github-run-id-or-local>",
+    "artifact_name": "release-manifest",
+    "sha256_artifact": "release/manifest/latest.json.sha256"
+  },
+  "score": {
+    "status": "not_run",
+    "minimum_required": "not_applicable"
+  },
+  "checks": {
+    "dependency_check": "passed",
+    "standard_impact": "passed",
+    "release_evidence": "passed",
+    "release_evidence_check": "passed"
+  }
+}

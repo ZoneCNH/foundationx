@@ -308,7 +308,7 @@ func TestGeneratedReleaseManifestsUseGoModModule(t *testing.T) {
 
 func TestReleaseCleanCheckOnlyAllowsGeneratedReleaseEvidence(t *testing.T) {
 	clean := readRepoText(t, filepath.Join("scripts", "check_release_clean.sh"))
-	const allowedReleaseEvidencePattern = `^.. release/(manifest/[^/]+\.json|dependency/(modules|updates)\.txt|standard-sync/latest\.md)$`
+	const allowedReleaseEvidencePattern = `^.. release/(manifest/[^/]+\.json(\.sha256)?|dependency/(modules|updates)\.txt|standard-sync/latest\.md)$`
 
 	assertContains(t, clean, "grep -vE '"+allowedReleaseEvidencePattern+"'")
 
@@ -326,6 +326,11 @@ func TestReleaseCleanCheckOnlyAllowsGeneratedReleaseEvidence(t *testing.T) {
 		{
 			name:    "latest manifest",
 			line:    " M release/manifest/latest.json",
+			allowed: true,
+		},
+		{
+			name:    "latest manifest checksum",
+			line:    "?? release/manifest/latest.json.sha256",
 			allowed: true,
 		},
 		{

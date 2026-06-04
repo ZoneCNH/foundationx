@@ -29,6 +29,8 @@ go.work.sum
 
 # Generated release evidence
 release/manifest/*.json
+release/manifest/*.json.sha256
+!release/manifest/template.json
 
 # env file
 .env
