@@ -87,6 +87,7 @@ func snapshotPackage(root, pkg string) []string {
 					continue
 				}
 				recv := recvName(fset, d.Recv)
+				if recv == "" || !ast.IsExported(recv) { continue }
 				lines = append(lines, fmt.Sprintf("method %s.%s.%s%s", pkg, recv, d.Name.Name, signature(fset, d.Type)))
 			}
 		}
@@ -98,6 +99,9 @@ func signature(fset *token.FileSet, t *ast.FuncType) string {
 	params := fieldList(fset, t.Params)
 	results := fieldList(fset, t.Results)
 	if results == "" { return "(" + params + ")" }
+	if strings.Contains(results, ",") || strings.Contains(results, " ") {
+		return "(" + params + ") (" + results + ")"
+	}
 	return "(" + params + ") " + results
 }
 func fieldList(fset *token.FileSet, fl *ast.FieldList) string {
@@ -112,7 +116,13 @@ func fieldList(fset *token.FileSet, fl *ast.FieldList) string {
 }
 func recvName(fset *token.FileSet, fl *ast.FieldList) string {
 	if fl == nil || len(fl.List) == 0 { return "" }
-	return expr(fset, fl.List[0].Type)
+	switch t := fl.List[0].Type.(type) {
+	case *ast.Ident:
+		return t.Name
+	case *ast.StarExpr:
+		if ident, ok := t.X.(*ast.Ident); ok { return ident.Name }
+	}
+	return strings.TrimPrefix(expr(fset, fl.List[0].Type), "*")
 }
 func expr(fset *token.FileSet, node ast.Node) string {
 	var buf bytes.Buffer

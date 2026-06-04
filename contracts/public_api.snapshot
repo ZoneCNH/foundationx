@@ -47,16 +47,16 @@ field versionx.BuildInfo.Version string `json:"version"`
 field versionx.Compatibility.Major string
 field versionx.Compatibility.Module string
 func contextx.CancelCause(ctx context.Context) error
-func contextx.DeadlineRemaining(ctx context.Context, clock timex.Clock) time.Duration, bool
+func contextx.DeadlineRemaining(ctx context.Context, clock timex.Clock) (time.Duration, bool)
 func contextx.HasDeadline(ctx context.Context) bool
 func contextx.IsDone(ctx context.Context) bool
 func contextx.NewKey(name string) Key[T]
-func contextx.Value(ctx context.Context, key Key[T]) T, bool
+func contextx.Value(ctx context.Context, key Key[T]) (T, bool)
 func contextx.WithValue(ctx context.Context, key Key[T], value T) context.Context
 func contracttest.AssertErrorKind(t testing.TB, got error, want errx.ErrorKind)
 func contracttest.AssertHealthStatus(t testing.TB, got healthx.HealthStatus, want healthx.HealthStatusValue)
 func contracttest.AssertJSONFields(t testing.TB, value any, fields ...string)
-func errx.AsError(err error) *Error, bool
+func errx.AsError(err error) (*Error, bool)
 func errx.IsKind(err error, kind ErrorKind) bool
 func errx.NewError(kind ErrorKind, op string, message string) *Error
 func errx.WrapError(kind ErrorKind, op string, message string, cause error) *Error
@@ -67,7 +67,7 @@ func obsx.NewSecretString(value string) SecretString
 func retryx.DefaultRetryPolicy() RetryPolicy
 func retryx.ShouldRetry(err error) bool
 func shutdownx.NewManager(hooks ...Hook) *Manager
-func shutdownx.NotifyContext(parent context.Context, signals ...os.Signal) context.Context, context.CancelFunc
+func shutdownx.NotifyContext(parent context.Context, signals ...os.Signal) (context.Context, context.CancelFunc)
 func syncx.NewSemaphoreLimiter(n int) *SemaphoreLimiter
 func syncx.NewWorkerGroup(ctx context.Context) *WorkerGroup
 func timex.NewFakeClock(now time.Time) *FakeClock
@@ -78,17 +78,17 @@ func validx.Precondition(ok bool, op string, message string) error
 func validx.RequireNonEmpty(value string, name string) error
 func versionx.NewBuildInfo(module string, version string, commit string, buildTime string, goVersion string) BuildInfo
 func versionx.NewVersionInfo(module string, version string, commit string, buildTime string, goVersion string) VersionInfo
-method errx.*Error.Error() string
-method errx.*Error.Unwrap() error
-method errx.*Error.WithCode(code string) *Error
-method errx.*Error.WithRetryable(retryable bool) *Error
-method errx.*Error.WithSeverity(severity Severity) *Error
+method errx.Error.Error() string
+method errx.Error.Unwrap() error
+method errx.Error.WithCode(code string) *Error
+method errx.Error.WithRetryable(retryable bool) *Error
+method errx.Error.WithSeverity(severity Severity) *Error
 method healthx.HealthStatus.IsHealthy() bool
-method healthx.HealthStatus.MarshalJSON() []byte, error
+method healthx.HealthStatus.MarshalJSON() ([]byte, error)
 method healthx.HealthStatus.WithMetadata(key string, value string) HealthStatus
-method lifecycx.*Manager.Components() []Component
-method lifecycx.*Manager.Start(ctx context.Context) error
-method lifecycx.*Manager.Stop(ctx context.Context) error
+method lifecycx.Manager.Components() []Component
+method lifecycx.Manager.Start(ctx context.Context) error
+method lifecycx.Manager.Stop(ctx context.Context) error
 method obsx.NoopLogger.Debug(context.Context, string, ...Field)
 method obsx.NoopLogger.Error(context.Context, string, ...Field)
 method obsx.NoopLogger.Info(context.Context, string, ...Field)
@@ -98,26 +98,26 @@ method obsx.NoopMetrics.Observe(context.Context, string, float64, ...Field)
 method obsx.NoopSpan.End()
 method obsx.NoopSpan.RecordError(error)
 method obsx.NoopSpan.SetFields(...Field)
-method obsx.NoopTracer.Start(ctx context.Context, _ string, _ ...Field) context.Context, Span
+method obsx.NoopTracer.Start(ctx context.Context, _ string, _ ...Field) (context.Context, Span)
 method obsx.SecretString.IsZero() bool
-method obsx.SecretString.MarshalJSON() []byte, error
+method obsx.SecretString.MarshalJSON() ([]byte, error)
 method obsx.SecretString.Reveal() string
 method obsx.SecretString.Sanitize() any
 method obsx.SecretString.String() string
 method retryx.RetryPolicy.Delay(attempt int) time.Duration
 method retryx.RetryPolicy.DelayWithJitter(attempt int, ratio float64, fraction float64) time.Duration
 method retryx.RetryPolicy.Validate() error
-method shutdownx.*Manager.Hooks() []Hook
-method shutdownx.*Manager.Register(hook Hook)
-method shutdownx.*Manager.Shutdown(ctx context.Context) error
 method shutdownx.HookFunc.Name() string
 method shutdownx.HookFunc.Shutdown(ctx context.Context) error
-method syncx.*SemaphoreLimiter.Acquire(ctx context.Context) error
-method syncx.*SemaphoreLimiter.Release()
-method syncx.*WorkerGroup.Go(fn func(context.Context) error)
-method syncx.*WorkerGroup.Wait() error
-method timex.*FakeClock.Advance(d time.Duration)
-method timex.*FakeClock.Now() time.Time
+method shutdownx.Manager.Hooks() []Hook
+method shutdownx.Manager.Register(hook Hook)
+method shutdownx.Manager.Shutdown(ctx context.Context) error
+method syncx.SemaphoreLimiter.Acquire(ctx context.Context) error
+method syncx.SemaphoreLimiter.Release()
+method syncx.WorkerGroup.Go(fn func(context.Context) error)
+method syncx.WorkerGroup.Wait() error
+method timex.FakeClock.Advance(d time.Duration)
+method timex.FakeClock.Now() time.Time
 method timex.FixedClock.Now() time.Time
 method timex.RealClock.Now() time.Time
 method versionx.Compatibility.CompatibleWith(info BuildInfo) bool
