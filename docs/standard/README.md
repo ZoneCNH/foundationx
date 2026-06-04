@@ -1,5 +1,13 @@
 # xlib-standard 基础库标准索引
 
+> **kernel 适配说明**：本文档目录从上游 [`xlib-standard`](https://github.com/ZoneCNH/xlib-standard) 同步，描述 `x.go` 基础库体系的标准规范。kernel 在上游基础上已进化以下部分：
+>
+> - **contracts**：`error.schema.json`、`health.schema.json` 是上游 schema 的超集，包含 kernel 特有字段
+> - **scripts**：`generate_manifest.sh` 已针对 kernel 仓库定制化
+> - **contracts_test.go**：使用 `errx`/`healthx`/`versionx` 替代上游 `templatex` 进行契约校验
+>
+> kernel 保留这些文档作为标准参考，不修改上游引用路径。
+
 [`xlib-standard`](https://github.com/ZoneCNH/xlib-standard) 是基础库 Standard Source、Go Reference Template、Generator、Harness 和 Evidence Runtime 的统一仓库。旧 `baselib-template` 名称只作为迁移兼容上下文保留；旧 `foundationx` 默认下游名迁移为 `kernel`。
 
 ## 必读标准
