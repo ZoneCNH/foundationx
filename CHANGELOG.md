@@ -1,5 +1,12 @@
 # 更新日志
 
+## v0.8.0 说明
+
+- 语义硬化：`errx.IsKind` 与 `retryx.ShouldRetry` 现在遍历 wrapped/joined error tree，迁移时请确认依赖“只检查首个错误分支”的调用方预期。
+- 安全格式化：`obsx.SecretString` 增强 `%#v`/debug 格式脱敏，`fmt.GoStringer`/`fmt.Formatter` 输出不再泄露原始 secret。
+- 使用约束：`contextx.Key` 零值误用会 fail fast；迁移代码应统一通过 `contextx.NewKey` 创建键。
+- 发布门禁：`ci` 纳入 `coverage-threshold` 与 `workflow-pin-check`，workflow action 引用要求不可变 40 字符 SHA pin。
+
 ## v0.7.3 说明
 
 - 更新 xlib-standard reviewed baseline 至 `4463a60`，解除 live drift gate。

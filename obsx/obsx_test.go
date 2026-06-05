@@ -28,11 +28,32 @@ func TestSecretStringMasks(t *testing.T) {
 	if fmt.Sprint(s) != "***" || s.Sanitize() != "***" || s.Reveal() != raw {
 		t.Fatal(s)
 	}
+	if s.GoString() != "***" {
+		t.Fatalf("GoString() = %q", s.GoString())
+	}
 	data, _ := json.Marshal(s)
 	if strings.Contains(string(data), raw) || string(data) != "\"***\"" {
 		t.Fatal(string(data))
 	}
 }
+
+func TestSecretStringFormatDoesNotRevealRawValue(t *testing.T) {
+	raw := "super-secret"
+	s := NewSecretString(raw)
+	formats := []string{"%v", "%+v", "%#v", "%s", "%q", "%12s", "%.2s"}
+	for _, format := range formats {
+		t.Run(format, func(t *testing.T) {
+			got := fmt.Sprintf(format, s)
+			if strings.Contains(got, raw) {
+				t.Fatalf("format %s revealed raw value: %q", format, got)
+			}
+			if !strings.Contains(got, "***") && format != "%.2s" {
+				t.Fatalf("format %s did not include masked value: %q", format, got)
+			}
+		})
+	}
+}
+
 func TestSecretStringEmpty(t *testing.T) {
 	s := NewSecretString("")
 	if !s.IsZero() || s.String() != "" {

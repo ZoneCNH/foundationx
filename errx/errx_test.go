@@ -97,6 +97,25 @@ func TestIsKindNoMatch(t *testing.T) {
 	}
 }
 
+func TestIsKindTraversesErrorTree(t *testing.T) {
+	validation := NewError(ErrorKindValidation, "validate", "bad input")
+	timeout := WrapError(ErrorKindTimeout, "call", "deadline", errors.New("driver"))
+	err := errors.Join(
+		fmt.Errorf("left: %w", validation),
+		fmt.Errorf("right: %w", timeout),
+	)
+
+	if !IsKind(err, ErrorKindTimeout) {
+		t.Fatal("IsKind should find kind in a later joined branch")
+	}
+	if !IsKind(fmt.Errorf("outer: %w", err), ErrorKindTimeout) {
+		t.Fatal("IsKind should find kind through wrapping around a joined tree")
+	}
+	if IsKind(err, ErrorKindAuth) {
+		t.Fatal("IsKind should not match absent kind")
+	}
+}
+
 func TestErrorStringCodeWithoutOp(t *testing.T) {
 	// Code is included in Error() only when Op is also set.
 	e := NewError(ErrorKindInternal, "svc.Call", "something broke").WithCode("X99")

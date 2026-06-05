@@ -42,6 +42,10 @@ coverage-threshold:
 		awk -v threshold="$(COVERAGE_THRESHOLD)" '/coverage: \[no statements\]/{ next } /coverage:/{ split($$2, a, "/"); pkg=a[length(a)]; sub(/.*coverage: /, ""); sub(/% of.*/, ""); if ($$1+0 < threshold) { printf "FAIL: %s coverage %s%% < %s%%\n", pkg, $$1, threshold; fail=1 } } END { if (fail) exit 1 }'
 	@echo "All packages meet $(COVERAGE_THRESHOLD)% coverage threshold."
 
+.PHONY: workflow-pin-check
+workflow-pin-check:
+	./scripts/ci/workflow-pin-check.sh
+
 .PHONY: race
 race:
 	$(GOENV) $(GO) test -race -count=1 ./...
@@ -139,7 +143,7 @@ release-clean-check:
 all: ci
 
 .PHONY: ci
-ci: fmt vet lint test race boundary security contracts api-check docs artifact-check dependency-check standard-drift-check examples
+ci: fmt vet lint test coverage-threshold race boundary security contracts api-check docs artifact-check dependency-check standard-drift-check workflow-pin-check examples
 
 .PHONY: release-check
 release-check:

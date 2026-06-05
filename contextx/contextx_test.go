@@ -58,6 +58,27 @@ func TestKeyIsolation(t *testing.T) {
 	}
 }
 
+func TestZeroKeyPanics(t *testing.T) {
+	var zero Key[string]
+	assertPanic := func(t *testing.T, fn func()) {
+		t.Helper()
+		defer func() {
+			got := recover()
+			if got != zeroKeyPanic {
+				t.Fatalf("got panic %v, want %q", got, zeroKeyPanic)
+			}
+		}()
+		fn()
+	}
+
+	assertPanic(t, func() {
+		_ = WithValue(context.Background(), zero, "value")
+	})
+	assertPanic(t, func() {
+		_, _ = Value(context.Background(), zero)
+	})
+}
+
 func TestHasDeadline(t *testing.T) {
 	if HasDeadline(context.Background()) {
 		t.Fatal("Background should have no deadline")

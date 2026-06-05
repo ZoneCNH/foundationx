@@ -1,6 +1,9 @@
 package retryx
 
 import (
+	"errors"
+	"fmt"
+
 	"github.com/ZoneCNH/kernel/errx"
 	"testing"
 	"time"
@@ -108,5 +111,24 @@ func TestShouldRetry(t *testing.T) {
 	}
 	if ShouldRetry(errx.NewError(errx.ErrorKindValidation, "op", "msg")) {
 		t.Fatal("not retryable")
+	}
+}
+
+func TestShouldRetryTraversesErrorTree(t *testing.T) {
+	nonRetryable := errx.NewError(errx.ErrorKindValidation, "validate", "bad input")
+	retryable := errx.NewError(errx.ErrorKindUnavailable, "call", "down").WithRetryable(true)
+	err := errors.Join(
+		fmt.Errorf("left: %w", nonRetryable),
+		fmt.Errorf("right: %w", retryable),
+	)
+
+	if !ShouldRetry(err) {
+		t.Fatal("ShouldRetry should find retryable error in a later joined branch")
+	}
+	if !ShouldRetry(fmt.Errorf("outer: %w", err)) {
+		t.Fatal("ShouldRetry should find retryable error through wrapping around a joined tree")
+	}
+	if ShouldRetry(errors.Join(nonRetryable, errors.New("plain"))) {
+		t.Fatal("ShouldRetry should not match when no retryable error exists")
 	}
 }

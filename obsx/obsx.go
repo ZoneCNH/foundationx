@@ -4,6 +4,8 @@ package obsx
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"strconv"
 )
 
 type Field struct {
@@ -65,6 +67,24 @@ func (s SecretString) String() string {
 	return "***"
 }
 func (s SecretString) Sanitize() string             { return s.String() }
+func (s SecretString) GoString() string             { return s.String() }
 func (s SecretString) MarshalJSON() ([]byte, error) { return json.Marshal(s.String()) }
 func (s SecretString) Reveal() string               { return string(s) }
 func (s SecretString) IsZero() bool                 { return s == "" }
+
+func (s SecretString) Format(state fmt.State, verb rune) {
+	format := "%"
+	for _, flag := range []rune{'#', '+', '-', '0', ' '} {
+		if state.Flag(int(flag)) {
+			format += string(flag)
+		}
+	}
+	if width, ok := state.Width(); ok {
+		format += strconv.Itoa(width)
+	}
+	if precision, ok := state.Precision(); ok {
+		format += "." + strconv.Itoa(precision)
+	}
+	format += string(verb)
+	_, _ = fmt.Fprintf(state, format, s.String())
+}

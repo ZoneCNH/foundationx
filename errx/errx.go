@@ -113,8 +113,9 @@ func (e *Error) WithSeverity(severity Severity) *Error {
 
 // IsKind reports whether err contains an Error with the given kind.
 func IsKind(err error, kind ErrorKind) bool {
-	var target *Error
-	return errors.As(err, &target) && target.Kind == kind
+	return walkErrors(err, func(e *Error) bool {
+		return e.Kind == kind
+	})
 }
 
 // AsError extracts an Error from an error chain.
@@ -124,4 +125,24 @@ func AsError(err error) (*Error, bool) {
 		return target, true
 	}
 	return nil, false
+}
+
+func walkErrors(err error, match func(*Error) bool) bool {
+	if err == nil {
+		return false
+	}
+	if target, ok := err.(*Error); ok && target != nil && match(target) {
+		return true
+	}
+	switch unwrapped := err.(type) {
+	case interface{ Unwrap() []error }:
+		for _, child := range unwrapped.Unwrap() {
+			if walkErrors(child, match) {
+				return true
+			}
+		}
+	case interface{ Unwrap() error }:
+		return walkErrors(unwrapped.Unwrap(), match)
+	}
+	return false
 }

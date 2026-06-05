@@ -74,6 +74,27 @@ func (p RetryPolicy) DelayWithJitter(attempt int, ratio float64, fraction float6
 
 // ShouldRetry reports whether err is a kernel error marked retryable.
 func ShouldRetry(err error) bool {
-	e, ok := errx.AsError(err)
-	return ok && e.Retryable
+	return walkErrors(err, func(e *errx.Error) bool {
+		return e.Retryable
+	})
+}
+
+func walkErrors(err error, match func(*errx.Error) bool) bool {
+	if err == nil {
+		return false
+	}
+	if target, ok := err.(*errx.Error); ok && target != nil && match(target) {
+		return true
+	}
+	switch unwrapped := err.(type) {
+	case interface{ Unwrap() []error }:
+		for _, child := range unwrapped.Unwrap() {
+			if walkErrors(child, match) {
+				return true
+			}
+		}
+	case interface{ Unwrap() error }:
+		return walkErrors(unwrapped.Unwrap(), match)
+	}
+	return false
 }

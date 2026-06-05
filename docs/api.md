@@ -32,7 +32,7 @@
 
 `Field` 描述结构化字段；`Logger`、`Metrics`、`Tracer`、`Span` 是无供应商接口；`NoopLogger`、`NoopMetrics`、`NoopTracer`、`NoopSpan` 提供空实现。
 `NoopLogger.Debug`、`NoopLogger.Info`、`NoopLogger.Warn`、`NoopLogger.Error`、`NoopMetrics.Observe`、`NoopMetrics.Count`、`NoopTracer.Start`、`NoopSpan.End`、`NoopSpan.SetFields`、`NoopSpan.RecordError` 都不产生外部副作用。
-`Sanitizer` 描述脱敏行为；`NewSecretString` 创建敏感字符串；`SecretString`、`SecretString.String`、`SecretString.Sanitize`、`SecretString.MarshalJSON`、`SecretString.IsZero`、`SecretString.Reveal` 保护敏感值；非空 `SecretString` 在字符串格式化、`Sanitize` 和 JSON 输出中默认返回 `***`。
+`Sanitizer` 描述脱敏行为；`NewSecretString` 创建敏感字符串；`SecretString`、`SecretString.String`、`SecretString.Sanitize`、`SecretString.GoString`、`SecretString.Format`、`SecretString.MarshalJSON`、`SecretString.IsZero`、`SecretString.Reveal` 保护敏感值；非空 `SecretString` 在字符串格式化、`Sanitize` 和 JSON 输出中默认返回 `***`。
 
 ## validx 校验 API 说明
 

@@ -100,6 +100,8 @@ method obsx.NoopSpan.End()
 method obsx.NoopSpan.RecordError(_ error)
 method obsx.NoopSpan.SetFields(...Field)
 method obsx.NoopTracer.Start(ctx context.Context, _ string, _ ...Field) (context.Context, Span)
+method obsx.SecretString.Format(state fmt.State, verb rune)
+method obsx.SecretString.GoString() string
 method obsx.SecretString.IsZero() bool
 method obsx.SecretString.MarshalJSON() ([]byte, error)
 method obsx.SecretString.Reveal() string

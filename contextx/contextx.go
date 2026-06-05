@@ -14,21 +14,30 @@ type Key[T any] struct {
 	sentinel *byte // unique per Key instance; prevents name-based collisions
 }
 
+const zeroKeyPanic = "contextx: zero Key; create keys with NewKey"
+
 // NewKey creates a new typed context key with the given name.
 // Each call returns a distinct key, even with the same name and type.
 func NewKey[T any](name string) Key[T] {
 	return Key[T]{name: name, sentinel: new(byte)}
 }
 
+func (k Key[T]) contextKey() any {
+	if k.sentinel == nil {
+		panic(zeroKeyPanic)
+	}
+	return k.sentinel
+}
+
 // WithValue returns a derived context with the typed key-value pair.
 func WithValue[T any](ctx context.Context, key Key[T], value T) context.Context {
-	return context.WithValue(ctx, key.sentinel, value)
+	return context.WithValue(ctx, key.contextKey(), value)
 }
 
 // Value extracts a typed value from the context.
 // Returns (value, true) if present, (zero, false) otherwise.
 func Value[T any](ctx context.Context, key Key[T]) (T, bool) {
-	v, ok := ctx.Value(key.sentinel).(T)
+	v, ok := ctx.Value(key.contextKey()).(T)
 	return v, ok
 }
 

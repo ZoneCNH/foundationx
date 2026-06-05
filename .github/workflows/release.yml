@@ -19,15 +19,15 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
 
       - name: Setup Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c
         with:
           go-version: "1.26.3"
 
       - name: Cache Go tools
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
         with:
           path: $(go env GOPATH)/bin
           key: go-tools-${{ runner.os }}-release-${{ hashFiles('.github/versions.env') }}
@@ -35,7 +35,7 @@ jobs:
             go-tools-${{ runner.os }}-release-
 
       - name: Setup Go for pinned gosec
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c
         with:
           go-version: "1.23"
 
@@ -46,7 +46,7 @@ jobs:
           go install github.com/securego/gosec/v2/cmd/gosec@${GOSEC_VERSION}
 
       - name: Restore release Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c
         with:
           go-version: "1.26.3"
 
@@ -67,7 +67,7 @@ jobs:
         run: make release-final-check
 
       - name: Upload release manifest
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: kernel-release-manifest
           path: |
@@ -75,7 +75,7 @@ jobs:
             release/manifest/*.json.sha256
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65
         with:
           files: |
             release/manifest/*.json
