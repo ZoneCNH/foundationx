@@ -31,6 +31,22 @@ jobs:
           restore-keys: |
             go-tools-${{ runner.os }}-release-
 
+      - name: Setup Go for pinned gosec
+        uses: actions/setup-go@v6
+        with:
+          go-version: "1.23"
+
+      - name: Install pinned gosec
+        run: |
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+          source .github/versions.env
+          go install github.com/securego/gosec/v2/cmd/gosec@${GOSEC_VERSION}
+
+      - name: Restore release Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: "1.26.3"
+
       - name: Install release gate tools
         run: |
           echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
