@@ -14,7 +14,7 @@ Full Goal Runtime v3.1 以 `cmd/goalcli` 作为 Go gate runtime。Makefile targe
 | Unit | `GOWORK=off make test` | 单元和示例 smoke |
 | Race | `GOWORK=off make race` | 并发安全基线 |
 | Boundary | `GOWORK=off make boundary` | 模块边界和模板禁止项 |
-| Security | `GOWORK=off make security` | 默认 secret scan；`XLIB_ENABLE_VULNCHECK=1` 时先运行 `govulncheck` |
+| Security | `GOWORK=off make security` | 默认 secret scan；`XLIB_ENABLE_VULNCHECK=1` 且一周窗口到期，或 `XLIB_FORCE_VULNCHECK=1` 时先运行 `govulncheck` |
 | Contracts | `GOWORK=off make contracts` | schema、metrics 和 manifest contract |
 | Docs Check | `GOWORK=off make docs-check` | 文档、链接、当前命名、下游同步策略、v3.1 runtime 和 release protocol |
 | Integration | `GOWORK=off make integration` | generator 和 downstream smoke |
@@ -24,6 +24,7 @@ Full Goal Runtime v3.1 以 `cmd/goalcli` 作为 Go gate runtime。Makefile targe
 | Score | `GOWORK=off make score` / `GOWORK=off go run ./cmd/goalcli score --min 9.8` | 校验 v3.1 gate runtime、CI 和文档契约一致性 |
 | Evidence | `CHECK_STATUS=passed GOWORK=off make evidence` | 生成 release manifest |
 | Release Evidence | `RELEASE_EVIDENCE_REQUIRE_PASSED=1 GOWORK=off make release-evidence-check` | 校验 manifest 与仓库事实 |
+| Adoption Check | `GOWORK=off make adoption-check` | 在渲染 downstream 仓库内验证 Repository Governance Pack、`xlib-standard.lock`、本地 hooks、GitHub workflow、main ruleset、`mk/governance.mk` 和 harness gate；在标准源仓库内不要求 downstream lock，但仍验证 main ruleset 禁止 bypass 且要求 `adoption-check`、`governance-check` 和 `release-check` |
 
 
 ## Goal v2.9.3 Governance Gate
@@ -32,7 +33,7 @@ Full Goal Runtime v3.1 以 `cmd/goalcli` 作为 Go gate runtime。Makefile targe
 | --- | --- | --- |
 | P0 Governance | `XLIB_CONTEXT=local_write GOWORK=off make governance-check` | 执行 main/worktree/evidence/boundary/security/CLI/registry/Makefile baseline；禁止 x.go imports 与真实 secrets。 |
 | P1 Governance Dry Run | `GOWORK=off make p1-governance-check` | 验证 policy schema、GitHub settings intent、toolchain、Evidence artifacts、naming、install/upgrade runtime 与 release-ready 文档，不读取外部 secrets。 |
-| P2 Runtime Dry Run | `GOWORK=off make p2-runtime-check` | 验证 standard-source/l0-kernel conformance、pack-standard/pack-gate/pack-evidence、downstream patch-only、runtime-file-ownership 和 execution-context。 |
+| P2 Runtime Dry Run | `GOWORK=off make p2-runtime-check` | 验证 standard-source/l0-kernel conformance、pack-standard/pack-gate/pack-evidence、downstream patch-only、adoption-check、runtime-file-ownership 和 execution-context。 |
 
 这些 target 是 `docs/goal/goal.md` v2.9.3 可执行方案的验收入口；CI 通过 `GOWORK=off XLIB_CONTEXT=ci_pull_request make release-check` 覆盖 `governance-check`、`p1-governance-check` 与 `p2-runtime-check`，避免 workflow 层重复执行同一治理链。
 
@@ -88,7 +89,7 @@ Secret scan 会排除 `.git`、`.omc`、`.omx`、`.worktree` 和 `vendor` 等本
 
 ## Workflow Supply Chain Gate
 
-CI、Release Check、Integration 和 Security workflow 引用的第三方 Action 必须固定为 40 位 commit SHA，并保留来源 tag 注释。`govulncheck` 仅在 `XLIB_ENABLE_VULNCHECK=1` 时安装，且必须使用固定版本；当前发布门禁基线是 `golang.org/x/vuln/cmd/govulncheck@v1.1.4`。
+CI、Release Check、Integration 和 Security workflow 引用的第三方 Action 必须固定为 40 位 commit SHA，并保留来源 tag 注释。CI、Release Check、Auto Patch 和 Docker Contract workflow 默认设置 `XLIB_ENABLE_VULNCHECK=0`；Security workflow 每周定时强制执行漏洞扫描。启用或定时运行 `govulncheck` 时必须使用固定版本；当前发布门禁基线是 `golang.org/x/vuln/cmd/govulncheck@v1.1.4`。
 
 ## Context Runtime v4 profile gates 发布门禁
 

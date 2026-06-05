@@ -1,11 +1,17 @@
 # 更新日志
 
+## v0.7.3 说明
+
+- 更新 xlib-standard reviewed baseline 至 `4463a60`，解除 live drift gate。
+- 明确本次上游变化只涉及 L2 docs/testing/templates/.agent/verification 面，kernel 不复制 L2 profile/template/generator 运行面。
+- 新增 `v0.7.3` 发布证据，保持 L0 stdlib-only 边界和 v0.7.2 标准文档同步结果。
+
 ## v0.7.2 说明
 
 - 全部 13 个包测试覆盖率达 100%，补齐 healthx、retryx、syncx、lifecycx、timex、validx、versionx、contracttest、internal/testutil 测试。
 - retryx 代码质量：魔法数字替换为 `maxDuration` 命名常量，`ShouldRetry` 补文档注释并展开为多行。
-- 同步 xlib-standard 上游至 `aa676a8e`（7 个标准文档更新 + 新增 `docker-toolchain-standard.md`）。
-- `check_docs.sh` 新增 4 个标准文档检查项。
+- 同步 xlib-standard 上游至 `80ecfac4`，补齐最新 `docs/standard/`、branch governance、weekly govulncheck、adoption-check 和 Docker toolchain 文档约束。
+- `check_docs.sh` 新增分支治理、adoption-check、weekly govulncheck 和 Docker toolchain 标准锚点检查。
 - 新增项目深度分析报告 `docs/review/PROJECT_DEEP_ANALYSIS_20260605.md`。
 
 ## v0.7.1 说明

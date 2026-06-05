@@ -12,8 +12,8 @@
 
 - 全部 13 个包测试覆盖率达 100%：补齐 healthx、retryx、syncx、lifecycx、timex、validx、versionx、contracttest、internal/testutil 测试。
 - retryx 代码质量：魔法数字替换为 `maxDuration` 命名常量，`ShouldRetry` 补文档注释并展开为多行。
-- 同步 xlib-standard 上游至 `aa676a8e`（7 个标准文档更新 + 新增 `docker-toolchain-standard.md`）。
-- `check_docs.sh` 新增 4 个标准文档检查项。
+- 同步 xlib-standard 上游至 `80ecfac4`（补齐 branch governance、weekly govulncheck、adoption-check 和 Docker toolchain 文档约束）。
+- `check_docs.sh` 新增分支治理、adoption-check、weekly govulncheck 和 Docker toolchain 标准锚点检查。
 - 合约测试更新 pinned commit 引用。
 - 新增项目深度分析报告 `docs/review/PROJECT_DEEP_ANALYSIS_20260605.md`。
 
@@ -45,6 +45,8 @@
 - `contracttest/contracttest_test.go`
 - `internal/testutil/testutil_test.go`
 - `contracts/release_docs_ci_test.go`
+- `release/standard-sync/latest.md`
+- `docs/standard/branch-governance.md`（新增）
 - `docs/standard/docker-toolchain-standard.md`（新增）
 - `docs/standard/downstream-compatibility.md`
 - `docs/standard/evidence-protocol.md`

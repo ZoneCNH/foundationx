@@ -23,6 +23,9 @@ v0.1.0 将旧单包模板收敛为 kernel/xlib-standard 多包内核；保留 L0
 | 2026-06-01 | `041a62f` | 初始基线建立 | pinned reviewed baseline |
 | 2026-06-04 | `ba8880a` | `docs/standard/` (23 files) | 仅同步标准文档；contracts/scripts 保留 kernel 超集 |
 | 2026-06-04 | `253e9e7` | `docs/standard/` (24 files) + `contracts_test.go` + `scripts/` (3 files) | 同步标准文档 + 共享脚本；Makefile 保留 kernel 独立定制 |
+| 2026-06-05 | `aa676a8` | `docs/standard/` + 本地 docs gate | 第三次同步至 live main；goalcli runtime surface 进入 watched paths，runtime dependency 仍 blocked |
+| 2026-06-05 | `80ecfac` | `docs/standard/` + 本地 docs gate | 同步 branch governance、weekly govulncheck、adoption-check 和 Docker toolchain 文档约束；上游实现面仅评审不复制 |
+| 2026-06-06 | `4463a60` | L2 standard/profile surface review | 仅更新 reviewed baseline；L2 docs/testing/templates/.agent 面不复制进 L0 kernel |
 
 ## 2026-06-04 同步详情
 
@@ -60,9 +63,30 @@ v0.1.0 将旧单包模板收敛为 kernel/xlib-standard 多包内核；保留 L0
 - `cmd/goalcli/`、`internal/goalcli/`、`internal/goalruntime/` — 按 ADR-20260604-001 管理
 - `.agent/` — kernel 有独立治理体系
 
+## 2026-06-05 第四次同步详情
+
+上游 `80ecfac420953666b5decd398ba5f93ce53ae3a5` 相比已复核基线 `aa676a8eba216bca212f5ce6073c7dda9cd7b077` 新增 5 个提交，主要变化是发布 `v0.4.14`、引入 unattended branch governance 文档、weekly vulnerability scanning 标准、goalcli adoption-check contract，以及 Docker toolchain 标准补充。
+
+本次处理结果：
+
+- 已同步：`docs/standard/` 全量 26 份文档，包括新增 `branch-governance.md` 和 adoption-check/weekly govulncheck/Docker toolchain 文本更新。
+- 已适配：`scripts/check_docs.sh` 只增加本仓库需要的标准文档锚点检查。
+- 保留本地实现：`Makefile`、`scripts/check_release_evidence.sh`、`scripts/check_secrets.sh`、`scripts/generate_manifest.sh` 与 `contracttest/` 仍使用 kernel 版本。
+- 禁止复制：上游 `.agent/`、`cmd/goalcli/`、`internal/goalcli/`、`internal/goalruntime/` 未进入 kernel；`adoption-check` 目前只是标准文档事实，不是 kernel runtime 依赖。
+
+## 2026-06-06 第五次同步详情
+
+上游 `4463a608fc1e9ff6f7f510c773acd79d13c54f0a` 相比已复核基线 `80ecfac420953666b5decd398ba5f93ce53ae3a5` 新增 4 个提交，变化集中在 L2 执行计划、L2 testing standard、L2 templates、`.agent` registries/schemas/evidence，以及 `scripts/verify_l2_standard.py` / `scripts/render_template.sh` 的 L2 渲染面。
+
+本次处理结果：
+
+- 已更新：`.standard-sync.yaml` reviewed baseline 和 `live_review`，用于解除 live drift gate。
+- 保留：kernel `docs/standard/`、contracts、Makefile、共享 release/documentation gates 和 Go runtime surface 均无上游变更可同步。
+- 不采用：`docs/l2/`、`docs/testing/l2-*`、`templates/l2/`、`.agent/registry`、`.agent/schemas`、`.agent/evidence`、`scripts/verify_l2_standard.py`、`scripts/render_template.sh` 未复制进 kernel；这些属于 L2/profile/template/agent 运行面，超出 L0 kernel 边界。
+
 ## Live main 复核说明
 
-2026-06-05 第三次同步后，baseline 已更新至 `aa676a8eba216bca212f5ce6073c7dda9cd7b077`，与 upstream live main 一致。`.standard-sync.yaml` 的 `live_review` 记录为 `synced-to-live-main`。
+2026-06-06 第五次同步后，baseline 已更新至 `4463a608fc1e9ff6f7f510c773acd79d13c54f0a`，与 upstream live main 一致。`.standard-sync.yaml` 的 `live_review` 记录为 `synced-to-live-main`，决策为 `baseline-updated-l2-surface-reviewed-not-adopted`。
 
 ## 定时检测说明
 

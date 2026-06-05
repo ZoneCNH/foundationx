@@ -8,7 +8,7 @@ kernel 是 Go L0 标准库扩展，面向跨项目复用的基础契约。本项
 
 定时检测通过 `.github/workflows/standard-sync-watch.yml` 每 4 小时执行一次，cron 为 UTC `17 */4 * * *`。该任务只运行 live drift 检测并上传报告；发现 upstream 漂移时让工作流失败，后续同步必须先评审 watched paths，再更新 `.standard-sync.yaml` 的固定 baseline。
 
-标准文档参考 `docs/standard/` 目录，包含 x.go 基础库体系的权威标准（分层、模块边界、发布标准、harness gates 等 23 份文档），从 `xlib-standard` 同步而来。kernel 的 contracts 和 scripts 已在上游基础上进化为超集，保留 kernel 版本。
+标准文档参考 `docs/standard/` 目录，包含 x.go 基础库体系的权威标准（分层、模块边界、发布标准、harness gates 等 26 份文档），从 `xlib-standard` 同步而来。kernel 的 contracts 和 scripts 已在上游基础上进化为超集，保留 kernel 版本。
 
 `goalcli` 属于上游 `xlib-standard` 的模板同步观察面，不是当前 `kernel` 的本地运行时依赖或发布 gate。只有当上游提供可被 `github.com/ZoneCNH/kernel` 合法导入的公开 Go package，并经过本仓库 L0 边界评审后，才可以把它纳入本地门禁；在此之前不得用未使用的 `go.mod require`、复制 `cmd/internal` 代码或文档声明冒充完成。
 

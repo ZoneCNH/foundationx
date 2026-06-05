@@ -42,6 +42,7 @@ required_files=(
   docs/standard/module-boundary.md
   docs/standard/harness-gates.md
   docs/standard/release-standard.md
+  docs/standard/branch-governance.md
   docs/standard/security-and-secret-policy.md
   docs/standard/evidence-protocol.md
   docs/standard/docker-toolchain-standard.md
@@ -127,16 +128,24 @@ require_text docs/downstream-sync-policy.md "repository_rules_release_decision"
 
 require_text docs/standard/README.md "xlib-standard"
 require_text docs/standard/README.md "kernel"
+require_text docs/standard/README.md "branch-governance.md"
 require_text docs/standard/layering.md "L0"
 require_text docs/standard/module-boundary.md "\`kernel\` 禁止内容"
 require_text docs/standard/harness-gates.md "docs-check"
+require_text docs/standard/harness-gates.md "Adoption Check"
+require_text docs/standard/harness-gates.md "XLIB_FORCE_VULNCHECK=1"
 require_text docs/standard/release-standard.md "release/manifest/latest.json"
-require_text docs/standard/security-and-secret-policy.md "check_secrets.sh"
+require_text docs/standard/branch-governance.md "Unattended Branch Governance Runbook"
+require_text docs/standard/branch-governance.md "main == origin/main"
+require_text docs/standard/security-and-secret-policy.md "goalcli security"
+require_text docs/standard/security-and-secret-policy.md "XLIB_FORCE_VULNCHECK=1"
 require_text docs/standard/evidence-protocol.md "release/manifest/latest.json.sha256"
 
 require_text docs/standard/docker-toolchain-standard.md "GOWORK=off"
+require_text docs/standard/docker-toolchain-standard.md "python3-yaml"
 require_text docs/standard/downstream-compatibility.md "kernel"
 require_text docs/standard/goalcli-cli-contract.md "goalcli"
+require_text docs/standard/goalcli-cli-contract.md "adoption-check"
 require_text docs/standard/template-generation-contract.md "goalcli"
 
 require_text docs/governance/API_COMPATIBILITY_POLICY.md "public_api.snapshot"

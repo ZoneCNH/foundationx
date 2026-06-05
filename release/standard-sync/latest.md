@@ -1,15 +1,15 @@
 # kernel standard sync report
 
-- generated_at: 2026-06-04T20:06:39Z
+- generated_at: 2026-06-05T17:22:12Z
 - config: .standard-sync.yaml
 - source: ZoneCNH/xlib-standard
-- source_baseline_commit: aa676a8eba216bca212f5ce6073c7dda9cd7b077
-- source_baseline_date: 2026-06-05
+- source_baseline_commit: 4463a608fc1e9ff6f7f510c773acd79d13c54f0a
+- source_baseline_date: 2026-06-06
 - source_baseline_evidence: docs/xlib-standard-analysis.md
-- live_review_checked_at: 2026-06-05
-- live_review_commit: aa676a8eba216bca212f5ce6073c7dda9cd7b077
+- live_review_checked_at: 2026-06-06
+- live_review_commit: 4463a608fc1e9ff6f7f510c773acd79d13c54f0a
 - live_review_relation: synced-to-live-main
-- live_review_decision: baseline-updated-docs-standard-scripts-synced
+- live_review_decision: baseline-updated-l2-surface-reviewed-not-adopted
 - live_review_evidence: docs/xlib-standard-analysis.md
 - target: ZoneCNH/kernel
 - default_mode: local-pinned-baseline
@@ -85,8 +85,22 @@ Implementation surfaces scanned:
 
 - status: not-run
 - reason: default local-pinned-baseline mode avoids network access
-- last_reviewed_live_commit: aa676a8eba216bca212f5ce6073c7dda9cd7b077
-- last_review_decision: baseline-updated-docs-standard-scripts-synced
+- last_reviewed_live_commit: 4463a608fc1e9ff6f7f510c773acd79d13c54f0a
+- last_review_decision: baseline-updated-l2-surface-reviewed-not-adopted
+
+## Result
+
+- status: passed
+- required local standard evidence: passed
+- forbidden template tokens: passed
+
+## Live upstream check
+
+- status: run
+- source_ref: ZoneCNH/xlib-standard main
+- live_commit: 4463a608fc1e9ff6f7f510c773acd79d13c54f0a
+- pinned_baseline_commit: 4463a608fc1e9ff6f7f510c773acd79d13c54f0a
+- live drift: none
 
 ## Result
 
