@@ -1,6 +1,6 @@
 # kernel standard sync report
 
-- generated_at: 2026-06-05T17:22:12Z
+- generated_at: 2026-06-05T17:31:43Z
 - config: .standard-sync.yaml
 - source: ZoneCNH/xlib-standard
 - source_baseline_commit: 4463a608fc1e9ff6f7f510c773acd79d13c54f0a
@@ -87,20 +87,6 @@ Implementation surfaces scanned:
 - reason: default local-pinned-baseline mode avoids network access
 - last_reviewed_live_commit: 4463a608fc1e9ff6f7f510c773acd79d13c54f0a
 - last_review_decision: baseline-updated-l2-surface-reviewed-not-adopted
-
-## Result
-
-- status: passed
-- required local standard evidence: passed
-- forbidden template tokens: passed
-
-## Live upstream check
-
-- status: run
-- source_ref: ZoneCNH/xlib-standard main
-- live_commit: 4463a608fc1e9ff6f7f510c773acd79d13c54f0a
-- pinned_baseline_commit: 4463a608fc1e9ff6f7f510c773acd79d13c54f0a
-- live drift: none
 
 ## Result
 
