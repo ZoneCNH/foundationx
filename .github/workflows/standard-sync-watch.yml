@@ -2,7 +2,7 @@ name: kernel-standard-sync-watch
 
 on:
   schedule:
-    - cron: "17 3,15 * * *"
+    - cron: "17 3 * * 1"  # 每周一 03:17 UTC（从每天 2 次降为每周 1 次）
   workflow_dispatch:
 
 permissions:
