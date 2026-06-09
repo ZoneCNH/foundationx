@@ -1,0 +1,17 @@
+# kernel L0 admitted packages
+# Only packages listed here are allowed at L0 level.
+# 新增包必须经过 L0 审查并在此登记。
+#
+# 格式: <包名> # <职责简述>
+contextx    # 类型安全的 context key 和工具函数
+contracttest # 契约测试辅助断言
+errx        # 统一错误类型，含 kind/severity/retryable
+healthx     # 健康检查聚合
+lifecycx    # 组件生命周期管理（Start/Stop）
+obsx        # 极简可观测 no-op interface（Logger/Metrics/Tracer）
+retryx      # 重试策略（backoff/marker/max attempts）
+shutdownx   # 优雅关停 hook 管理
+syncx       # 并发原语（Semaphore/WorkerGroup）
+timex       # 时钟抽象（Real/Fixed/Fake）
+validx      # 前置条件/不变量断言
+versionx    # 构建信息和版本兼容性

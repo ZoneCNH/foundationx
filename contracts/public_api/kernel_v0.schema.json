@@ -1,0 +1,261 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/ZoneCNH/kernel/contracts/public_api/kernel_v0.schema.json",
+  "title": "kernel public API snapshot v0",
+  "description": "Declares all public types and functions exported by kernel L0 packages. Used by CI to detect API compatibility changes.",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "integer",
+      "const": 0,
+      "description": "Schema version"
+    },
+    "module": {
+      "type": "string",
+      "const": "github.com/ZoneCNH/kernel",
+      "description": "Go module path"
+    },
+    "packages": {
+      "type": "object",
+      "description": "Map of package name to its exported symbols",
+      "properties": {
+        "errx": {
+          "type": "object",
+          "properties": {
+            "types": {
+              "type": "array",
+              "items": { "type": "string" },
+              "const": ["ErrorKind", "Severity", "Error"]
+            },
+            "functions": {
+              "type": "array",
+              "items": { "type": "string" },
+              "const": ["NewError", "WrapError", "IsKind", "AsError"]
+            },
+            "constants": {
+              "type": "object",
+              "properties": {
+                "ErrorKind": {
+                  "type": "array",
+                  "items": { "type": "string" },
+                  "const": [
+                    "AlreadyExist", "Auth", "Canceled", "Config", "Conflict",
+                    "Connection", "Internal", "NotFound", "RateLimit",
+                    "Timeout", "Unavailable", "Validation"
+                  ]
+                },
+                "Severity": {
+                  "type": "array",
+                  "items": { "type": "string" },
+                  "const": ["Critical", "Error", "Info", "Warning"]
+                }
+              },
+              "required": ["ErrorKind", "Severity"]
+            }
+          },
+          "required": ["types", "functions", "constants"]
+        },
+        "lifecycx": {
+          "type": "object",
+          "properties": {
+            "types": {
+              "type": "array",
+              "items": { "type": "string" },
+              "const": ["Starter", "Closer", "Lifecycle", "Stopper", "Component", "Manager"]
+            },
+            "functions": {
+              "type": "array",
+              "items": { "type": "string" },
+              "const": ["NewManager"]
+            }
+          },
+          "required": ["types", "functions"]
+        },
+        "retryx": {
+          "type": "object",
+          "properties": {
+            "types": {
+              "type": "array",
+              "items": { "type": "string" },
+              "const": ["RetryPolicy"]
+            },
+            "functions": {
+              "type": "array",
+              "items": { "type": "string" },
+              "const": ["DefaultRetryPolicy", "ShouldRetry"]
+            }
+          },
+          "required": ["types", "functions"]
+        },
+        "obsx": {
+          "type": "object",
+          "properties": {
+            "types": {
+              "type": "array",
+              "items": { "type": "string" },
+              "const": [
+                "Field", "Logger", "Metrics", "Tracer", "Span",
+                "NoopLogger", "NoopMetrics", "NoopTracer", "NoopSpan",
+                "Sanitizer", "SecretString"
+              ]
+            },
+            "functions": {
+              "type": "array",
+              "items": { "type": "string" },
+              "const": ["NewSecretString"]
+            }
+          },
+          "required": ["types", "functions"]
+        },
+        "timex": {
+          "type": "object",
+          "properties": {
+            "types": {
+              "type": "array",
+              "items": { "type": "string" },
+              "const": ["Clock", "RealClock", "FixedClock", "FakeClock"]
+            },
+            "functions": {
+              "type": "array",
+              "items": { "type": "string" },
+              "const": ["NewRealClock", "NewFixedClock", "NewFakeClock"]
+            }
+          },
+          "required": ["types", "functions"]
+        },
+        "contextx": {
+          "type": "object",
+          "properties": {
+            "types": {
+              "type": "array",
+              "items": { "type": "string" },
+              "const": ["Key"]
+            },
+            "functions": {
+              "type": "array",
+              "items": { "type": "string" },
+              "const": [
+                "NewKey", "WithValue", "Value", "HasDeadline",
+                "DeadlineRemaining", "IsDone", "CancelCause"
+              ]
+            }
+          },
+          "required": ["types", "functions"]
+        },
+        "validx": {
+          "type": "object",
+          "properties": {
+            "types": {
+              "type": "array",
+              "items": { "type": "string" },
+              "const": []
+            },
+            "functions": {
+              "type": "array",
+              "items": { "type": "string" },
+              "const": ["Precondition", "Invariant", "RequireNonEmpty"]
+            }
+          },
+          "required": ["types", "functions"]
+        },
+        "healthx": {
+          "type": "object",
+          "properties": {
+            "types": {
+              "type": "array",
+              "items": { "type": "string" },
+              "const": ["HealthStatusValue", "HealthStatus", "HealthChecker", "Probe"]
+            },
+            "functions": {
+              "type": "array",
+              "items": { "type": "string" },
+              "const": ["NewHealthStatus", "Aggregate", "AggregateWithClock"]
+            },
+            "constants": {
+              "type": "object",
+              "properties": {
+                "HealthStatusValue": {
+                  "type": "array",
+                  "items": { "type": "string" },
+                  "const": ["Healthy", "Degraded", "Unhealthy"]
+                }
+              },
+              "required": ["HealthStatusValue"]
+            }
+          },
+          "required": ["types", "functions"]
+        },
+        "syncx": {
+          "type": "object",
+          "properties": {
+            "types": {
+              "type": "array",
+              "items": { "type": "string" },
+              "const": ["Limiter", "SemaphoreLimiter", "WorkerGroup"]
+            },
+            "functions": {
+              "type": "array",
+              "items": { "type": "string" },
+              "const": ["NewSemaphoreLimiter", "NewWorkerGroup"]
+            }
+          },
+          "required": ["types", "functions"]
+        },
+        "shutdownx": {
+          "type": "object",
+          "properties": {
+            "types": {
+              "type": "array",
+              "items": { "type": "string" },
+              "const": ["Hook", "HookFunc", "Manager"]
+            },
+            "functions": {
+              "type": "array",
+              "items": { "type": "string" },
+              "const": ["NewManager", "NotifyContext"]
+            }
+          },
+          "required": ["types", "functions"]
+        },
+        "versionx": {
+          "type": "object",
+          "properties": {
+            "types": {
+              "type": "array",
+              "items": { "type": "string" },
+              "const": ["BuildInfo", "VersionInfo", "Compatibility"]
+            },
+            "functions": {
+              "type": "array",
+              "items": { "type": "string" },
+              "const": ["NewBuildInfo", "NewVersionInfo"]
+            }
+          },
+          "required": ["types", "functions"]
+        },
+        "contracttest": {
+          "type": "object",
+          "properties": {
+            "types": {
+              "type": "array",
+              "items": { "type": "string" },
+              "const": []
+            },
+            "functions": {
+              "type": "array",
+              "items": { "type": "string" },
+              "const": ["AssertErrorKind", "AssertHealthStatus", "AssertJSONFields"]
+            }
+          },
+          "required": ["types", "functions"]
+        }
+      },
+      "required": [
+        "errx", "lifecycx", "retryx", "obsx", "timex",
+        "contextx", "validx", "healthx", "syncx", "shutdownx",
+        "versionx", "contracttest"
+      ]
+    }
+  },
+  "required": ["version", "module", "packages"]
+}
