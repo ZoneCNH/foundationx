@@ -65,6 +65,20 @@ jobs:
           go vet ./...
           go test -count=1 ./...
 
+      - name: Coverage Report
+        if: matrix.go-version == '1.26.3'
+        run: |
+          pkgs=$(GOWORK=off go list ./... | grep -v /examples | grep -v /scripts)
+          GOWORK=off go test -count=1 -coverprofile=coverage.out -covermode=atomic $pkgs
+
+      - name: Upload coverage
+        if: matrix.go-version == '1.26.3'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: kernel-coverage-report
+          path: coverage.out
+          if-no-files-found: warn
+
       - name: Generate evidence
         if: matrix.go-version == '1.26.3'
         run: make evidence

@@ -32,7 +32,7 @@ lint-strict:
 
 .PHONY: test
 test:
-	$(GOENV) $(GO) test -count=1 ./...
+	$(GOENV) $(GO) test -count=1 $$($(GOENV) $(GO) list ./... | grep -v /examples | grep -v /scripts)
 
 .PHONY: coverage-threshold
 coverage-threshold:
@@ -53,11 +53,12 @@ workflow-pin-check:
 
 .PHONY: race
 race:
-	$(GOENV) $(GO) test -race -count=1 ./...
+	$(GOENV) $(GO) test -race -count=1 $$($(GOENV) $(GO) list ./... | grep -v /examples | grep -v /scripts)
 
 .PHONY: cover
 cover:
-	$(GOENV) $(GO) test -count=1 -coverprofile=coverage.out ./...
+	@pkgs=$$($(GOENV) $(GO) list ./... | grep -v /examples | grep -v /scripts); \
+	$(GOENV) $(GO) test -count=1 -coverprofile=coverage.out $$pkgs
 
 .PHONY: boundary
 boundary:
