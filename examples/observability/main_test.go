@@ -2,6 +2,9 @@ package main
 
 import "testing"
 
-func TestCompile(t *testing.T) {
-	// Compile-only verification: if this test runs, the package builds successfully.
+func TestRun(t *testing.T) {
+	got := run()
+	if got != "***" {
+		t.Fatalf("run() = %q, want ***", got)
+	}
 }

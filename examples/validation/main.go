@@ -6,4 +6,10 @@ import (
 	"github.com/ZoneCNH/kernel/validx"
 )
 
-func main() { fmt.Println(validx.RequireNonEmpty("main", "name", "kernel") == nil) }
+func run() bool {
+	return validx.RequireNonEmpty("main", "name", "kernel") == nil
+}
+
+func main() {
+	fmt.Println(run())
+}

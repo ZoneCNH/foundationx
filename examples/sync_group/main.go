@@ -7,11 +7,18 @@ import (
 	"github.com/ZoneCNH/kernel/syncx"
 )
 
-func main() {
+func run() error {
 	limiter := syncx.NewSemaphoreLimiter(1)
-	_ = limiter.Acquire(context.Background())
+	if err := limiter.Acquire(context.Background()); err != nil {
+		return err
+	}
 	limiter.Release()
+
 	group := syncx.NewWorkerGroup(context.Background())
 	group.Go(func(context.Context) error { fmt.Println("work"); return nil })
-	_ = group.Wait()
+	return group.Wait()
+}
+
+func main() {
+	_ = run()
 }
