@@ -1,7 +1,24 @@
 package main
 
-import "testing"
+import (
+	"context"
+	"testing"
 
-func TestCompile(t *testing.T) {
-	// Compile-only verification: if this test runs, the package builds successfully.
+	"github.com/ZoneCNH/kernel/syncx"
+)
+
+func TestRun(t *testing.T) {
+	if err := run(); err != nil {
+		t.Fatalf("run() error: %v", err)
+	}
+}
+
+func TestRunAcquireCanceledContext(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	limiter := syncx.NewSemaphoreLimiter(1)
+	err := limiter.Acquire(ctx)
+	if err == nil {
+		t.Fatal("expected error from canceled context")
+	}
 }

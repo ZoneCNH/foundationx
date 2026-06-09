@@ -7,6 +7,15 @@ import (
 	"github.com/ZoneCNH/kernel/retryx"
 )
 
+func run() []time.Duration {
+	policy := retryx.RetryPolicy{MaxAttempts: 3, BaseDelay: 100 * time.Millisecond, MaxDelay: time.Second}
+	delays := make([]time.Duration, policy.MaxAttempts)
+	for attempt := 1; attempt <= policy.MaxAttempts; attempt++ {
+		delays[attempt-1] = policy.Delay(attempt)
+	}
+	return delays
+}
+
 func main() {
 	policy := retryx.RetryPolicy{MaxAttempts: 3, BaseDelay: 100 * time.Millisecond, MaxDelay: time.Second}
 	for attempt := 1; attempt <= policy.MaxAttempts; attempt++ {

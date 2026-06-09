@@ -1,7 +1,19 @@
 package main
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
-func TestCompile(t *testing.T) {
-	// Compile-only verification: if this test runs, the package builds successfully.
+func TestRun(t *testing.T) {
+	msg, isUnavailable, retryable := run()
+	if !strings.Contains(msg, "unavailable") {
+		t.Fatalf("error message = %q, want to contain 'unavailable'", msg)
+	}
+	if !isUnavailable {
+		t.Fatal("expected IsKind unavailable = true")
+	}
+	if !retryable {
+		t.Fatal("expected retryable = true")
+	}
 }

@@ -10,7 +10,7 @@ import (
 	"github.com/ZoneCNH/kernel/shutdownx"
 )
 
-func main() {
+func run() error {
 	mgr := shutdownx.NewManager()
 
 	mgr.Register(shutdownx.HookFunc{
@@ -40,7 +40,14 @@ func main() {
 
 	if err := mgr.Shutdown(context.Background()); err != nil {
 		fmt.Fprintf(os.Stderr, "shutdown error: %v\n", err)
-		os.Exit(1)
+		return err
 	}
 	fmt.Println("shutdown complete")
+	return nil
+}
+
+func main() {
+	if err := run(); err != nil {
+		os.Exit(1)
+	}
 }

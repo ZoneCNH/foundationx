@@ -8,7 +8,12 @@ import (
 	"github.com/ZoneCNH/kernel/errx"
 )
 
-func main() {
+func run() bool {
 	contracttest.AssertErrorKind(&testing.T{}, errx.NewError(errx.ErrorKindValidation, "example", "bad"), errx.ErrorKindValidation)
+	return true
+}
+
+func main() {
+	run()
 	fmt.Println("contract helper compiled")
 }

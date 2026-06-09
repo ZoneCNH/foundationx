@@ -7,8 +7,12 @@ import (
 	"github.com/ZoneCNH/kernel/obsx"
 )
 
-func main() {
+func run() string {
 	logger := obsx.NoopLogger{}
 	logger.Info(context.Background(), "startup", obsx.Field{Key: "scope", Value: "demo"})
-	fmt.Println(obsx.SecretString("hidden"))
+	return fmt.Sprint(obsx.SecretString("hidden"))
+}
+
+func main() {
+	fmt.Println(run())
 }

@@ -7,10 +7,17 @@ import (
 	"github.com/ZoneCNH/kernel/timex"
 )
 
-func main() {
+func run() (string, bool) {
 	fixed := timex.NewFixedClock(time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC))
 	real := timex.NewRealClock()
 
-	fmt.Println("fixed:", fixed.Now().Format(time.RFC3339))
-	fmt.Println("real_set:", !real.Now().IsZero())
+	fixedStr := fixed.Now().Format(time.RFC3339)
+	realNotZero := !real.Now().IsZero()
+	return fixedStr, realNotZero
+}
+
+func main() {
+	fixedStr, realNotZero := run()
+	fmt.Println("fixed:", fixedStr)
+	fmt.Println("real_set:", realNotZero)
 }
