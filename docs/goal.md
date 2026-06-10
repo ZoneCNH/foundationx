@@ -146,6 +146,8 @@ L3 Domain / Application
 | `syncx` | 并发安全原语、Once、WorkerGroup、Limiter 抽象 | 不隐藏资源生命周期 |
 | `versionx` | BuildInfo、Version、Compatibility metadata | 用于 release manifest 与集成诊断 |
 | `contracttest` | 基础库契约测试工具 | 只服务 L0/L1/L2 的 contract 验证 |
+| `contextx` | 类型安全上下文键和值存储 | 不承载业务上下文或隐式全局状态 |
+| `shutdownx` | LIFO 关闭钩子与信号绑定 | 不实现服务容器或基础设施适配器 |
 
 ### 5.4 L0 必须排除
 
