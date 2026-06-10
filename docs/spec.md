@@ -10,4 +10,4 @@ kernel/xlib-standard v0.1.0 的 L0 范围包含错误、时间、生命周期、
 
 ## 发布门禁说明
 
-正式发布使用 `make release-final-check`，并保留生成证据。
+正式发布使用 `make release-preflight VERSION=<目标版本>`，它要求 clean `main`、`HEAD == origin/main`、目标 tag 不存在、`CHANGELOG.md` 有对应版本标题，并串联底层组合门禁 `make release-final-check`。

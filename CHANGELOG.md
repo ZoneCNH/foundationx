@@ -1,5 +1,12 @@
 # 更新日志
 
+## v0.8.1 说明
+
+- 修复 `syncx.Group.Acquire` 在等待信号量前遇到已取消 context 时错误递增 `active` 的问题，避免 `Release` 卡死。
+- 将 `release-preflight` 从 `release-final-check` 别名升级为正式发布闸门，强制在 clean `main`、`HEAD == origin/main`、目标 tag 不存在且 `CHANGELOG.md` 存在版本标题时运行。
+- 移除发布 manifest 与证据检查对 `v0.1.0` 的静默回退，要求显式 `VERSION`、语义化 tag ref 或 HEAD 语义化 tag。
+- 补充 v0.8.1 发布候选证据，记录本次 patch release 的验证范围。
+
 ## v0.8.0 说明
 
 - 语义硬化：`errx.IsKind` 与 `retryx.ShouldRetry` 现在遍历 wrapped/joined error tree，迁移时请确认依赖“只检查首个错误分支”的调用方预期。

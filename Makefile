@@ -177,7 +177,8 @@ boundary-check: boundary
 evidence-check: evidence release-evidence-check
 
 .PHONY: release-preflight
-release-preflight: release-final-check
+release-preflight:
+	./scripts/release_preflight.sh
 
 .PHONY: primitive-check
 primitive-check:

@@ -79,6 +79,73 @@ func TestDependencyAutomationEvidenceKeepsRemoteGapExplicit(t *testing.T) {
 	assertContains(t, renovate, `"github-actions"`)
 }
 
+func TestReadOnlyGitGovernanceAnalysisSurfacesArePinned(t *testing.T) {
+	branchGovernance := readRepoText(t, filepath.Join("docs", "standard", "branch-governance.md"))
+	dependencyEvidence := readRepoText(t, filepath.Join("docs", "evidence", "dependency-automation.md"))
+	secretScanner := readRepoText(t, filepath.Join("scripts", "check_secrets.sh"))
+
+	for _, want := range []string{
+		`exclude_dirs = {".git", ".omc", ".omx", ".worktree", "vendor", "inbox", "reports"}`,
+		`["git", "-C", str(root), "ls-files", "-z"]`,
+		"fallback_files",
+		"should_scan",
+	} {
+		assertContains(t, secretScanner, want)
+	}
+	for _, forbidden := range []string{
+		"git add",
+		"git commit",
+		"git push",
+		"git branch -d",
+		"git branch -D",
+		"git update-ref",
+	} {
+		assertNotContains(t, secretScanner, forbidden)
+	}
+
+	for _, want := range []string{
+		"`gh run list --limit 10`",
+		"`gh pr list --state all --limit 30`",
+		"不使用本地配置冒充远程执行",
+		"未发现 Dependabot 或 Renovate PR",
+	} {
+		assertContains(t, dependencyEvidence, want)
+	}
+	for _, forbidden := range []string{
+		"gh pr merge",
+		"gh pr close",
+		"gh pr edit",
+		"gh pr comment",
+		"gh api -X POST",
+		"gh api -X PUT",
+		"gh api -X PATCH",
+		"gh api -X DELETE",
+	} {
+		assertNotContains(t, dependencyEvidence, forbidden)
+	}
+
+	for _, want := range []string{
+		"Destructive branch actions are leader-owned",
+		"Workers must stop before running these destructive commands",
+		"git branch --format='%(refname:short) %(objectname:short) %(committerdate:iso8601) %(upstream:short)'",
+		"git branch -r --format='%(refname:short) %(objectname:short) %(committerdate:iso8601)'",
+		"git log --oneline --decorate --left-right main...<branch>",
+		"git diff --stat main...<branch>",
+		"git diff --name-status main...<branch>",
+		"`safe-merge`",
+		"`backup-only`",
+		"`duplicate`",
+		"`stale-worthless`",
+		"`blocked`",
+		"Do not use branch age alone as a deletion reason",
+		"Branch governance evidence:",
+		"main == origin/main",
+		"XLIB_CONTEXT=release_verify GOWORK=off make release-preflight VERSION=<next-version>",
+	} {
+		assertContains(t, branchGovernance, want)
+	}
+}
+
 func TestReleaseCheckRunsEvidenceAfterCIGates(t *testing.T) {
 	makefile := readRepoText(t, "Makefile")
 	targetBody := makeTargetBody(t, makefile, "release-check")
@@ -504,24 +571,63 @@ func TestReleaseCleanCheckScriptBehavior(t *testing.T) {
 }
 
 func TestReleaseEvidenceScriptsResolveTagVersionConsistently(t *testing.T) {
+	versionHelper := readRepoText(t, filepath.Join("scripts", "release_version.sh"))
+	for _, want := range []string{
+		"VERSION:-",
+		"GITHUB_REF_NAME:-",
+		"^v[0-9]+\\.[0-9]+\\.[0-9]+$",
+		"git tag --points-at HEAD --list 'v[0-9]*.[0-9]*.[0-9]*'",
+		"VERSION is required unless running on a semantic version tag or tagged HEAD",
+	} {
+		assertContains(t, versionHelper, want)
+	}
+	assertNotContains(t, versionHelper, "printf 'v0.1.0'")
+
 	for _, path := range []string{
 		filepath.Join("scripts", "generate_manifest.sh"),
 		filepath.Join("scripts", "check_release_evidence.sh"),
 	} {
 		script := readRepoText(t, path)
 		for _, want := range []string{
-			"VERSION:-",
-			"GITHUB_REF_NAME:-",
-			"^v[0-9]+\\.[0-9]+\\.[0-9]+",
-			"git tag --points-at HEAD --list 'v[0-9]*.[0-9]*.[0-9]*'",
-			"printf 'v0.1.0'",
+			"source \"$ROOT/scripts/release_version.sh\"",
+			"VERSION=\"$(resolve_release_version)\"",
+			"require_release_version_format \"$VERSION\"",
 		} {
 			assertContains(t, script, want)
 		}
+		assertNotContains(t, script, "printf 'v0.1.0'")
+		assertNotContains(t, script, "resolve_version()")
 	}
 
 	release := readRepoText(t, filepath.Join(".github", "workflows", "release.yml"))
 	assertContains(t, release, "VERSION: ${{ github.ref_name }}")
+}
+
+func TestReleasePreflightEnforcesMainBranchAndTagGuards(t *testing.T) {
+	makefile := readRepoText(t, "Makefile")
+	preflight := readRepoText(t, filepath.Join("scripts", "release_preflight.sh"))
+
+	assertContains(t, makefile, "release-preflight:")
+	assertContains(t, makefile, "\t./scripts/release_preflight.sh")
+	for _, want := range []string{
+		"resolve_release_version",
+		"require_release_version_format \"$VERSION\"",
+		"require_main_branch",
+		"release-preflight must run on main",
+		"require_clean_worktree",
+		"make release-clean-check",
+		"require_origin_main_head",
+		"git fetch --quiet origin main --tags",
+		"HEAD must match origin/main before release",
+		"require_absent_tag",
+		"local tag already exists: $VERSION",
+		"remote tag already exists: $VERSION",
+		"require_changelog_entry",
+		"CHANGELOG.md is missing heading for $VERSION",
+		"make release-final-check",
+	} {
+		assertContains(t, preflight, want)
+	}
 }
 
 func TestCIWorkflowsPreserveReleaseEvidenceGates(t *testing.T) {
@@ -759,5 +865,13 @@ func assertContains(t *testing.T, text string, want string) {
 
 	if !strings.Contains(text, want) {
 		t.Fatalf("expected text to contain %q", want)
+	}
+}
+
+func assertNotContains(t *testing.T, text string, forbidden string) {
+	t.Helper()
+
+	if strings.Contains(text, forbidden) {
+		t.Fatalf("expected text not to contain %q", forbidden)
 	}
 }

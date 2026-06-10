@@ -8,28 +8,11 @@ PINS="$ROOT/.github/versions.env"
 [ -s "$PINS" ] || { echo "ERROR: missing $PINS"; exit 1; }
 # shellcheck disable=SC1090
 source "$PINS"
+# shellcheck source=scripts/release_version.sh
+source "$ROOT/scripts/release_version.sh"
 
-resolve_version() {
-  if [ -n "${VERSION:-}" ]; then
-    printf '%s' "$VERSION"
-    return
-  fi
-  if [ -n "${GITHUB_REF_NAME:-}" ] && printf '%s' "$GITHUB_REF_NAME" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+'; then
-    printf '%s' "$GITHUB_REF_NAME"
-    return
-  fi
-  if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    local tag
-    tag="$(git tag --points-at HEAD --list 'v[0-9]*.[0-9]*.[0-9]*' | sort | tail -n 1)"
-    if [ -n "$tag" ]; then
-      printf '%s' "$tag"
-      return
-    fi
-  fi
-  printf 'v0.1.0'
-}
-
-VERSION="$(resolve_version)"
+VERSION="$(resolve_release_version)"
+require_release_version_format "$VERSION"
 MANIFEST="release/manifest/${VERSION}.json"
 LATEST="release/manifest/latest.json"
 MANIFEST_SHA256="${MANIFEST}.sha256"

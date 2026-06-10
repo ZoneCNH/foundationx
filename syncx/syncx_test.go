@@ -47,6 +47,15 @@ func TestSemaphoreLimiterDefaultsToOnePermit(t *testing.T) {
 	l.Release()
 }
 
+func TestSemaphoreLimiterRejectsCanceledContextBeforeAvailablePermit(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	l := NewSemaphoreLimiter(1)
+	if err := l.Acquire(ctx); !errors.Is(err, context.Canceled) {
+		t.Fatalf("want canceled context error, got %v", err)
+	}
+}
+
 func TestWorkerGroupErrorCancels(t *testing.T) {
 	want := errors.New("boom")
 	g := NewWorkerGroup(context.Background())

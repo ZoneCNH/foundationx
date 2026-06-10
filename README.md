@@ -29,7 +29,7 @@ kernel 是 Go L0 标准库扩展，面向跨项目复用的基础契约。本项
 
 ## 验证命令说明
 
-本地发布前运行：`make release-preflight VERSION=v0.7.0`，后续版本替换 `VERSION` 为目标 tag。常用门禁包括 `make test`、`make lint`、`make docs-check`、`make boundary-check`、`make evidence-check`、`make primitive-check`、`make kernel-admission-check`、`make release-check` 和 `make release-final-check`。
+本地发布前运行：`make release-preflight VERSION=vX.Y.Z`，后续版本替换 `VERSION` 为目标 tag。该命令必须在 clean `main` 且 `HEAD == origin/main` 的 worktree 执行，并确认目标 tag 不存在、`CHANGELOG.md` 已有对应版本标题。常用门禁包括 `make test`、`make lint`、`make docs-check`、`make boundary-check`、`make evidence-check`、`make primitive-check`、`make kernel-admission-check`、`make release-check` 和 `make release-final-check`。
 
 ## 发布证据说明
 

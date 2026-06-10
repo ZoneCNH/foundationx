@@ -8,28 +8,10 @@ PINS="$ROOT/.github/versions.env"
 [ -s "$PINS" ] || { echo "missing $PINS" >&2; exit 1; }
 # shellcheck disable=SC1090
 source "$PINS"
+# shellcheck source=scripts/release_version.sh
+source "$ROOT/scripts/release_version.sh"
 
 mkdir -p release/manifest
-
-resolve_version() {
-  if [ -n "${VERSION:-}" ]; then
-    printf '%s' "$VERSION"
-    return
-  fi
-  if [ -n "${GITHUB_REF_NAME:-}" ] && printf '%s' "$GITHUB_REF_NAME" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+'; then
-    printf '%s' "$GITHUB_REF_NAME"
-    return
-  fi
-  if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    local tag
-    tag="$(git tag --points-at HEAD --list 'v[0-9]*.[0-9]*.[0-9]*' | sort | tail -n 1)"
-    if [ -n "$tag" ]; then
-      printf '%s' "$tag"
-      return
-    fi
-  fi
-  printf 'v0.1.0'
-}
 
 sha256_file() {
   if command -v sha256sum >/dev/null 2>&1; then
@@ -115,7 +97,8 @@ run_release_gates() {
   run_gate ./scripts/ci/primitive-check.sh
 }
 
-VERSION="$(resolve_version)"
+VERSION="$(resolve_release_version)"
+require_release_version_format "$VERSION"
 OUT="release/manifest/${VERSION}.json"
 LATEST="release/manifest/latest.json"
 LATEST_SHA256="${LATEST}.sha256"
