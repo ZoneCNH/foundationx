@@ -79,6 +79,73 @@ func TestDependencyAutomationEvidenceKeepsRemoteGapExplicit(t *testing.T) {
 	assertContains(t, renovate, `"github-actions"`)
 }
 
+func TestReadOnlyGitGovernanceAnalysisSurfacesArePinned(t *testing.T) {
+	branchGovernance := readRepoText(t, filepath.Join("docs", "standard", "branch-governance.md"))
+	dependencyEvidence := readRepoText(t, filepath.Join("docs", "evidence", "dependency-automation.md"))
+	secretScanner := readRepoText(t, filepath.Join("scripts", "check_secrets.sh"))
+
+	for _, want := range []string{
+		`exclude_dirs = {".git", ".omc", ".omx", ".worktree", "vendor", "inbox", "reports"}`,
+		`["git", "-C", str(root), "ls-files", "-z"]`,
+		"fallback_files",
+		"should_scan",
+	} {
+		assertContains(t, secretScanner, want)
+	}
+	for _, forbidden := range []string{
+		"git add",
+		"git commit",
+		"git push",
+		"git branch -d",
+		"git branch -D",
+		"git update-ref",
+	} {
+		assertNotContains(t, secretScanner, forbidden)
+	}
+
+	for _, want := range []string{
+		"`gh run list --limit 10`",
+		"`gh pr list --state all --limit 30`",
+		"不使用本地配置冒充远程执行",
+		"未发现 Dependabot 或 Renovate PR",
+	} {
+		assertContains(t, dependencyEvidence, want)
+	}
+	for _, forbidden := range []string{
+		"gh pr merge",
+		"gh pr close",
+		"gh pr edit",
+		"gh pr comment",
+		"gh api -X POST",
+		"gh api -X PUT",
+		"gh api -X PATCH",
+		"gh api -X DELETE",
+	} {
+		assertNotContains(t, dependencyEvidence, forbidden)
+	}
+
+	for _, want := range []string{
+		"Destructive branch actions are leader-owned",
+		"Workers must stop before running these destructive commands",
+		"git branch --format='%(refname:short) %(objectname:short) %(committerdate:iso8601) %(upstream:short)'",
+		"git branch -r --format='%(refname:short) %(objectname:short) %(committerdate:iso8601)'",
+		"git log --oneline --decorate --left-right main...<branch>",
+		"git diff --stat main...<branch>",
+		"git diff --name-status main...<branch>",
+		"`safe-merge`",
+		"`backup-only`",
+		"`duplicate`",
+		"`stale-worthless`",
+		"`blocked`",
+		"Do not use branch age alone as a deletion reason",
+		"Branch governance evidence:",
+		"main == origin/main",
+		"XLIB_CONTEXT=release_verify GOWORK=off make release-preflight VERSION=<next-version>",
+	} {
+		assertContains(t, branchGovernance, want)
+	}
+}
+
 func TestReleaseCheckRunsEvidenceAfterCIGates(t *testing.T) {
 	makefile := readRepoText(t, "Makefile")
 	targetBody := makeTargetBody(t, makefile, "release-check")
@@ -759,5 +826,13 @@ func assertContains(t *testing.T, text string, want string) {
 
 	if !strings.Contains(text, want) {
 		t.Fatalf("expected text to contain %q", want)
+	}
+}
+
+func assertNotContains(t *testing.T, text string, forbidden string) {
+	t.Helper()
+
+	if strings.Contains(text, forbidden) {
+		t.Fatalf("expected text not to contain %q", forbidden)
 	}
 }
