@@ -239,6 +239,10 @@ func TestStandardDriftConfigAndScriptExposeOptionalLiveGate(t *testing.T) {
 		"git ls-remote \"https://github.com/$source_repo\" \"refs/heads/$source_branch\"",
 		"live upstream drift detected",
 		"live_network_mode: optional-fail-on-drift",
+		"REPORT_TARGET=\"$OUT_DIR/latest.md\"",
+		"REPORT_TMP=\"$(mktemp \"$OUT_DIR/latest.XXXXXX\")\"",
+		"publish_report()",
+		"generated_at: <generated_at>",
 	} {
 		assertContains(t, check, want)
 	}

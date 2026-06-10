@@ -47,12 +47,16 @@ func TestSemaphoreLimiterDefaultsToOnePermit(t *testing.T) {
 	l.Release()
 }
 
-func TestSemaphoreLimiterRejectsCanceledContextBeforeAvailablePermit(t *testing.T) {
+func TestSemaphoreLimiterRejectsAlreadyCanceledContext(t *testing.T) {
+	l := NewSemaphoreLimiter(1)
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	l := NewSemaphoreLimiter(1)
+
 	if err := l.Acquire(ctx); !errors.Is(err, context.Canceled) {
-		t.Fatalf("want canceled context error, got %v", err)
+		t.Fatalf("Acquire() error = %v, want context.Canceled", err)
+	}
+	if l.TryRelease() {
+		t.Fatal("canceled acquire must not consume a permit")
 	}
 }
 

@@ -6,7 +6,31 @@ cd "$ROOT"
 
 CONFIG=".standard-sync.yaml"
 OUT_DIR="release/standard-sync"
-REPORT="$OUT_DIR/latest.md"
+REPORT_TARGET="$OUT_DIR/latest.md"
+REPORT="$REPORT_TARGET"
+
+cleanup_report_tmp() {
+  if [ -n "${REPORT_TMP:-}" ] && [ -e "$REPORT_TMP" ]; then
+    rm -f "$REPORT_TMP"
+  fi
+}
+
+trap cleanup_report_tmp EXIT
+
+normalize_generated_at() {
+  sed -E 's/^- generated_at: .*/- generated_at: <generated_at>/' "$1"
+}
+
+publish_report() {
+  if [ -s "$REPORT_TARGET" ] &&
+    cmp -s <(normalize_generated_at "$REPORT_TARGET") <(normalize_generated_at "$REPORT"); then
+    rm -f "$REPORT"
+  else
+    mv "$REPORT" "$REPORT_TARGET"
+  fi
+  REPORT="$REPORT_TARGET"
+  REPORT_TMP=""
+}
 
 fail() {
   if [ -n "${REPORT:-}" ] && [ -d "$OUT_DIR" ]; then
@@ -17,6 +41,11 @@ fail() {
       echo "- status: failed"
       echo "- reason: $*"
     } >> "$REPORT"
+  fi
+  if [ -n "${REPORT_TMP:-}" ] && [ -e "$REPORT_TMP" ]; then
+    mv "$REPORT_TMP" "$REPORT_TARGET"
+    REPORT="$REPORT_TARGET"
+    REPORT_TMP=""
   fi
   echo "ERROR: $*" >&2
   exit 1
@@ -122,6 +151,8 @@ fi
 
 mkdir -p "$OUT_DIR"
 
+REPORT_TMP="$(mktemp "$OUT_DIR/latest.XXXXXX")"
+REPORT="$REPORT_TMP"
 generated_at="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
 {
   echo "# kernel standard sync report"
@@ -301,4 +332,5 @@ esac
   echo "- forbidden template tokens: passed"
 } >> "$REPORT"
 
+publish_report
 echo "standard drift local check passed"
