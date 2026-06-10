@@ -1,5 +1,13 @@
 # 更新日志
 
+## v0.9.0 说明
+
+- 完成 kernel P1 能力收敛，补齐 admission/public API contract、stdlib-only 边界与包级边界文档。
+- 提升 examples 回归覆盖率并修复覆盖率统计口径，默认 CI 只统计库包，避免示例和脚本稀释 release gate。
+- 强化发布证据链：`release-preflight`、manifest/evidence 检查和 stale evidence 防护要求目标版本、当前 HEAD 与工作区状态一致。
+- 更新 GitHub Actions 依赖 pin：`actions/cache@5.0.5`、`softprops/action-gh-release@3.0.0`、`github/codeql-action/upload-sarif@4.36.2`，以适配当前 runner。
+- 本次发布按显式指令绕过 hosted CI；发布依据为本地 `VERSION=v0.9.0 GOWORK=off make release-preflight` 门禁。
+
 ## v0.8.1 说明
 
 - 修复 `syncx.Group.Acquire` 在等待信号量前遇到已取消 context 时错误递增 `active` 的问题，避免 `Release` 卡死。
