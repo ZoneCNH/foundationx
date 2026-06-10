@@ -20,6 +20,9 @@ func NewSemaphoreLimiter(n int) *SemaphoreLimiter {
 	return &SemaphoreLimiter{ch: make(chan struct{}, n)}
 }
 func (l *SemaphoreLimiter) Acquire(ctx context.Context) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	select {
 	case l.ch <- struct{}{}:
 		return nil

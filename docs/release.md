@@ -2,7 +2,7 @@
 
 ## 范围说明
 
-发布前执行 `make release-preflight VERSION=v0.2.0`，提交后生成 manifest 并检查工作区清洁。后续版本替换 `VERSION` 为目标 tag。
+发布前执行 `make release-preflight VERSION=<目标版本>`，提交后生成 manifest 并检查工作区清洁。正式发布检查必须在干净工作区运行；不要把历史版本示例误读为当前目标 tag。
 
 ## 验证说明
 
