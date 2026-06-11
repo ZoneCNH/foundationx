@@ -1,6 +1,10 @@
 # Template Generation Contract
 
-`scripts/render_template.sh` 是从 `xlib-standard` 生成具体基础库的唯一标准入口。旧 `baselib-template` module path 只作为迁移扫描项和兼容说明保留，不能作为新主身份。
+> ⚠️ **身份声明**：`kernel` 是 L0 stdlib-only 原语库，不是模板源。
+> 本文档是 `xlib-standard` 标准合约的本地参考副本。模板生成的权威定义属于 `xlib-standard`。
+> kernel 不包含 `scripts/render_template.sh`，也不承担模板渲染职责。
+
+`scripts/render_template.sh` 是从 `xlib-standard` 生成具体基础库的唯一标准入口。
 
 ## 默认示例
 
