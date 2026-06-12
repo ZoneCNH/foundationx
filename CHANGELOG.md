@@ -1,6 +1,6 @@
 # 更新日志
 
-## v1.0.0 (2026-06-12)
+## v1.0.0 发布说明 (2026-06-12)
 
 - **12 子包初始稳定发布**：lifecycx / errx / healthx / obsx / retryx / shutdownx / syncx / timex / validx / versionx / contextx / contracttest
 - **stdlib-only**：零外部依赖，仅使用 Go 标准库，CI gate 强制执行
