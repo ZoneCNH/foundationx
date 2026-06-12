@@ -1,65 +1,65 @@
 PASS
-ok  	github.com/ZoneCNH/kernel/contextx	0.004s
+ok  	github.com/ZoneCNH/kernel/contextx	0.003s
 PASS
 ok  	github.com/ZoneCNH/kernel/contracttest	0.003s
 goos: linux
 goarch: amd64
 pkg: github.com/ZoneCNH/kernel/errx
 cpu: Intel(R) Xeon(R) W-10885M CPU @ 2.40GHz
-BenchmarkNewError-16         	1000000000	         0.3049 ns/op	       0 B/op	       0 allocs/op
-BenchmarkNewError-16         	1000000000	         0.3017 ns/op	       0 B/op	       0 allocs/op
-BenchmarkNewError-16         	1000000000	         0.3276 ns/op	       0 B/op	       0 allocs/op
-BenchmarkIsKindShallow-16    	185079319	         6.604 ns/op	       0 B/op	       0 allocs/op
-BenchmarkIsKindShallow-16    	179339298	         6.302 ns/op	       0 B/op	       0 allocs/op
-BenchmarkIsKindShallow-16    	195317853	         6.322 ns/op	       0 B/op	       0 allocs/op
-BenchmarkIsKindDeep5-16      	34405023	        35.22 ns/op	       0 B/op	       0 allocs/op
-BenchmarkIsKindDeep5-16      	22177484	        57.82 ns/op	       0 B/op	       0 allocs/op
-BenchmarkIsKindDeep5-16      	30886624	        34.80 ns/op	       0 B/op	       0 allocs/op
-BenchmarkIsKindJoin-16       	65650221	        18.90 ns/op	       0 B/op	       0 allocs/op
-BenchmarkIsKindJoin-16       	61743176	        19.43 ns/op	       0 B/op	       0 allocs/op
-BenchmarkIsKindJoin-16       	56963272	        20.59 ns/op	       0 B/op	       0 allocs/op
+BenchmarkNewError-16         	1000000000	         0.3627 ns/op	       0 B/op	       0 allocs/op
+BenchmarkNewError-16         	1000000000	         0.3383 ns/op	       0 B/op	       0 allocs/op
+BenchmarkNewError-16         	1000000000	         0.3595 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIsKindShallow-16    	194935974	         6.243 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIsKindShallow-16    	187762474	         6.366 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIsKindShallow-16    	187975353	         6.492 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIsKindDeep5-16      	32467417	        50.27 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIsKindDeep5-16      	33801412	        33.93 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIsKindDeep5-16      	29179762	        42.10 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIsKindJoin-16       	51779156	        19.78 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIsKindJoin-16       	60942022	        18.53 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIsKindJoin-16       	65101902	        18.51 ns/op	       0 B/op	       0 allocs/op
 PASS
-ok  	github.com/ZoneCNH/kernel/errx	14.865s
+ok  	github.com/ZoneCNH/kernel/errx	16.238s
 goos: linux
 goarch: amd64
 pkg: github.com/ZoneCNH/kernel/healthx
 cpu: Intel(R) Xeon(R) W-10885M CPU @ 2.40GHz
-BenchmarkAggregate10-16        	 2621713	       384.2 ns/op	     336 B/op	       2 allocs/op
-BenchmarkAggregate10-16        	 3035911	       392.2 ns/op	     336 B/op	       2 allocs/op
-BenchmarkAggregate10-16        	 2983285	       442.3 ns/op	     336 B/op	       2 allocs/op
-BenchmarkNewHealthStatus-16    	90466244	        12.81 ns/op	       0 B/op	       0 allocs/op
-BenchmarkNewHealthStatus-16    	94071547	        12.91 ns/op	       0 B/op	       0 allocs/op
-BenchmarkNewHealthStatus-16    	85529163	        12.81 ns/op	       0 B/op	       0 allocs/op
+BenchmarkAggregate10-16        	 3223386	       377.2 ns/op	     336 B/op	       2 allocs/op
+BenchmarkAggregate10-16        	 3228433	       406.2 ns/op	     336 B/op	       2 allocs/op
+BenchmarkAggregate10-16        	 3118544	       415.4 ns/op	     336 B/op	       2 allocs/op
+BenchmarkNewHealthStatus-16    	92606898	        13.64 ns/op	       0 B/op	       0 allocs/op
+BenchmarkNewHealthStatus-16    	76506415	        19.58 ns/op	       0 B/op	       0 allocs/op
+BenchmarkNewHealthStatus-16    	92223844	        12.22 ns/op	       0 B/op	       0 allocs/op
 PASS
-ok  	github.com/ZoneCNH/kernel/healthx	8.311s
+ok  	github.com/ZoneCNH/kernel/healthx	9.823s
 PASS
 ok  	github.com/ZoneCNH/kernel/internal/testutil	0.002s
 PASS
-ok  	github.com/ZoneCNH/kernel/lifecycx	0.003s
+ok  	github.com/ZoneCNH/kernel/lifecycx	0.002s
 PASS
 ok  	github.com/ZoneCNH/kernel/obsx	0.003s
 goos: linux
 goarch: amd64
 pkg: github.com/ZoneCNH/kernel/retryx
 cpu: Intel(R) Xeon(R) W-10885M CPU @ 2.40GHz
-BenchmarkDelay-16              	350951298	         3.412 ns/op	       0 B/op	       0 allocs/op
-BenchmarkDelay-16              	377362243	         3.146 ns/op	       0 B/op	       0 allocs/op
-BenchmarkDelay-16              	354168014	         3.091 ns/op	       0 B/op	       0 allocs/op
-BenchmarkDelayWithJitter-16    	158953753	         7.440 ns/op	       0 B/op	       0 allocs/op
-BenchmarkDelayWithJitter-16    	155611257	         8.369 ns/op	       0 B/op	       0 allocs/op
-BenchmarkDelayWithJitter-16    	156358581	         7.716 ns/op	       0 B/op	       0 allocs/op
-BenchmarkValidate-16           	449181576	         2.512 ns/op	       0 B/op	       0 allocs/op
-BenchmarkValidate-16           	469881614	         2.736 ns/op	       0 B/op	       0 allocs/op
-BenchmarkValidate-16           	469788746	         3.370 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDelay-16              	410379940	         3.780 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDelay-16              	282409708	         4.570 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDelay-16              	377099024	         3.049 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDelayWithJitter-16    	162668892	         7.462 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDelayWithJitter-16    	166179460	         8.453 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDelayWithJitter-16    	139536264	         7.584 ns/op	       0 B/op	       0 allocs/op
+BenchmarkValidate-16           	485101813	         2.458 ns/op	       0 B/op	       0 allocs/op
+BenchmarkValidate-16           	481834216	         2.897 ns/op	       0 B/op	       0 allocs/op
+BenchmarkValidate-16           	470519142	         2.551 ns/op	       0 B/op	       0 allocs/op
 PASS
-ok  	github.com/ZoneCNH/kernel/retryx	15.323s
+ok  	github.com/ZoneCNH/kernel/retryx	15.780s
 PASS
 ok  	github.com/ZoneCNH/kernel/shutdownx	0.155s
 PASS
 ok  	github.com/ZoneCNH/kernel/syncx	0.009s
 PASS
-ok  	github.com/ZoneCNH/kernel/timex	0.002s
+ok  	github.com/ZoneCNH/kernel/timex	0.003s
 PASS
 ok  	github.com/ZoneCNH/kernel/validx	0.003s
 PASS
-ok  	github.com/ZoneCNH/kernel/versionx	0.002s
+ok  	github.com/ZoneCNH/kernel/versionx	0.003s
