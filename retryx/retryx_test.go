@@ -132,3 +132,32 @@ func TestShouldRetryTraversesErrorTree(t *testing.T) {
 		t.Fatal("ShouldRetry should not match when no retryable error exists")
 	}
 }
+
+// ---- Benchmarks ----
+
+func BenchmarkDelay(b *testing.B) {
+	p := DefaultRetryPolicy()
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		p.Delay(3)
+	}
+}
+
+func BenchmarkDelayWithJitter(b *testing.B) {
+	p := DefaultRetryPolicy()
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		p.DelayWithJitter(3, 0.2, 0.5)
+	}
+}
+
+func BenchmarkValidate(b *testing.B) {
+	p := DefaultRetryPolicy()
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		p.Validate()
+	}
+}

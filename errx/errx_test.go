@@ -175,3 +175,45 @@ func isASCII(s string) bool {
 	}
 	return true
 }
+
+// ---- Benchmarks ----
+
+func BenchmarkNewError(b *testing.B) {
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		_ = NewError(ErrorKindTimeout, "Bench.Op", "timeout")
+	}
+}
+
+func BenchmarkIsKindShallow(b *testing.B) {
+	err := NewError(ErrorKindTimeout, "Op", "timeout")
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		IsKind(err, ErrorKindTimeout)
+	}
+}
+
+func BenchmarkIsKindDeep5(b *testing.B) {
+	base := NewError(ErrorKindTimeout, "L0", "timeout")
+	err := base
+	for j := 0; j < 4; j++ {
+		err = WrapError(ErrorKindConnection, "L1", "conn", err)
+	}
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		IsKind(err, ErrorKindTimeout)
+	}
+}
+
+func BenchmarkIsKindJoin(b *testing.B) {
+	e1 := NewError(ErrorKindTimeout, "Op1", "timeout")
+	e2 := NewError(ErrorKindConnection, "Op2", "conn")
+	joined := fmt.Errorf("wrapped: %w", errors.Join(e1, e2))
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		IsKind(joined, ErrorKindTimeout)
+	}
+}

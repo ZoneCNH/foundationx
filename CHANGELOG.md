@@ -1,5 +1,16 @@
 # 更新日志
 
+## v1.0.0 (2026-06-12)
+
+- **12 子包初始稳定发布**：lifecycx / errx / healthx / obsx / retryx / shutdownx / syncx / timex / validx / versionx / contextx / contracttest
+- **stdlib-only**：零外部依赖，仅使用 Go 标准库，CI gate 强制执行
+- **100% 核心库测试覆盖率**：全部 12 子包达到 100% 语句覆盖
+- **性能基准达标**：NewError < 1ns、IsKind(5层) < 40ns、Delay < 5ns、Aggregate(10) < 1μs
+- **Public API 稳定**：所有公开类型/函数/接口冻结，1.x 内向后兼容
+- **契约验证层**：API 快照 + golden 行为 + 消费者导入测试
+- **12 个可运行示例**：每个子包对应一个独立示例程序
+- **-race 清零**：全部并发测试通过竞态检测
+
 ## v0.9.0 说明
 
 - 完成 kernel P1 能力收敛，补齐 admission/public API contract、stdlib-only 边界与包级边界文档。

@@ -103,3 +103,26 @@ func TestHealthStatusJSONWithMetadata(t *testing.T) {
 		t.Fatalf("unexpected region: %v", meta["region"])
 	}
 }
+
+// ---- Benchmarks ----
+
+func BenchmarkAggregate10(b *testing.B) {
+	statuses := make([]HealthStatus, 10)
+	for i := 0; i < 10; i++ {
+		statuses[i] = NewHealthStatus("svc", HealthHealthy, "ok", time.Now(), 1)
+	}
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		Aggregate("all", statuses...)
+	}
+}
+
+func BenchmarkNewHealthStatus(b *testing.B) {
+	now := time.Now()
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		NewHealthStatus("svc", HealthHealthy, "ok", now, 1)
+	}
+}
