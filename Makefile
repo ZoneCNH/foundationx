@@ -89,6 +89,23 @@ security-strict:
 	fi
 	$(GOENV) gosec -quiet ./...
 
+
+.PHONY: bench
+bench:
+	@pkgs=$$($(GOENV) $(GO) list ./... | grep -v /examples | grep -v /scripts | grep -v /contracts); \
+	for pkg in $$pkgs; do \
+		$(GOENV) $(GO) test -bench=. -benchmem -count=1 $$pkg 2>/dev/null || true; \
+	done
+
+.PHONY: bench-check
+bench-check:
+	./scripts/ci/bench-check.sh
+
+.PHONY: bench-baseline
+bench-baseline:
+	@rm -f contracts/bench/baseline.txt
+	./scripts/ci/bench-check.sh
+
 .PHONY: contracts
 contracts:
 	./scripts/check_contracts.sh
@@ -149,7 +166,7 @@ release-clean-check:
 all: ci
 
 .PHONY: ci
-ci: fmt vet lint test coverage-threshold race boundary security contracts api-check docs artifact-check dependency-check standard-drift-check workflow-pin-check examples
+ci: fmt vet lint test coverage-threshold race bench-check boundary security contracts api-check docs artifact-check dependency-check standard-drift-check workflow-pin-check examples
 
 .PHONY: release-check
 release-check:
