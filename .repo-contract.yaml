@@ -1,0 +1,16 @@
+schema_version: repo-contract/v1
+repo:
+  name: kernel
+  owner: ZoneCNH
+  url: https://github.com/ZoneCNH/kernel
+  module: github.com/ZoneCNH/kernel
+identity:
+  layer: L0
+  public_package: github.com/ZoneCNH/kernel
+  standard_source: github.com/ZoneCNH/xlib-standard
+  is_standard_source: false
+  is_generator: false
+versions:
+  table_version: v1.0.0
+  latest_git_tag: v1.0.0
+  all_aligned: true
